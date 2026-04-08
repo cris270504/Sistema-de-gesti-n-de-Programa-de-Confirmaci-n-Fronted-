@@ -1,0 +1,182 @@
+@import "tailwindcss";
+@reference "tailwindcss";
+
+/* ===== RESET GLOBAL ===== */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+ul,
+ol {
+  margin: 0 !important;
+  padding: 0 !important;
+  list-style: none !important;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p {
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  font-family: var(--font-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  @apply antialiased text-gray-800 bg-gray-50 transition-colors duration-300 ease-in-out;
+}
+
+.dark body {
+  @apply bg-neutral-900 text-gray-100;
+}
+
+/* ===== LINKS ===== */
+a {
+  @apply text-indigo-600 hover:text-indigo-700 font-medium transition-colors duration-200;
+}
+.dark a {
+  @apply text-indigo-400 hover:text-indigo-300;
+}
+
+/* ===== TITULOS ===== */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  @apply font-semibold text-gray-900 dark:text-gray-100;
+}
+h1 {
+  @apply text-3xl;
+}
+h2 {
+  @apply text-2xl;
+}
+h3 {
+  @apply text-xl;
+}
+
+/* ===== FORMULARIOS ===== */
+input,
+select,
+textarea {
+  @apply w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700
+         focus:border-indigo-500 focus:ring-indigo-200/50 transition-all duration-200;
+}
+.dark input,
+.dark select,
+.dark textarea {
+  @apply bg-neutral-800 border-neutral-700 text-gray-100
+         focus:border-indigo-400 focus:ring-indigo-400/30;
+}
+
+/* ===== BOTONES ===== */
+button {
+  @apply inline-flex items-center justify-center rounded-md px-4 py-2 font-medium transition-colors duration-200
+         focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2;
+}
+.btn-primary {
+  @apply bg-indigo-600 text-white hover:bg-indigo-700 focus-visible:ring-indigo-500;
+}
+.btn-secondary {
+  @apply bg-gray-200 text-gray-800 hover:bg-gray-300 dark:bg-neutral-700 dark:text-gray-100 dark:hover:bg-neutral-600;
+}
+.btn-danger {
+  @apply bg-rose-600 text-white hover:bg-rose-700 focus-visible:ring-rose-500;
+}
+
+/* ===== TARJETAS ===== */
+.card {
+  @apply bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-xl shadow-sm p-4 transition-colors duration-300;
+}
+.card-header {
+  @apply font-semibold text-gray-800 dark:text-gray-100 mb-2;
+}
+.card-body {
+  @apply text-sm text-gray-600 dark:text-gray-300;
+}
+
+/* ===== TABLAS ===== */
+table {
+  @apply w-full border-collapse text-sm;
+}
+thead {
+  @apply bg-gray-100 dark:bg-neutral-800 text-gray-700 dark:text-gray-300;
+}
+th,
+td {
+  @apply px-4 py-2 border-b border-gray-200 dark:border-neutral-700;
+}
+tbody tr:hover {
+  @apply bg-gray-50 dark:bg-neutral-800/50;
+}
+
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background-color: rgba(107, 114, 128, 0.4);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(79, 70, 229, 0.5);
+}
+::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
+/* ===== TRANSICIONES ===== */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.25s ease-in-out;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* ===== LAYOUT GENERAL ===== */
+#app {
+  @apply min-h-screen flex flex-col transition-colors duration-300;
+}
+
+/* ===== CONTENIDO PRINCIPAL ===== */
+.main-content {
+  @apply flex-1 overflow-y-auto p-6 bg-gray-50 dark:bg-neutral-900 transition-colors duration-300;
+}
+
+/* ===== ALERTAS ===== */
+.alert {
+  @apply flex items-center gap-3 rounded-md border px-4 py-3 text-sm shadow-sm;
+}
+.alert-info {
+  @apply border-indigo-300 bg-indigo-50 text-indigo-700 dark:border-indigo-700 dark:bg-indigo-950/30 dark:text-indigo-300;
+}
+.alert-success {
+  @apply border-green-300 bg-green-50 text-green-700 dark:border-green-700 dark:bg-green-950/30 dark:text-green-300;
+}
+.alert-warning {
+  @apply border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-300;
+}
+.alert-error {
+  @apply border-rose-300 bg-rose-50 text-rose-700 dark:border-rose-700 dark:bg-rose-950/30 dark:text-rose-300;
+}
+
+/* ===== TOOLTIP ===== */
+.tooltip {
+  @apply absolute z-50 rounded-md bg-gray-900 px-2 py-1 text-xs text-white shadow-lg opacity-0 transition-opacity duration-200 dark:bg-black;
+}
+.tooltip.show {
+  @apply opacity-100;
+}
