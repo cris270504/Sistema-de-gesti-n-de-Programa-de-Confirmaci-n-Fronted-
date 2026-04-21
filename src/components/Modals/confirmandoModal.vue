@@ -24,6 +24,10 @@ const { items: tiposApoderado } = storeToRefs(tiposApoderadoStore);
 const modalRef = ref(null);
 const modalInstance = ref(null);
 
+const searchParentQuery = ref('');
+const parentResults = ref([]);
+const isExistingParent = ref(false);
+
 // Estado
 const draft = ref({
   id: null,
@@ -34,7 +38,8 @@ const draft = ref({
   fecha_nacimiento: '',
   grupo_id: null,
   sacramento_faltante_id: null,
-  apoderados: []
+  apoderados: [],
+  estado: 'en_preparacion',
 });
 
 const loading = ref(false);
@@ -47,6 +52,40 @@ const maxDate = computed(() => {
   const today = new Date();
   return `${today.getFullYear() - 14}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 });
+
+const buscarPadresExistentes = async (e, index) => {
+  const query = e.target.value;
+  if (query.length < 3) {
+    draft.value.apoderados[index].sugerencias = [];
+    return;
+  }
+
+  try {
+    // Reemplaza 'api' por tu instancia de axios o fetch
+    const { data } = await api.get(`/confirmandos/buscar-apoderados?q=${query}`);
+    draft.value.apoderados[index].sugerencias = data;
+  } catch (error) {
+    console.error("Error buscando apoderados:", error);
+  }
+};
+
+// Al seleccionar un padre de la lista
+const seleccionarPadreExistente = (padre, index) => {
+  const ap = draft.value.apoderados[index];
+  ap.nombres = padre.nombres;
+  ap.apellidos = padre.apellidos;
+  ap.celular = padre.celular;
+  ap.es_existente = true;
+  ap.sugerencias = []; // Limpiar lista
+};
+
+const limpiarSeleccion = (index) => {
+  const ap = draft.value.apoderados[index];
+  ap.nombres = '';
+  ap.apellidos = '';
+  ap.celular = '';
+  ap.es_existente = false;
+};
 
 // Inicializar Modal
 onMounted(() => {
@@ -109,6 +148,7 @@ async function loadData(id) {
         fecha_nacimiento: confirmando.fecha_nacimiento ?? '',
         grupo_id: confirmando.grupo_id ?? null,
         sacramento_faltante_id: sacramentoPendiente ? sacramentoPendiente.id : null,
+        estado: confirmando.estado ?? 'en_preparacion',
         apoderados: confirmando.apoderados?.map(ap => ({
           nombres: ap.nombres,
           apellidos: ap.apellidos,
@@ -130,7 +170,14 @@ async function loadData(id) {
 }
 
 const addApoderado = () => {
-  draft.value.apoderados.push({ nombres: '', apellidos: '', celular: '', tipo_apoderado_id: '' });
+  draft.value.apoderados.push({
+    tipo_apoderado_id: '',
+    nombres: '',
+    apellidos: '',
+    celular: '',
+    sugerencias: [], // Para guardar los resultados de búsqueda de esta tarjeta
+    es_existente: false // Para saber si viene de la DB
+  });
 };
 
 const removeApoderado = (index) => {
@@ -143,24 +190,20 @@ async function submitUpdate() {
   const payload = {
     nombres: draft.value.nombres?.trim(),
     apellidos: draft.value.apellidos?.trim(),
-    celular: draft.value.celular?.trim() || null,
-    genero: draft.value.genero?.trim() || null,
-    fecha_nacimiento: draft.value.fecha_nacimiento,
-    grupo_id: draft.value.grupo_id || null,
-    sacramento_faltante_id: draft.value.sacramento_faltante_id,
-    apoderados: draft.value.apoderados
+    celular: draft.value.celular?.trim() ? draft.value.celular.trim() : null,
+    genero: draft.value.genero ? draft.value.genero : null,
+    fecha_nacimiento: draft.value.fecha_nacimiento ? draft.value.fecha_nacimiento : null,
+    grupo_id: draft.value.grupo_id ? draft.value.grupo_id : null,
+    sacramento_faltante_id: draft.value.sacramento_faltante_id ? draft.value.sacramento_faltante_id : null,
+    apoderados: draft.value.apoderados && draft.value.apoderados.length > 0 ? draft.value.apoderados : [],
+    estado: draft.value.estado,
   };
 
   if (!payload.nombres) return showAlerta('Faltan Nombres', 'warning');
   if (!payload.apellidos) return showAlerta('Faltan Apellidos', 'warning');
-  if (!payload.fecha_nacimiento) return showAlerta('Falta Fecha Nacimiento', 'warning');
 
   // Validación de edad solo si la fecha cambió o es nuevo
   if (payload.fecha_nacimiento > maxDate.value) return showAlerta('Debe tener al menos 14 años.', 'warning');
-
-  if (!isEditing.value && !payload.sacramento_faltante_id) {
-    return showAlerta('Debes seleccionar el sacramento a realizar', 'warning');
-  }
 
   for (const ap of payload.apoderados) {
     if (!ap.nombres || !ap.apellidos || !ap.tipo_apoderado_id) {
@@ -243,7 +286,7 @@ async function submitUpdate() {
                   <span class="input-group-text bg-blue-soft text-primary border-end-0"><i
                       class="bi bi-calendar-event"></i></span>
                   <input v-model="draft.fecha_nacimiento" :max="maxDate" type="date" class="form-control border-start-0"
-                    required :disabled="saving">
+                    :disabled="saving">
                 </div>
               </div>
 
@@ -286,8 +329,17 @@ async function submitUpdate() {
               </div>
 
               <div class="col-md-6">
+                <label class="form-label fw-bold text-secondary small text-uppercase">Estado del Confirmando</label>
+                <select v-model="draft.estado" class="form-select border-start-0" :disabled="saving">
+                  <option value="en_preparacion">En Preparación</option>
+                  <option value="confirmado">Confirmado (Finalizado)</option>
+                  <option value="retirado">Retirado / Desertó</option>
+                </select>
+              </div>
+
+              <div class="col-md-6">
                 <label class="form-label fw-bold text-secondary small text-uppercase">
-                  Sacramento faltante <span class="text-danger">*</span>
+                  Sacramento faltante
                 </label>
                 <select v-model="draft.sacramento_faltante_id" class="form-select border-primary" required
                   :disabled="saving">
@@ -316,7 +368,7 @@ async function submitUpdate() {
                     class="card border shadow-sm apoderado-card">
                     <div class="card-body p-3 position-relative">
                       <button type="button" class="btn-close position-absolute top-0 end-0 m-2"
-                        @click="removeApoderado(index)" :disabled="saving" aria-label="Eliminar"></button>
+                        @click="removeApoderado(index)" :disabled="saving"></button>
 
                       <div class="row g-2">
                         <div class="col-12 mb-1">
@@ -328,20 +380,42 @@ async function submitUpdate() {
                             </option>
                           </select>
                         </div>
-                        <div class="col-md-6">
+
+                        <div class="col-md-6 position-relative">
                           <label class="form-label small text-muted mb-0">Apellidos</label>
                           <input type="text" v-model="ap.apellidos" class="form-control form-control-sm" required
-                            :disabled="saving">
+                            :disabled="saving" @input="buscarPadresExistentes($event, index)"
+                            placeholder="Escriba para buscar..." autocomplete="off">
+
+                          <ul v-if="ap.sugerencias && ap.sugerencias.length > 0"
+                            class="list-group position-absolute w-100 shadow-lg z-3 mt-1">
+                            <li v-for="p in ap.sugerencias" :key="p.id" @click="seleccionarPadreExistente(p, index)"
+                              class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 cursor-pointer">
+                              <div>
+                                <div class="fw-bold small">{{ p.apellidos }}, {{ p.nombres }}</div>
+                                <div class="text-muted extra-small">Cel: {{ p.celular || '---' }}</div>
+                              </div>
+                              <span class="badge rounded-pill bg-info-subtle text-info border small">Existente</span>
+                            </li>
+                          </ul>
                         </div>
+
                         <div class="col-md-6">
                           <label class="form-label small text-muted mb-0">Nombres</label>
                           <input type="text" v-model="ap.nombres" class="form-control form-control-sm" required
                             :disabled="saving">
                         </div>
+
                         <div class="col-md-6">
                           <label class="form-label small text-muted mb-0">Celular</label>
-                          <input type="tel" v-model="ap.celular" class="form-control form-control-sm" maxlength="9"
-                            :disabled="saving">
+                          <div class="input-group input-group-sm">
+                            <input type="tel" v-model="ap.celular" class="form-control" maxlength="9"
+                              :disabled="saving">
+                            <button v-if="ap.es_existente" class="btn btn-outline-danger" type="button"
+                              @click="limpiarSeleccion(index)">
+                              <i class="bi bi-x-circle"></i>
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -378,6 +452,26 @@ async function submitUpdate() {
 /* =========================================
    ESTÉTICA "BLUE HEADER" (MODAL STANDARD)
 ========================================= */
+.z-3 {
+  z-index: 1050;
+}
+.cursor-pointer {
+  cursor: pointer;
+}
+.extra-small {
+  font-size: 0.7rem;
+}
+.border-dashed {
+  border-style: dashed !important;
+}
+/* Estilo para que la lista no se corte si la tarjeta es pequeña */
+.apoderado-card {
+  overflow: visible !important;
+}
+.list-group {
+  max-height: 200px;
+  overflow-y: auto;
+}
 
 /* 1. ESTRUCTURA */
 .modal-content {

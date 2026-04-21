@@ -20,3 +20,25 @@ export function deleteConfirmandoById(id) {
   return api.delete(`/confirmandos/${id}`).then(res => res.data)
 }
 
+export function importarConfirmandosExcel(formData) {
+    // Agregamos el header para que Laravel sepa que viene un archivo
+    return api.post('/confirmandos/importar', formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data'
+        }
+    }).then(res => res.data);
+}
+
+export const exportarConfirmandosExcel = async () => {
+    // Para descargas de archivos, usamos 'blob' como tipo de respuesta
+    const response = await api.get('/confirmandos/exportar', { responseType: 'blob' });
+    
+    // Creamos un link temporal para descargar el archivo
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'Confirmandos_por_Grupos.xlsx');
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+};

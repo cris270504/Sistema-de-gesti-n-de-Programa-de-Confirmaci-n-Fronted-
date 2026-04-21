@@ -34,7 +34,7 @@ const submit = async () => {
     <div class="flex items-center justify-center min-h-screen bg-gray-100 px-4 py-12">
         <div class="w-full max-w-md bg-white rounded-lg shadow-md p-6 md:p-8">
             <div class="text-center mb-8">
-                <img src="@/assets/logo.svg" alt="Logo App" class="mx-auto h-12 w-auto mb-4" />
+                <img src="@/assets/logo.png" alt="Logo App" class="mx-auto h-49 w-auto mb-4" />
                 <h2 class="text-2xl font-bold text-gray-900">
                     Iniciar Sesión
                 </h2>

@@ -18,10 +18,12 @@ const goToProfile = () => {
 </script>
 
 <template>
-  <nav class="sticky top-0 z-10 flex h-16 w-full items-center justify-between bg-white px-4 shadow-md shadow-blue-gray-900/5">
+  <nav class="sticky top-0 z-10 flex min-h-[64px] py-2 w-full items-center justify-between bg-white px-4 shadow-md shadow-blue-gray-900/5">
 
-    <div class="flex items-center">
-       <span class="ml-4 text-lg font-semibold text-gray-700 hidden md:block">SISTEMA DE GESTIÓN DEL PROGRAMA DE CATEQUESIS DE CONFIRMACIÓN</span>
+    <div class="d-flex align-items-center">
+      <div class="d-none d-sm-block">
+        <p class="text-muted mb-0 fw-bold" style="font-size: 1.5rem;">Sistema de Gestión del Programa de Confirmación</p>
+      </div>
     </div>
 
     <div class="flex items-center gap-4">
@@ -30,7 +32,7 @@ const goToProfile = () => {
         Bienvenido, <span class="font-medium">{{ authStore.user.name }}</span>
       </span>
 
-      <div v-if="authStore.isAuthenticated" class="relative">
+      <div v-if="authStore.isAuthenticated" class="relative flex">
          <button @click="goToProfile" class="p-2 rounded-full text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" title="Mi Perfil">
            <UserCircleIcon class="h-6 w-6" />
          </button>

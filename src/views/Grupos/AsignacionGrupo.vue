@@ -31,6 +31,10 @@ const loadingGrupo = ref(true);
 // --- COMPUTED PARA EL COLOR DEL GRUPO ---
 const groupColor = computed(() => grupo.value?.color || '#2563eb');
 
+const confirmandosActivos = computed(() => {
+    return allConfirmandos.value.filter(c => c.estado === 'en_preparacion');
+});
+
 // Modales refs
 const catequistasModalInstance = ref(null);
 const confirmandosModalInstance = ref(null);
@@ -114,7 +118,26 @@ async function loadGroupData() {
 // --- LÓGICA CATEQUISTAS ---
 const availableCatechists = computed(() => {
     if (!allUsers.value) return [];
-    return allUsers.value.filter(user => user.roles?.some(role => role.name === 'catequista' || role.name === 'coordinador'));
+    
+    const currentGroupId = Number(props.id);
+
+    return allUsers.value.filter(user => {
+        // 1. Primero filtramos que sea catequista o coordinador
+        const hasRole = user.roles?.some(role => 
+            role.name === 'catequista' || role.name === 'coordinador'
+        );
+
+        if (!hasRole) return false;
+
+        // 2. Lógica de visibilidad en el modal:
+        // - Si no tiene grupo (grupo_id es null o undefined) -> APARECE
+        // - Si el grupo que tiene es el MISMO que estamos editando -> APARECE (para poder desmarcarlo)
+        // - Si tiene otro grupo diferente -> NO APARECE
+        const isFree = !user.grupo_id;
+        const isAlreadyInThisGroup = Number(user.grupo_id) === currentGroupId;
+
+        return isFree || isAlreadyInThisGroup;
+    });
 });
 const openCatechistaModal = () => {
     if (loadingUsers.value) return showAlerta('Cargando...', 'info');
@@ -441,7 +464,7 @@ const countEntregados = (requisitos) => { if (!requisitos) return 0; return requ
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr v-for="conf in filteredConfirmandosModal" :key="conf.id"
+                                <tr v-for="conf in confirmandosActivos" :key="conf.id"
                                     class="hover-bg-light cursor-pointer"
                                     @click="!savingConfirmandos && (selectedConfirmandoIds.includes(conf.id) ? selectedConfirmandoIds = selectedConfirmandoIds.filter(id => id !== conf.id) : selectedConfirmandoIds.push(conf.id))">
                                     <td class="ps-4">

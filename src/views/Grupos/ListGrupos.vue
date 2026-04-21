@@ -2,10 +2,11 @@
 import { storeToRefs } from 'pinia';
 import { onMounted, ref, watch } from 'vue'; // Agregamos watch
 import { RouterLink } from 'vue-router';
-import { UserPlus, Pencil, Trash, Plus, Users, Calendar } from 'lucide-vue-next';
+import { UserPlus, Pencil, Trash, Plus, Users, Calendar, Download } from 'lucide-vue-next';
 import { useGruposStore } from '../../stores/grupos';
 import GrupoModal from '../../components/Modals/grupoModal.vue';
 import { showAlerta } from '@/funciones'; // Importamos showAlerta
+import api from '@/lib/api';
 
 const gruposStore = useGruposStore();
 const { items: grupos, loading, error } = storeToRefs(gruposStore);
@@ -13,6 +14,7 @@ const { fetchAll, remove } = gruposStore;
 
 // Referencia al modal
 const modalRef = ref(null);
+const isExporting = ref(false);
 
 // Monitorear errores del store y mostrarlos con alerta
 watch(error, (newError) => {
@@ -25,10 +27,10 @@ const abrirCrear = () => {
     // Calculamos el año actual para pasarlo al modal (si tu modal soporta defaults)
     // O bien, el modal debe inicializarse internamente con este valor.
     const anioActual = new Date().getFullYear().toString();
-    
+
     // Abrimos el modal. Si tu modal acepta un segundo parámetro para defaults, úsalo.
     // Si no, asegúrate de aplicar el cambio en el componente GrupoModal (ver abajo).
-    modalRef.value.open(null, { periodo: anioActual }); 
+    modalRef.value.open(null, { periodo: anioActual });
 };
 
 const abrirEditar = (grupoId) => {
@@ -39,6 +41,32 @@ const recargarTabla = () => {
     fetchAll();
 };
 
+const exportarDatos = async () => {
+    if (isExporting.value) return;
+
+    isExporting.value = true;
+    try {
+        // Pedimos el archivo como 'blob' (formato binario de archivos)
+        const response = await api.get('/confirmandos/exportar', { responseType: 'blob' });
+
+        // Creamos la descarga invisible en el navegador
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', 'Confirmandos_por_Grupos.xlsx');
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+
+        showAlerta('Archivo exportado correctamente', 'success');
+    } catch (err) {
+        console.error("Error al exportar:", err);
+        showAlerta('Ocurrió un error al descargar el archivo', 'error');
+    } finally {
+        isExporting.value = false;
+    }
+};
+
 onMounted(() => {
     fetchAll();
 });
@@ -46,17 +74,27 @@ onMounted(() => {
 
 <template>
     <div class="main-container">
-        
+
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
                 <h2 class="page-title">Grupos Pastorales</h2>
                 <p class="page-subtitle">Gestión de catequesis</p>
             </div>
-            
-            <button @click="abrirCrear" class="btn btn-primary shadow-sm px-3 py-2 d-flex align-items-center">
-                <Plus :size="18" class="me-2" stroke-width="2.5" /> 
-                <span class="fw-bold fs-7 text-uppercase">Nuevo Grupo</span>
-            </button>
+
+            <div class="d-flex gap-2">
+                <button @click="exportarDatos" :disabled="isExporting"
+                    class="btn btn-outline-success shadow-sm px-3 py-2 d-flex align-items-center">
+                    <span v-if="isExporting" class="spinner-border spinner-border-sm me-2"></span>
+                    <Download v-else :size="18" class="me-2" />
+                    <span class="fw-bold fs-7 text-uppercase">{{ isExporting ? 'Exportando...' : 'Exportar por Grupos'
+                        }}</span>
+                </button>
+
+                <button @click="abrirCrear" class="btn btn-primary shadow-sm px-3 py-2 d-flex align-items-center">
+                    <Plus :size="18" class="me-2" stroke-width="2.5" />
+                    <span class="fw-bold fs-7 text-uppercase">Nuevo Grupo</span>
+                </button>
+            </div>
         </div>
 
         <div v-if="loading" class="text-center py-5">
@@ -82,8 +120,8 @@ onMounted(() => {
                         <tr v-for="g in grupos" :key="g.id" class="hover-row">
                             <td class="ps-4 py-2">
                                 <div class="d-flex align-items-center">
-                                    <div class="color-dot me-3 shadow-sm" 
-                                         :style="{ backgroundColor: g.color || '#cbd5e1' }">
+                                    <div class="color-dot me-3 shadow-sm"
+                                        :style="{ backgroundColor: g.color || '#cbd5e1' }">
                                     </div>
                                     <div>
                                         <div class="fw-bold text-dark fs-6 lh-sm">{{ g.nombre }}</div>
@@ -97,8 +135,7 @@ onMounted(() => {
                             <td class="py-2">
                                 <div class="d-flex flex-wrap gap-1">
                                     <template v-if="g.catequistas && g.catequistas.length > 0">
-                                        <span v-for="cat in g.catequistas" :key="cat.id" 
-                                              class="badge-catequista">
+                                        <span v-for="cat in g.catequistas" :key="cat.id" class="badge-catequista">
                                             {{ cat.name }}
                                         </span>
                                     </template>
@@ -115,17 +152,18 @@ onMounted(() => {
 
                             <td class="text-end pe-4 py-2">
                                 <div class="d-inline-flex gap-2">
-                                    <RouterLink :to="{ path: 'grupos/' + g.id + '/asignacion' }" 
-                                                class="btn btn-action btn-soft-success" 
-                                                title="Asignar Personas">
+                                    <RouterLink :to="{ path: 'grupos/' + g.id + '/asignacion' }"
+                                        class="btn btn-action btn-soft-success" title="Asignar Personas">
                                         <UserPlus :size="18" />
                                     </RouterLink>
 
-                                    <button class="btn btn-action btn-soft-primary" title="Editar" @click="abrirEditar(g.id)">
+                                    <button class="btn btn-action btn-soft-primary" title="Editar"
+                                        @click="abrirEditar(g.id)">
                                         <Pencil :size="18" />
                                     </button>
-                                    
-                                    <button class="btn btn-action btn-soft-danger" title="Eliminar" @click="remove(g.id, g.nombre)">
+
+                                    <button class="btn btn-action btn-soft-danger" title="Eliminar"
+                                        @click="remove(g.id, g.nombre)">
                                         <Trash :size="18" />
                                     </button>
                                 </div>
@@ -150,10 +188,12 @@ onMounted(() => {
     margin-bottom: 0;
     letter-spacing: -0.5px;
 }
+
 .page-subtitle {
     font-size: 0.875rem;
     color: #6b7280;
 }
+
 .color-dot {
     width: 24px;
     height: 24px;
@@ -161,10 +201,27 @@ onMounted(() => {
     border: 2px solid #fff;
     box-shadow: 0 0 0 1px #e5e7eb;
 }
-.bg-light-gray { background-color: #f8fafc; border-bottom: 1px solid #e5e7eb; }
-.bg-light-gray th { font-size: 0.75rem; letter-spacing: 0.5px; }
-.hover-row:hover td { background-color: #f9fafb; }
-.hover-row td { border-bottom: 1px solid #f3f4f6; color: #374151; font-size: 0.95rem; }
+
+.bg-light-gray {
+    background-color: #f8fafc;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.bg-light-gray th {
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+}
+
+.hover-row:hover td {
+    background-color: #f9fafb;
+}
+
+.hover-row td {
+    border-bottom: 1px solid #f3f4f6;
+    color: #374151;
+    font-size: 0.95rem;
+}
+
 .badge-catequista {
     background-color: #f3f4f6;
     color: #4b5563;
@@ -174,19 +231,60 @@ onMounted(() => {
     font-weight: 600;
     border-radius: 6px;
 }
-.btn-action { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; border: none; transition: all 0.2s; }
-.btn-soft-success { background-color: #f0fdf4; color: #16a34a; }
-.btn-soft-success:hover { background-color: #16a34a; color: white; transform: translateY(-2px); }
-.btn-soft-primary { background-color: #eff6ff; color: #2563eb; border: 1px solid #dbeafe; }
-.btn-soft-primary:hover { background-color: #2563eb; color: white; transform: translateY(-2px); }
-.btn-soft-danger { background-color: #fef2f2; color: #ef4444; border: 1px solid #fee2e2; }
-.btn-soft-danger:hover { background-color: #ef4444; color: white; transform: translateY(-2px); }
-.btn-primary {
-  background-color: #2563eb;
-  border-color: #2563eb;
-  font-size: 0.9rem;
+
+.btn-action {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    transition: all 0.2s;
 }
+
+.btn-soft-success {
+    background-color: #f0fdf4;
+    color: #16a34a;
+}
+
+.btn-soft-success:hover {
+    background-color: #16a34a;
+    color: white;
+    transform: translateY(-2px);
+}
+
+.btn-soft-primary {
+    background-color: #eff6ff;
+    color: #2563eb;
+    border: 1px solid #dbeafe;
+}
+
+.btn-soft-primary:hover {
+    background-color: #2563eb;
+    color: white;
+    transform: translateY(-2px);
+}
+
+.btn-soft-danger {
+    background-color: #fef2f2;
+    color: #ef4444;
+    border: 1px solid #fee2e2;
+}
+
+.btn-soft-danger:hover {
+    background-color: #ef4444;
+    color: white;
+    transform: translateY(-2px);
+}
+
+.btn-primary {
+    background-color: #2563eb;
+    border-color: #2563eb;
+    font-size: 0.9rem;
+}
+
 .btn-primary:hover {
-  background-color: #1d4ed8;
+    background-color: #1d4ed8;
 }
 </style>

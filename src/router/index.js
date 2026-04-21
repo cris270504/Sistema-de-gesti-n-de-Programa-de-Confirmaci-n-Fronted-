@@ -55,7 +55,7 @@ const router = createRouter({
           path: '/confirmandos',
           name: 'confirmandos',
           component: ListConfirmandos,
-          meta: { title: 'Listado de confirmandos', permission: ['ver todos los confirmandos'] }
+          meta: { title: 'Listado de confirmandos', permission: ['ver todos los confirmandos']  }
         },
 
         //GRUPOS

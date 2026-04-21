@@ -55,7 +55,7 @@ const navigationItems = computed(() => {
 
   const items = [
     { name: 'Dashboard', to: { name: 'dashboard' }, icon: HomeIcon },
-    { name: 'Confirmandos', to: { name: 'confirmandos' }, icon: UserCircleIcon, permission: 'ver todos los confirmandos' },
+    { name: 'Confirmandos', to: { name: 'confirmandos' }, icon: UserCircleIcon, permission: 'ver todos los confirmandos'},
     { name: 'Grupos', to: { name: 'grupos' }, icon: UserGroupIcon, permission: 'ver todos los grupos' },
     { name: 'Cronograma', to: { name: 'cronograma' }, icon: CalendarIcon, permission: 'ver todos los requisitos' },
     { name: 'Cumpleaños', to: { name: 'cumpleanos' }, icon: CakeIcon },
@@ -111,9 +111,9 @@ defineExpose({ toggleSidebar });
     <div
       :class="['mb-2 flex items-center justify-between border-b pb-4', isSidebarOpen ? 'px-2' : 'px-0 justify-center']">
       <div v-if="isSidebarOpen" class="inline-flex items-center gap-2">
-        <img src="@/assets/logo.svg" alt="Logo" class="h-8 w-auto" />
+        <img src="@/assets/logo.png" alt="Logo" class="h-13 w-auto" />
         <h5 class="block text-xl font-semibold tracking-tight text-slate-800">
-          Confirmación
+          SGPC
         </h5>
       </div>
       <button @click="toggleSidebar" class="rounded p-2 text-slate-500 hover:bg-slate-100 focus:outline-none">

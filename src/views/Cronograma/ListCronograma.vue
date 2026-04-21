@@ -72,7 +72,7 @@ const calendarOptions = computed(() => ({
   headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,listMonth' },
   buttonText: { today: 'Hoy', month: 'Mes', list: 'Lista' },
   events: formattedEvents.value,
-  displayEventTime: true,
+  displayEventTime: false,
 
   // INTERACCIÓN
   eventClick: handleEventClick,
@@ -355,6 +355,7 @@ onMounted(async () => {
 
     <div class="modal fade" id="formModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
       <div class="modal-dialog modal-dialog-centered">
+        
         <div class="modal-content">
           <div class="modal-header bg-primary text-white">
             <h5 class="modal-title">{{ isEditing ? 'Editar Actividad' : 'Agendar Nueva Actividad' }}</h5>

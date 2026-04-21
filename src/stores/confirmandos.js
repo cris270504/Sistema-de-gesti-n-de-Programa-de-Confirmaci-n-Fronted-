@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { createConfirmando, deleteConfirmandoById, getConfirmandoById, getConfirmandosList, updateConfirmando } from '../services/confirmandos';
+import { createConfirmando, deleteConfirmandoById, getConfirmandoById, getConfirmandosList, updateConfirmando, importarConfirmandosExcel } from '../services/confirmandos';
 import { confirmarEliminacion, showAlerta, showErroresDeValidacion } from '@/funciones'
 
 export const useConfirmandosStore = defineStore('confirmandos', {
@@ -10,6 +10,28 @@ export const useConfirmandosStore = defineStore('confirmandos', {
     }),
 
     getters: {
+        // --- MOVIDO DENTRO DE GETTERS ---
+        stats: (state) => {
+            const total = state.items.length;
+            // Retornamos valores seguros si no hay datos para evitar divisiones por cero
+            if (total === 0) {
+                return { activos: 0, retirados: 0, confirmados: 0, tasaRetencion: 0, tasaDesercion: 0 };
+            }
+
+            const activos = state.items.filter(c => c.estado === 'en_preparacion').length;
+            const retirados = state.items.filter(c => c.estado === 'retirado').length;
+            const confirmados = state.items.filter(c => c.estado === 'confirmado').length;
+
+            return {
+                activos,
+                retirados,
+                confirmados,
+                // Usamos Number() para que las tasas sean tratadas como números en el front si es necesario
+                tasaRetencion: Number(((activos / total) * 100).toFixed(1)),
+                tasaDesercion: Number(((retirados / total) * 100).toFixed(1))
+            };
+        },
+
         byId: (state) => (id) => state.items.find(c => c.id === Number(id)),
         count: (state) => state.items.length,
     },
@@ -126,6 +148,20 @@ export const useConfirmandosStore = defineStore('confirmandos', {
                 return false
             }
         },
+
+        async importarExcel(formData) {
+            try {
+                // Llamamos al servicio pasando el formData (el archivo)
+                const response = await importarConfirmandosExcel(formData);
+                return response; // Devolvemos el response para que la vista muestre el mensaje de éxito
+            } catch (error) {
+                // Aquí NO usamos showErroresDeValidacion porque la vista 
+                // ya tiene una lógica personalizada para mostrar los errores de las filas del excel.
+                // Simplemente relanzamos el error.
+                throw error;
+            }
+        }
+
 
     },
 })

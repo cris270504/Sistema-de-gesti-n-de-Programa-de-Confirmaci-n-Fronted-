@@ -196,6 +196,7 @@ async function loadMatrix() {
                                     id: hijo.id,
                                     nombres: hijo.nombres,
                                     apellidos: hijo.apellidos,
+                                    estado: hijo.estado,
                                     grupo_id: hijo.grupo_id || hijo.grupo?.id,
                                     grupo_nombre: hijo.grupo?.nombre || 'Sin Grupo',
                                     es_confirmando: true,
@@ -298,28 +299,28 @@ const closePopover = () => {
     }
 
     if (tipoActual.value !== 'Apoderados') {
-        
+
         // --- 2. VALIDACIÓN DE CAMBIO REAL ---
         // Obtenemos el valor original que está en memoria (AttendanceMap)
         // Ojo: Usamos el map directamente, no 'changes', para comparar con la "verdad"
         const originalData = attendanceMap.value[personaId]?.[reunionId] || { estado: null, nota: '' };
-        
+
         const estadoOriginal = originalData.estado || null;
         const notaOriginal = (originalData.nota || '').trim();
-        
+
         const estadoNuevo = estado || null;
         const notaNueva = (nota || '').trim();
 
         // Si NO hubo cambios reales (es decir, abriste y cerraste sin tocar, o pusiste lo mismo)
         if (estadoOriginal === estadoNuevo && notaOriginal === notaNueva) {
-            
+
             // IMPORTANTE: Si existía un cambio pendiente pero lo dejaste igual al original,
             // lo borramos de la lista de cambios para que el contador baje.
             const key = `${personaId}-${reunionId}`;
             if (changes.value[key]) {
                 delete changes.value[key];
             }
-            
+
             popover.value.visible = false;
             return;
         }
@@ -337,7 +338,7 @@ const closePopover = () => {
             asistente_type: modelTypeMap[tipoActual.value],
             reunion_id: reunionId,
             estado: estado,
-            nota: nota 
+            nota: nota
         };
     }
 
@@ -685,34 +686,43 @@ const formatColDate = (dateStr) => {
                                         {{ r.nombre_tema }}
                                     </div>
                                     <div class="fw-bold text-dark" style="font-size: 0.9rem;">{{ formatColDate(r.fecha)
-                                    }}</div>
+                                        }}</div>
                                 </th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="p in filteredPersonas" :key="p.id">
+                            <tr v-for="p in filteredPersonas" :key="p.id"
+                                :class="{ 'bg-light opacity-75': p.estado === 'retirado' }">
                                 <td class="text-start sticky-col bg-white ps-4 py-2 shadow-sm-right">
+                                    <div class="d-flex align-items-center">
+                                        <div>
+                                            <div class="fw-medium text-dark">
+                                                {{ p.apellidos ? `${p.apellidos}, ${p.nombres}` : p.name }}
+                                                <span v-if="p.estado === 'retirado'" class="badge bg-danger ms-2"
+                                                    style="font-size: 0.65rem;">RETIRADO</span>
+                                            </div>
 
-                                    <div class="fw-medium text-dark">
-                                        {{ p.apellidos ? `${p.apellidos}, ${p.nombres}` : p.name }}
+                                            <div class="small text-muted" v-if="!filterGrupo">
+                                                {{ p.grupo_nombre || 'Sin Grupo' }}
+                                            </div>
+                                        </div>
                                     </div>
-
-                                    <div class="small text-muted" v-if="!filterGrupo">
-                                        {{ p.grupo_nombre || 'Sin Grupo' }}
-                                    </div>
-
                                 </td>
 
-                                <td v-for="r in reuniones" :key="r.id" @click="openPopover($event, p.id, r.id)"
-                                    class="cell-interactive p-1">
+                                <td v-for="r in reuniones" :key="r.id"
+                                    @click="p.estado !== 'retirado' ? openPopover($event, p.id, r.id) : null"
+                                    class="cell-interactive p-1"
+                                    :class="{ 'cursor-not-allowed': p.estado === 'retirado' }">
                                     <div class="cell-content d-flex align-items-center justify-content-center rounded position-relative"
                                         :class="{
                                             'bg-success-subtle text-success': attendanceMap[p.id]?.[r.id]?.estado === 'asistio',
                                             'bg-warning-subtle text-warning': attendanceMap[p.id]?.[r.id]?.estado === 'tardanza',
                                             'bg-info-subtle text-info': attendanceMap[p.id]?.[r.id]?.estado === 'falta justificada',
                                             'bg-danger-subtle text-danger': attendanceMap[p.id]?.[r.id]?.estado === 'falta injustificada',
-                                            'cell-empty': !attendanceMap[p.id]?.[r.id]?.estado
+                                            'bg-secondary-subtle text-muted': p.estado === 'retirado' && !attendanceMap[p.id]?.[r.id]?.estado,
+                                            'cell-empty': !attendanceMap[p.id]?.[r.id]?.estado && p.estado !== 'retirado'
                                         }" style="height: 40px; width: 100%;">
+
                                         <i v-if="attendanceMap[p.id]?.[r.id]?.estado === 'asistio'"
                                             class="bi bi-check-lg fs-5"></i>
                                         <i v-else-if="attendanceMap[p.id]?.[r.id]?.estado === 'tardanza'"
@@ -721,6 +731,8 @@ const formatColDate = (dateStr) => {
                                             class="bi bi-file-medical fs-5"></i>
                                         <i v-else-if="attendanceMap[p.id]?.[r.id]?.estado === 'falta injustificada'"
                                             class="bi bi-x-lg fs-5"></i>
+
+                                        <span v-else-if="p.estado === 'retirado'" class="opacity-50">-</span>
                                         <span v-else class="opacity-25">&bull;</span>
 
                                         <div v-if="attendanceMap[p.id]?.[r.id]?.nota"
@@ -872,6 +884,16 @@ const formatColDate = (dateStr) => {
 </template>
 
 <style scoped>
+
+.cursor-not-allowed {
+    cursor: not-allowed !important;
+}
+
+/* Evita que las celdas de retirados resalten al pasar el mouse si ya tienes un hover */
+tr.opacity-75:hover td {
+    background-color: transparent !important;
+}
+
 /* --- ESTÉTICA GENERAL --- */
 .custom-scrollbar::-webkit-scrollbar {
     width: 8px;
