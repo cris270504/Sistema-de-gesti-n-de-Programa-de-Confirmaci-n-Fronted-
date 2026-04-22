@@ -80,7 +80,7 @@ onMounted(() => {
               <th class="ps-4 py-2 text-secondary text-uppercase fw-bold">Usuario</th>
               <th class="py-2 text-secondary text-uppercase fw-bold">Contacto</th>
               <th class="py-2 text-secondary text-uppercase fw-bold">Roles</th>
-              <th class="text-end pe-4 py-2 text-secondary text-uppercase fw-bold">Acciones</th>
+              <th v-if="authStore.can('editar usuarios')" class="text-end pe-4 py-2 text-secondary text-uppercase fw-bold">Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -127,8 +127,8 @@ onMounted(() => {
                 </div>
               </td>
               
-              <td class="text-end pe-4 py-2">
-                <div v-if="authStore.can('editar usuarios')" class="d-inline-flex gap-2">
+              <td v-if="authStore.can('editar usuarios')" class="text-end pe-4 py-2">
+                <div  class="d-inline-flex gap-2">
                   <button @click="abrirEditar(u)" class="btn btn-action btn-soft-primary" title="Editar">
                     <Pencil :size="18" />
                   </button>
