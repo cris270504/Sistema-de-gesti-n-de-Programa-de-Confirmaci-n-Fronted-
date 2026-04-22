@@ -2,14 +2,12 @@ import axios from 'axios';
 import router from '@/router';
 import { LS_TOKEN_KEY,LS_USER_KEY } from '@/constants/auth';
 
-//'https://sistemaconfirmacionapi.test/api'
+//'https://sistema-de-gestion-de-programa-de.onrender.com/'
 const api = axios.create({
-  baseURL: '/api',
-  timeout: 10000,
-  headers: { 
-      'Accept': 'application/json',
-      'Content-Type': 'application/json'
-  },
+  // En desarrollo usa el proxy (/api), en producción usa la URL real
+  baseURL: import.meta.env.MODE === 'production' 
+    ? 'https://sistema-de-gestion-de-programa-de.onrender.com/api' 
+    : '/api'
 });
 
 api.interceptors.request.use((config) => {  

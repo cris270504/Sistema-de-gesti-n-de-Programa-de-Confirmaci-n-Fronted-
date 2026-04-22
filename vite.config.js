@@ -16,12 +16,11 @@ export default defineConfig({
     },
   },
   server: {
-    host: '0.0.0.0',
     proxy: {
       '/api': {
-        target: 'https://sistemaconfirmacionapi.test', 
+        target: 'https://sistema-de-gestion-de-programa-de.onrender.com', // Sin el slash final
         changeOrigin: true,
-        secure: false,
+        secure: true, // Cámbialo a true porque Render tiene SSL (https)
       }
     }
   }
