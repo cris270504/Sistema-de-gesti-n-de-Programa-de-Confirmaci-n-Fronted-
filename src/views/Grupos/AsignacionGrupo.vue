@@ -10,7 +10,8 @@ import { useAuthStore } from '@/stores/auth';
 import {
     FileText, CheckCircle, AlertCircle, ArrowLeft,
     UserPlus, Users, Search, User, Phone, Pencil,
-    ShieldCheck, Plus, Eye
+    ShieldCheck, Plus, Eye,
+    AlertTriangle, AlertOctagon, Clock
 } from 'lucide-vue-next';
 import ConfirmandoModal from '../../components/Modals/confirmandoModal.vue';
 
@@ -249,6 +250,42 @@ const handleSaveDocs = async () => {
     } catch (e) { console.error(e); showAlerta('Error al guardar documentos', 'error'); } finally { savingDocs.value = false; }
 };
 const countEntregados = (requisitos) => { if (!requisitos) return 0; return requisitos.filter(r => r.pivot.estado === 'entregado').length; };
+
+const getAlertaFaltas = (confirmando) => {
+    const asistencias = confirmando.asistencias || [];
+    const ESTADO_BUSCADO = 'falta injustificada';
+
+    let consecutivas = 0;
+    for (let i = asistencias.length - 1; i >= 0; i--) {
+        if (asistencias[i].estado === ESTADO_BUSCADO) consecutivas++;
+        else break;
+    }
+
+    const totales = asistencias.filter(a => a.estado === ESTADO_BUSCADO).length;
+
+    // RIESGO CRÍTICO (Rojo Intenso)
+    if (consecutivas === 2 || totales === 4) {
+        return {
+            nivel: 'critico',
+            icono: 'AlertOctagon',
+            mensaje: consecutivas === 2 ? 'A una falta consecutiva del retiro' : 'A una falta acumulada del retiro',
+            claseFila: 'row-critica'
+        };
+    }
+
+    // ALERTA PREVENTIVA (Ámbar)
+    if (totales === 3) {
+        return {
+            nivel: 'preventivo',
+            icono: 'AlertTriangle',
+            mensaje: 'Ya tiene 3 faltas acumuladas',
+            claseFila: 'row-preventiva'
+        };
+    }
+
+    return null;
+};
+
 </script>
 
 <template>
@@ -355,7 +392,18 @@ const countEntregados = (requisitos) => { if (!requisitos) return 0; return requ
                                     <div class="fw-medium text-dark lh-1">{{ i + 1 }}</div>
                                 </td>
                                 <td class="ps-3 py-2">
-                                    <div class="fw-medium text-dark lh-1">{{ conf.apellidos }}, {{ conf.nombres }}</div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="fw-bold text-dark">{{ conf.apellidos }}, {{ conf.nombres }}</div>
+
+                                        <!-- Badge Ultra Notorio -->
+                                        <template v-if="getAlertaFaltas(conf)">
+                                            <span :title="getAlertaFaltas(conf).mensaje"
+                                                :class="['badge-alert-glow', getAlertaFaltas(conf).nivel]">
+                                                <component :is="getAlertaFaltas(conf).icono" :size="12" class="me-1" />
+                                                <span>RIESGO DE RETIRO</span>
+                                            </span>
+                                        </template>
+                                    </div>
                                 </td>
                                 <td class="py-2 text-muted small">
                                     <div v-if="conf.celular" class="d-flex align-items-center">
@@ -760,5 +808,49 @@ const countEntregados = (requisitos) => { if (!requisitos) return 0; return requ
     border-color: var(--theme-color);
     /* Al pasar el mouse, el borde se vuelve sólido */
     color: white;
+}
+/* Color de fondo sutil para la fila en riesgo */
+.row-critica {
+    background-color: rgba(255, 59, 48, 0.05) !important;
+}
+
+.row-preventiva {
+    background-color: rgba(255, 204, 0, 0.05) !important;
+}
+
+/* Badge con brillo y animación */
+.badge-alert-glow {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 50px;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    border: 1px solid transparent;
+    box-shadow: 0 0 10px rgba(0,0,0,0.05);
+}
+
+/* Estado Crítico: Rojo Neón */
+.badge-alert-glow.critico {
+    background-color: #ff3b30;
+    color: white;
+    box-shadow: 0 0 12px rgba(255, 59, 48, 0.4);
+    animation: pulse-red 2s infinite;
+}
+
+/* Estado Preventivo: Ámbar */
+.badge-alert-glow.preventivo {
+    background-color: #ffcc00;
+    color: #000;
+    box-shadow: 0 0 12px rgba(255, 204, 0, 0.3);
+}
+
+/* Animación de pulso para riesgo crítico */
+@keyframes pulse-red {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.7); }
+    70% { transform: scale(1.03); box-shadow: 0 0 0 10px rgba(255, 59, 48, 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 59, 48, 0); }
 }
 </style>
