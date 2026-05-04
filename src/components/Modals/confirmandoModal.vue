@@ -4,6 +4,8 @@ import { useConfirmandosStore } from '../../stores/confirmandos';
 import { useGruposStore } from '../../stores/grupos';
 import { useSacramentosStore } from '../../stores/sacramentos';
 import { useTiposApoderadoStore } from '../../stores/tiposApoderado';
+import { useAuthStore } from '@/stores/auth';
+
 import { storeToRefs } from 'pinia';
 import { showAlerta } from '@/funciones';
 import { Modal } from 'bootstrap';
@@ -15,6 +17,7 @@ const confirmandoStore = useConfirmandosStore();
 const gruposStore = useGruposStore();
 const sacramentosStore = useSacramentosStore();
 const tiposApoderadoStore = useTiposApoderadoStore();
+const authStore = useAuthStore()
 
 const { items: availableGrupos } = storeToRefs(gruposStore);
 const { items: availableSacramentos } = storeToRefs(sacramentosStore);
@@ -322,15 +325,18 @@ async function submitUpdate() {
 
               <div class="col-md-6">
                 <label class="form-label fw-bold text-secondary small text-uppercase">Grupo Asignado</label>
-                <select v-model="draft.grupo_id" class="form-select" :disabled="saving">
+                <select v-model="draft.grupo_id" class="form-select"
+                  :disabled="saving || authStore.user?.roles?.includes('catequista')">
                   <option :value="null">-- Sin asignar --</option>
-                  <option v-for="g in availableGrupos" :key="g.id" :value="g.id">{{ g.nombre }}</option>
+                  <option v-for="g in availableGrupos" :key="g.id" :value="g.id">
+                    {{ g.nombre }}
+                  </option>
                 </select>
               </div>
 
               <div class="col-md-6">
                 <label class="form-label fw-bold text-secondary small text-uppercase">Estado del Confirmando</label>
-                <select v-model="draft.estado" class="form-select border-start-0" :disabled="saving">
+                <select v-model="draft.estado" class="form-select border-start-0" :disabled="saving || authStore.user?.roles?.includes('catequista')">
                   <option value="en_preparacion">En Preparación</option>
                   <option value="confirmado">Confirmado (Finalizado)</option>
                   <option value="retirado">Retirado / Desertó</option>
@@ -455,19 +461,24 @@ async function submitUpdate() {
 .z-3 {
   z-index: 1050;
 }
+
 .cursor-pointer {
   cursor: pointer;
 }
+
 .extra-small {
   font-size: 0.7rem;
 }
+
 .border-dashed {
   border-style: dashed !important;
 }
+
 /* Estilo para que la lista no se corte si la tarjeta es pequeña */
 .apoderado-card {
   overflow: visible !important;
 }
+
 .list-group {
   max-height: 200px;
   overflow-y: auto;

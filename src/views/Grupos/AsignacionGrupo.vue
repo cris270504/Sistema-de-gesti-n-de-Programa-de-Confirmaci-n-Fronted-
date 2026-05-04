@@ -25,6 +25,7 @@ const authStore = useAuthStore();
 
 const { items: allUsers, loading: loadingUsers } = storeToRefs(usersStore);
 const { items: allConfirmandos, loading: loadingConfirmandos } = storeToRefs(confirmandosStore);
+const { fetchAll: fetchAllConfirmandos } = confirmandosStore;
 
 const grupo = ref(null);
 const loadingGrupo = ref(true);
