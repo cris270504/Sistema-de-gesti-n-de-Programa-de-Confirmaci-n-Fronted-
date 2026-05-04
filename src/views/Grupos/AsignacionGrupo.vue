@@ -9,9 +9,10 @@ import { showAlerta } from '@/funciones';
 import { useAuthStore } from '@/stores/auth';
 import {
     FileText, CheckCircle, AlertCircle, ArrowLeft,
-    UserPlus, Users, Search, User, Phone,
+    UserPlus, Users, Search, User, Phone, Pencil,
     ShieldCheck, Plus, Eye
 } from 'lucide-vue-next';
+import ConfirmandoModal from '../../components/Modals/confirmandoModal.vue';
 
 const props = defineProps({
     id: { type: [Number, String], required: true }
@@ -40,6 +41,9 @@ const catequistasModalInstance = ref(null);
 const confirmandosModalInstance = ref(null);
 const docsModalInstance = ref(null);
 const apoderadosInfoModalInstance = ref(null); // <--- NUEVO MODAL
+const modalRef = ref(null);
+const abrirEditar = (id) => modalRef.value.open(id);
+const recargarTabla = () => fetchAllConfirmandos();
 
 // Estados locales
 const selectedCatechistIds = ref([]);
@@ -118,12 +122,12 @@ async function loadGroupData() {
 // --- LÓGICA CATEQUISTAS ---
 const availableCatechists = computed(() => {
     if (!allUsers.value) return [];
-    
+
     const currentGroupId = Number(props.id);
 
     return allUsers.value.filter(user => {
         // 1. Primero filtramos que sea catequista o coordinador
-        const hasRole = user.roles?.some(role => 
+        const hasRole = user.roles?.some(role =>
             role.name === 'catequista' || role.name === 'coordinador'
         );
 
@@ -334,6 +338,7 @@ const countEntregados = (requisitos) => { if (!requisitos) return 0; return requ
                                 <th class="ps-3 py-2 text-secondary text-uppercase fw-bold">N°</th>
                                 <th class="ps-3 py-2 text-secondary text-uppercase fw-bold">Confirmando</th>
                                 <th class="py-2 text-secondary text-uppercase fw-bold">Contacto</th>
+                                <th class="py-2 text-secondary text-uppercase fw-bold">Editar</th>
                                 <th class="text-center py-2 text-secondary text-uppercase fw-bold">Progreso</th>
                                 <th class="text-center py-2 text-secondary text-uppercase fw-bold">Apoderados</th>
                                 <th class="py-2 text-secondary text-uppercase fw-bold">Docs</th>
@@ -356,6 +361,12 @@ const countEntregados = (requisitos) => { if (!requisitos) return 0; return requ
                                         <Phone :size="12" class="me-1" /> {{ conf.celular }}
                                     </div>
                                     <span v-else class="fst-italic opacity-50">-</span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-action btn-soft-warning" title="Editar"
+                                        @click="abrirEditar(conf.id)">
+                                        <Pencil :size="18" />
+                                    </button>
                                 </td>
                                 <td class="py-2" style="width: 20%;">
                                     <div class="d-flex align-items-center gap-2">
@@ -399,10 +410,12 @@ const countEntregados = (requisitos) => { if (!requisitos) return 0; return requ
                 <div class="modal-content">
                     <div class="modal-header-theme">
                         <div>
-                            <h5 class="modal-title fw-bold text-white"><i class="bi bi-person-badge"></i>Asignar Catequistas</h5>
+                            <h5 class="modal-title fw-bold text-white"><i class="bi bi-person-badge"></i>Asignar
+                                Catequistas</h5>
                             <p class="text-white-50 small mb-0">{{ grupo?.nombre }}</p>
                         </div>
-                        <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3" data-bs-dismiss="modal"></button>
+                        <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3"
+                            data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body p-0">
                         <div v-if="loadingUsers" class="p-4 text-center">
@@ -435,10 +448,12 @@ const countEntregados = (requisitos) => { if (!requisitos) return 0; return requ
                 <div class="modal-content">
                     <div class="modal-header-theme">
                         <div>
-                            <h5 class="modal-title fw-bold text-white"><i class="bi bi-people-fill me-2"></i>Asignar Confirmandos</h5>
+                            <h5 class="modal-title fw-bold text-white"><i class="bi bi-people-fill me-2"></i>Asignar
+                                Confirmandos</h5>
                             <p class="text-white-50 small mb-0">{{ grupo?.nombre }}</p>
                         </div>
-                        <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3" data-bs-dismiss="modal"></button>
+                        <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3"
+                            data-bs-dismiss="modal"></button>
                     </div>
 
                     <div class="bg-light border-bottom p-3">
@@ -559,14 +574,15 @@ const countEntregados = (requisitos) => { if (!requisitos) return 0; return requ
 
                                 <span class="mx-2 text-white opacity-50">|</span>
 
-                                <span class="fw-bold text-uppercase"
-                                    style="letter-spacing: 0.5px; font-size: 0.9em;">
+                                <span class="fw-bold text-uppercase" style="letter-spacing: 0.5px; font-size: 0.9em;">
                                     {{ docDraft.sacramento_faltante || 'Cargando...' }}
                                 </span>
                             </div>
                         </div>
-                        <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3" data-bs-dismiss="modal"></button>
+                        <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3"
+                            data-bs-dismiss="modal"></button>
                     </div>
+
                     <div class="modal-body p-0">
                         <div v-if="docDraft.requisitos.length === 0" class="p-5 text-center text-muted">
                             <AlertCircle :size="32" class="mb-2 opacity-50 mx-auto" />
@@ -604,7 +620,7 @@ const countEntregados = (requisitos) => { if (!requisitos) return 0; return requ
                 </div>
             </div>
         </div>
-
+        <ConfirmandoModal ref="modalRef" @saved="recargarTabla" />
     </div>
 </template>
 
