@@ -5,7 +5,7 @@ import { useGruposStore } from '../../stores/grupos';
 import { useAuthStore } from '../../stores/auth';
 import { storeToRefs } from 'pinia';
 import { showAlerta } from '@/funciones';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router';
 
 const modelTypeMap = {
     'Confirmandos': 'App\\Models\\Confirmando',
@@ -14,18 +14,24 @@ const modelTypeMap = {
 };
 
 const props = defineProps({
+    id: {
+        type: [Number, String],
+        required: false,
+        default: null
+    },
     defaultTipo: {
         type: String,
         default: 'Confirmandos'
     }
-})
+});
 
 const asistenciasStore = useAsistenciasStore();
 const gruposStore = useGruposStore();
 const authStore = useAuthStore();
-const { items: grupos } = storeToRefs(gruposStore);
-
+const router = useRouter();
 const route = useRoute();
+
+const { items: grupos } = storeToRefs(gruposStore);
 const currentMonth = ref(new Date().toISOString().slice(0, 7));
 const tipoActual = ref(props.defaultTipo);
 const filterGrupo = ref('');
@@ -35,6 +41,17 @@ const attendanceMap = ref({});
 const changes = ref({});
 const loading = ref(false);
 const saving = ref(false);
+
+// --- PROTECCIÓN DE NAVEGACIÓN ---
+onBeforeRouteLeave((to, from, next) => {
+    if (Object.keys(changes.value).length > 0) {
+        const confirmacion = confirm("Tienes cambios sin guardar. ¿Estás seguro de que quieres salir?");
+        if (confirmacion) next();
+        else next(false);
+    } else {
+        next();
+    }
+});
 
 const popover = ref({
     visible: false,
@@ -69,51 +86,24 @@ const labelSingular = computed(() => {
 const filteredPersonas = computed(() => {
     let lista = personas.value || [];
 
-    // 1. Si estamos viendo la lista de "Catequistas", filtramos por rol (esto está bien)
+    // 1. Filtro por Rol (Catequistas)
     if (tipoActual.value === 'Catequistas') {
-        lista = lista.filter(p =>
-            p.roles && p.roles.some(role => role.name === 'catequista' || role.name === 'coordinador')
-        );
+        lista = lista.filter(p => p.roles?.some(r => r.name === 'catequista' || r.name === 'coordinador'));
     }
 
-    // 2. FILTRO DE SEGURIDAD PARA CATEQUISTAS (Confirmandos y Apoderados)
-    // Si NO tengo permiso de ver todo (soy catequista)...
+    // 2. Seguridad para Catequistas (Solo ver sus grupos asignados)
     if (!authStore.can('ver todas las asistencias')) {
-
-        // A. Recopilamos mis grupos permitidos
         const misGruposIds = [];
+        if (authStore.user?.grupo_id) misGruposIds.push(Number(authStore.user.grupo_id));
+        if (authStore.user?.grupos) authStore.user.grupos.forEach(g => misGruposIds.push(Number(g.id)));
 
-        // Caso 1: Tengo un grupo directo
-        if (authStore.user?.grupo_id) {
-            misGruposIds.push(Number(authStore.user.grupo_id));
-        }
-
-        // Caso 2: Tengo una lista de grupos (relación muchos a muchos)
-        if (authStore.user?.grupos && Array.isArray(authStore.user.grupos)) {
-            authStore.user.grupos.forEach(g => misGruposIds.push(Number(g.id)));
-        }
-
-        // B. Seguridad: Si no tengo ningún grupo asignado, no debo ver a nadie.
-        if (misGruposIds.length === 0) {
-            return [];
-        }
-
-        // C. Aplicamos el filtro
-        lista = lista.filter(p => {
-            // Obtenemos el grupo de la persona (ya sea directo o calculado en loadMatrix)
-            const idGrupoPersona = p.grupo_id || p.grupo?.id;
-
-            // Verificamos si existe y si está en mi lista de permitidos
-            return idGrupoPersona && misGruposIds.includes(Number(idGrupoPersona));
-        });
+        if (misGruposIds.length === 0) return [];
+        lista = lista.filter(p => misGruposIds.includes(Number(p.grupo_id || p.grupo?.id)));
     }
 
-    // 3. Filtro por Dropdown (Solo para Coordinadores que pueden ver todo)
+    // 3. Filtro por Dropdown
     if (filterGrupo.value) {
-        lista = lista.filter(p => {
-            const idGrupoPersona = p.grupo_id || p.grupo?.id;
-            return idGrupoPersona && Number(idGrupoPersona) === Number(filterGrupo.value);
-        });
+        lista = lista.filter(p => Number(p.grupo_id || p.grupo?.id) === Number(filterGrupo.value));
     }
 
     return lista;
@@ -427,80 +417,47 @@ const setStatus = (newStatus) => {
 
 //SOLO EL ADMIN PUEDE EDITAR
 const canEditAttendance = (personaId, reunionId) => {
-    // 1. Si es Admin (tiene permiso de editar), SIEMPRE puede editar todo
-    if (authStore.can('editar asistencias')) return true;
+    if (authStore.can('editar asistencias')) return true; // Coordinadores siempre pueden
 
-    // 2. SOLUCIÓN A TU PROBLEMA:
-    // Verificamos si hay "cambios locales sin guardar" para esta persona/reunión.
-    // Si la celda está en la lista de cambios, significa que la estamos editando AHORA,
-    // así que permitimos seguir editando (corregir errores).
+    const key = tipoActual.value === 'Apoderados' ? `${personaId}-${reunionId}-apo` : `${personaId}-${reunionId}`;
+    if (changes.value[key]) return true;
 
-    if (tipoActual.value !== 'Apoderados') {
-        const key = `${personaId}-${reunionId}`;
-        // Si existe en 'changes', es editable (porque aún no se ha guardado en BD)
-        if (changes.value[key]) return true;
-    } else {
-        // Lógica especial para Apoderados:
-        // Si algún familiar de este confirmando tiene cambios pendientes, permitimos editar la familia.
-        const hijo = getHijoObj(personaId);
-        if (hijo && hijo.mis_apoderados.some(apo => changes.value[`${apo.id}-${reunionId}-apo`])) {
-            return true;
-        }
-    }
-
-    // 3. Si NO hay cambios locales, miramos si ya vino lleno desde la Base de Datos
-    const currentStatus = attendanceMap.value[personaId]?.[reunionId]?.estado;
-
-    // Si ya tiene estado (y no está en changes), significa que vino de la BD guardado. BLOQUEAR.
-    if (currentStatus) {
-        return false;
-    }
-
-    // 4. Si no hay nada en BD y no hay cambios, está libre para editar.
-    return true;
+    const enDB = attendanceMap.value[personaId]?.[reunionId]?.estado;
+    return !enDB;
 };
 
 // --- GUARDAR CAMBIOS ---
 const saveChanges = async () => {
-    if (Object.keys(changes.value).length === 0) return;
+    const totalCambios = Object.keys(changes.value).length;
+    if (totalCambios === 0) return;
 
     const reunionesIncompletas = [];
+    const personasActivas = filteredPersonas.value.filter(p => p.estado !== 'retirado');
+    const totalActivos = personasActivas.length;
 
     reuniones.value.forEach(r => {
         let completados = 0;
-        const totalPersonas = filteredPersonas.value.length;
-
-        filteredPersonas.value.forEach(p => {
-            const estado = attendanceMap.value[p.id]?.[r.id]?.estado;
-            if (estado) {
-                completados++;
-            }
+        personasActivas.forEach(p => {
+            const tieneData = attendanceMap.value[p.id]?.[r.id]?.estado || changes.value[`${p.id}-${r.id}`]?.estado;
+            if (tieneData) completados++;
         });
 
-        if (completados > 0 && completados < totalPersonas) {
-            reunionesIncompletas.push({
-                nombre: r.nombre_tema,
-                faltantes: totalPersonas - completados
-            });
+        if (completados > 0 && completados < totalActivos) {
+            reunionesIncompletas.push({ nombre: r.nombre_tema, faltas: totalActivos - completados });
         }
     });
 
     if (reunionesIncompletas.length > 0) {
-        const detalles = reunionesIncompletas
-            .map(r => `• ${r.nombre} (Faltan ${r.faltantes})`)
-            .join('\n');
-        showAlerta(`No puedes guardar listas incompletas.\nPor favor termina de registrar a todos:\n\n${detalles}`, 'warning');
+        const msg = reunionesIncompletas.map(ri => `• ${ri.nombre} (Faltan ${ri.faltas})`).join('\n');
+        showAlerta(`Lista incompleta:\n${msg}`, 'warning');
         return;
     }
 
     saving.value = true;
     try {
-        const payload = Object.values(changes.value).filter(c =>
-            c.estado !== undefined || (c.nota !== undefined && c.nota !== '')
-        );
-
-        // Agrupar por reunión para eficiencia
+        const payload = Object.values(changes.value);
         const updatesByReunion = {};
+
         payload.forEach(p => {
             if (!updatesByReunion[p.reunion_id]) updatesByReunion[p.reunion_id] = [];
             updatesByReunion[p.reunion_id].push(p);
@@ -511,13 +468,19 @@ const saveChanges = async () => {
         );
 
         await Promise.all(promises);
-
-        // Recargamos para limpiar estados sucios y traer data fresca
-        changes.value = {};
         await loadMatrix();
+        changes.value = {};
+
+        const user = authStore.user;
+        const roles = user?.roles || [];
+        const esCatequista = roles.includes('catequista');
+
+        if (esCatequista && user.grupo_id) {
+            console.log("Redirigiendo a miGrupo con ID:", user.grupo_id);
+            router.push({ name: 'miGrupo', params: { id: user.grupo_id } });
+        }
 
     } catch (e) {
-        console.error(e);
         showAlerta('Error al guardar: ' + (e.response?.data?.message || e.message), 'error');
     } finally {
         saving.value = false;
@@ -884,7 +847,6 @@ const formatColDate = (dateStr) => {
 </template>
 
 <style scoped>
-
 .cursor-not-allowed {
     cursor: not-allowed !important;
 }

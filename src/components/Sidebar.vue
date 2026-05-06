@@ -66,7 +66,7 @@ const navigationItems = computed(() => {
 
   const tieneGrupos = user?.grupo_id || (user?.grupos && user.grupos.length > 0);
 
-  if (authStore.can('ver todas las asistencias') || tieneGrupos) { //¡No debería ser solo si tiene el permiso?
+  if (authStore.can('ver todas las asistencias')) { //¡No debería ser solo si tiene el permiso?
     items.push({
       name: 'Asistencias',
       icon: ClipboardDocumentIcon,
@@ -77,7 +77,13 @@ const navigationItems = computed(() => {
         { name: 'Apoderados', to: { name: 'asistencias-apoderados' } },
       ]
     });
+  } else {
+    items.push({
+      name: 'Asistencia', to: { name: 'asistencias-confirmandos' }, icon: ClipboardDocumentIcon,
+      
+    });
   }
+  
 
   if (user?.grupo_id) {
     items.push({

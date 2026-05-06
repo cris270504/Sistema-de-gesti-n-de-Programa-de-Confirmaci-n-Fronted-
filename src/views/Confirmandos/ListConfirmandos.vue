@@ -382,8 +382,18 @@ const openApoderadosModal = (confirmando) => {
                                 </span>
                             </td>
                             <td class="py-2">
-                                <span v-if="c.grupo" class="badge-soft-group"
-                                    :style="{ borderColor: c.grupo.color, color: '#334155' }">
+                                <router-link v-if="c.grupo && authStore.can('ver todos los grupos')"
+                                    :to="{ name: 'miGrupo', params: { id: c.grupo.id } }"
+                                    class="badge-soft-group btn-badge-interactive text-decoration-none"
+                                    :style="{ borderColor: c.grupo.color }">
+                                    <span class="dot-indicator"
+                                        :style="{ backgroundColor: c.grupo.color || '#cbd5e1' }"></span>
+                                    <span class="text-dark-subtle me-1">{{ c.grupo.nombre }}</span>
+                                    <i class="bi bi-arrow-right-short text-muted"></i>
+                                </router-link>
+
+                                <span v-else-if="c.grupo" class="badge-soft-group"
+                                    :style="{ borderColor: c.grupo.color, color: '#334155', cursor: 'default' }">
                                     <span class="dot-indicator"
                                         :style="{ backgroundColor: c.grupo.color || '#cbd5e1' }"></span>
                                     {{ c.grupo.nombre }}

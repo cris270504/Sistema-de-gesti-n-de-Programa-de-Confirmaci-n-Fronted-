@@ -55,7 +55,7 @@ const router = createRouter({
           path: '/confirmandos',
           name: 'confirmandos',
           component: ListConfirmandos,
-          meta: { title: 'Listado de confirmandos', permission: ['ver todos los confirmandos']  }
+          meta: { title: 'Listado de confirmandos', permission: ['ver todos los confirmandos'] }
         },
 
         //GRUPOS
@@ -105,10 +105,13 @@ const router = createRouter({
 
         //ASISTENCIAS
         {
-          path: '/asistencias/confirmandos',
+          path: '/asistencias/confirmandos/:id?',
           name: 'asistencias-confirmandos',
           component: () => import('../views/Asistencias/ListAsistencias.vue'),
-          props: { defaultTipo: 'Confirmandos' },
+          props: route => ({
+            defaultTipo: 'Confirmandos',
+            id: route.params.id
+          }),
           meta: { title: 'Asistencia Confirmandos', permission: 'ver asistencias' }
         },
         {
@@ -123,7 +126,7 @@ const router = createRouter({
           name: 'asistencias-apoderados',
           component: () => import('../views/Asistencias/ListAsistencias.vue'),
           props: { defaultTipo: 'Apoderados' },
-          meta: { title: 'Asistencia Apoderados', permission: 'ver asistencias' }
+          meta: { title: 'Asistencia Apoderados', permission: 'ver todas las asistencias' }
         },
 
         //SACRAMENTOS
