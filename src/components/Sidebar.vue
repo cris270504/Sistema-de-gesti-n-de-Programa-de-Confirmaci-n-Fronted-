@@ -57,7 +57,7 @@ const navigationItems = computed(() => {
     { name: 'Dashboard', to: { name: 'dashboard' }, icon: HomeIcon },
     { name: 'Confirmandos', to: { name: 'confirmandos' }, icon: UserCircleIcon, permission: 'ver todos los confirmandos'},
     { name: 'Grupos', to: { name: 'grupos' }, icon: UserGroupIcon, permission: 'ver todos los grupos' },
-    { name: 'Cronograma', to: { name: 'cronograma' }, icon: CalendarIcon, permission: 'ver todos los requisitos' },
+    { name: 'Cronograma', to: { name: 'cronograma' }, icon: CalendarIcon, permission: 'ver cronograma' },
     { name: 'Cumpleaños', to: { name: 'cumpleanos' }, icon: CakeIcon },
     { name: 'Sacramentos', to: { name: 'sacramentos' }, icon: FireIcon, permission: 'ver todos los sacramentos' },
     { name: 'Requisitos', to: { name: 'requisitos' }, icon: WalletIcon, permission: 'ver todos los requisitos' },
