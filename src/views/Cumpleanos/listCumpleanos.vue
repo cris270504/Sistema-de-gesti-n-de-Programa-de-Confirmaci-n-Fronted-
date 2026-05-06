@@ -2,6 +2,7 @@
 import { storeToRefs } from 'pinia';
 import { Modal } from 'bootstrap';
 import { ref, computed, onMounted, nextTick } from 'vue';
+import { useRouter } from 'vue-router';
 
 // --- FullCalendar Imports ---
 import FullCalendar from '@fullcalendar/vue3';
@@ -13,16 +14,31 @@ import esLocale from '@fullcalendar/core/locales/es';
 
 // --- Stores ---
 import { useConfirmandosStore } from '../../stores/confirmandos';
-import { useUsersStore } from '../../stores/users'; // <--- 1. Importar Store Usuarios
+import { useUsersStore } from '../../stores/users';
+import { useAuthStore } from '@/stores/auth';
+import { useGruposStore } from '../../stores/grupos'; // <--- Importamos store de grupos para mapeo
 
+const router = useRouter();
 const confirmandosStore = useConfirmandosStore();
 const usersStore = useUsersStore();
+const authStore = useAuthStore();
+const gruposStore = useGruposStore();
 
 const { items: confirmandos, loading: loadingConf } = storeToRefs(confirmandosStore);
 const { items: users, loading: loadingUsers } = storeToRefs(usersStore);
 
-// Combinar loadings
 const loading = computed(() => loadingConf.value || loadingUsers.value);
+
+// --- LÓGICA DE ROLES ---
+const esCoordinadorOAdmin = computed(() => {
+    const roles = authStore.user?.roles || [];
+    return roles.some(role => {
+        const name = typeof role === 'string' ? role : role.name;
+        return ['admin', 'coordinador', 'super-admin'].includes(name.trim().toLowerCase());
+    });
+});
+
+const miGrupoId = computed(() => authStore.user?.grupo_id);
 
 // --- Estado de Modales ---
 const detailsModalInstance = ref(null);
@@ -33,27 +49,26 @@ const selectedEvent = ref({
     description: '', 
     type: '',
     age: 0,
-    originalDate: ''
+    originalDate: '',
+    grupo: null
 });
 
-// --- LÓGICA DE EVENTOS (CUMPLEAÑOS) ---
 // --- LÓGICA DE EVENTOS (CUMPLEAÑOS) ---
 const calendarEvents = computed(() => {
     const events = [];
     const currentYear = new Date().getFullYear();
     const years = [currentYear - 1, currentYear, currentYear + 1];
 
-    const processPerson = (person, type, color) => {
+    const processPerson = (person, type, color, grupoRelacion = null) => {
         if (!person.fecha_nacimiento) return;
 
-        // 1. DETERMINAR EL NOMBRE CORRECTO SEGÚN EL TIPO
-        // Si tiene 'nombres' (Confirmando), úsalo. Si no, usa 'name' (User/Catequista).
+        // Determinar nombre completo
         const fullName = person.nombres 
             ? `${person.nombres} ${person.apellidos}` 
             : person.name;
 
         const parts = person.fecha_nacimiento.split('-'); 
-        if(parts.length !== 3) return;
+        if (parts.length !== 3) return;
         
         const birthMonth = parts[1];
         const birthDay = parts[2];
@@ -62,7 +77,7 @@ const calendarEvents = computed(() => {
         years.forEach(year => {
             events.push({
                 id: `${type}-${person.id}-${year}`,
-                title: `🎂 ${fullName}`, // <--- AQUI USAMOS LA VARIABLE CALCULADA
+                title: `🎂 ${fullName}`, 
                 start: `${year}-${birthMonth}-${birthDay}`,
                 allDay: true,
                 backgroundColor: color,
@@ -71,19 +86,53 @@ const calendarEvents = computed(() => {
                     type: type,
                     originalDate: person.fecha_nacimiento,
                     age: year - birthYear,
-                    description: `${type} - Cumple ${year - birthYear} años`
+                    description: `${type} - Cumple ${year - birthYear} años`,
+                    grupo: grupoRelacion || person.grupo || null
                 }
             });
         });
     };
 
-    // ... el resto sigue igual (forEach confirmandos, forEach catequistas) ...
-    confirmandos.value.forEach(c => processPerson(c, 'Confirmando', '#3b82f6'));
+    // --- FILTRADO SEGÚN ROL ---
+    if (esCoordinadorOAdmin.value) {
+        // 1. El Coordinador/Admin ve TODOS los confirmandos
+        confirmandos.value.forEach(c => processPerson(c, 'Confirmando', '#3b82f6'));
+        
+        // 2. Ve TODOS los usuarios con rol de catequista o coordinador
+        const catequistas = users.value.filter(u => {
+            const roles = u.roles || [];
+            return roles.some(role => {
+                const name = typeof role === 'string' ? role : role.name;
+                return ['catequista', 'coordinador'].includes(name.trim().toLowerCase());
+            });
+        });
+        catequistas.forEach(u => processPerson(u, 'Catequista', '#f59e0b'));
+    } else {
+        // --- VISTA CATEQUISTA (SÓLO SU GRUPO E INTEGRANTES) ---
+        
+        // 1. Mis Confirmandos directos de mi grupo
+        const misConfirmandos = confirmandos.value.filter(c => Number(c.grupo_id) === Number(miGrupoId.value));
+        misConfirmandos.forEach(c => processPerson(c, 'Confirmando', '#3b82f6'));
 
-    const catequistas = users.value.filter(u => 
-        u.roles?.some(r => r.name === 'catequista' || r.name === 'coordinador')
-    );
-    catequistas.forEach(u => processPerson(u, 'Catequista', '#f59e0b'));
+        // 2. Mis Colegas Catequistas (Incluido yo mismo)
+        // Buscamos en la lista de todos los usuarios a aquellos que compartan grupo_id con mi sesión
+        const misColegas = users.value.filter(u => {
+            // El backend asocia al usuario logueado con un grupo_id directo en la sesión.
+            // Para los demás usuarios de la lista, buscamos si su grupo_id coincide con el nuestro.
+            const userGroupId = u.grupo_id || u.grupo?.id;
+            const comparteGrupo = Number(userGroupId) === Number(miGrupoId.value);
+            
+            const roles = u.roles || [];
+            const tieneRolPermitido = roles.some(role => {
+                const name = typeof role === 'string' ? role : role.name;
+                return ['catequista', 'coordinador'].includes(name.trim().toLowerCase());
+            });
+
+            return comparteGrupo && tieneRolPermitido;
+        });
+
+        misColegas.forEach(u => processPerson(u, 'Catequista', '#f59e0b'));
+    }
 
     return events;
 });
@@ -97,10 +146,9 @@ const calendarOptions = computed(() => ({
     eventDisplay: 'block',
     headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,listMonth' },
     buttonText: { today: 'Hoy', month: 'Mes', list: 'Lista' },
-    displayEventTime: false, // Es cumpleaños, no necesita hora
-    events: calendarEvents.value, // <--- Vinculamos los eventos calculados
+    displayEventTime: false,
+    events: calendarEvents.value,
     
-    // Al hacer clic en un evento
     eventClick: (info) => {
         const props = info.event.extendedProps;
         selectedEvent.value = {
@@ -110,32 +158,28 @@ const calendarOptions = computed(() => ({
             type: props.type,
             description: props.description,
             age: props.age,
-            originalDate: props.originalDate
+            originalDate: props.originalDate,
+            grupo: props.grupo
         };
         detailsModalInstance.value?.show();
     }
 }));
 
-// Función para mostrar texto bonito en el modal
-const formatDisplayDate = (dateObj) => {
-    if (!dateObj) return '';
-    // Formateamos la fecha del evento (ej: 2026)
-    return new Date(dateObj).toLocaleString('es-ES', {
-        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
-    });
+const irAlGrupo = (grupoId) => {
+    if (grupoId) {
+        detailsModalInstance.value?.hide();
+        router.push({ name: 'miGrupo', params: { id: grupoId } });
+    }
 };
 
-// Formato para fecha de nacimiento original
 const formatBirthDate = (isoString) => {
     if (!isoString) return '';
-    // Crear fecha sin ajuste horario (truco para fechas string YYYY-MM-DD)
     const [y, m, d] = isoString.split('-');
     const date = new Date(y, m - 1, d);
     return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
 };
 
 onMounted(async () => {
-    // Cargamos ambas fuentes de datos
     await Promise.all([
         confirmandosStore.fetchAll(),
         usersStore.fetchAll()
@@ -146,7 +190,6 @@ onMounted(async () => {
         if (detailsEl) detailsModalInstance.value = new Modal(detailsEl);
     });
 });
-
 </script>
 
 <template>
@@ -154,7 +197,9 @@ onMounted(async () => {
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
                 <h2 class="h3 text-gray-800 mb-1">Calendario de Cumpleaños</h2>
-                <p class="text-muted mb-0 small">Confirmandos y Catequistas</p>
+                <p class="text-muted mb-0 small">
+                    {{ esCoordinadorOAdmin ? 'Seguimiento general de la comunidad' : 'Cumpleaños en mi Grupo Pastoral' }}
+                </p>
             </div>
             
             <div class="d-flex gap-3">
@@ -169,7 +214,7 @@ onMounted(async () => {
             </div>
         </div>
 
-        <div class="card shadow mb-4">
+        <div class="card shadow border-0 rounded-4 mb-4">
             <div class="card-body p-3">
                 <div v-if="loading" class="text-center py-5">
                     <div class="spinner-border text-primary" role="status"></div>
@@ -180,33 +225,51 @@ onMounted(async () => {
         </div>
 
         <div class="modal fade" id="detailsModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered modal-sm"> <div class="modal-content border-0 shadow-lg">
-                    <div class="modal-header bg-primary text-white position-relative overflow-hidden">
+            <div class="modal-dialog modal-dialog-centered modal-sm"> 
+                <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                    <div class="modal-header bg-primary text-white position-relative overflow-hidden border-0 py-3">
                         <div class="position-absolute top-0 start-0 w-100 h-100 opacity-25" 
                              style="background: radial-gradient(circle at top right, white, transparent);"></div>
                         
-                        <h5 class="modal-title fw-bold position-relative z-1">
-                            <i class="bi bi-cake2-fill me-2"></i>¡Cumpleaños!
+                        <h5 class="modal-title fw-bold position-relative z-1 d-flex align-items-center gap-2" style="font-size: 1.1rem;">
+                            <i class="bi bi-cake2-fill"></i>¡Cumpleaños!
                         </h5>
-                        <button type="button" class="btn-close btn-close-white position-relative z-1" data-bs-dismiss="modal"></button>
+                        <button type="button" class="btn-close btn-close-white position-relative z-1 shadow-none" data-bs-dismiss="modal"></button>
                     </div>
                     
                     <div class="modal-body text-center py-4">
-                        <h4 class="fw-bold text-dark mb-1">{{ selectedEvent.title.replace('🎂 ', '') }}</h4>
+                        <h4 class="fw-bold text-dark mb-1 fs-5">{{ selectedEvent.title.replace('🎂 ', '') }}</h4>
                         
-                        <span class="badge rounded-pill px-3 py-2 mb-3"
-                            :class="selectedEvent.type === 'Confirmando' ? 'bg-primary-subtle text-primary' : 'bg-warning-subtle text-warning text-dark'">
-                            {{ selectedEvent.type }}
-                        </span>
+                        <div class="d-flex justify-content-center gap-2 mb-3">
+                            <span class="badge rounded-pill px-3 py-1.5 text-uppercase small"
+                                :class="selectedEvent.type === 'Confirmando' ? 'bg-primary-subtle text-primary' : 'bg-warning-subtle text-warning-emphasis'">
+                                {{ selectedEvent.type }}
+                            </span>
+                        </div>
 
-                        <div class="mt-3">
-                            <div class="display-1 text-primary fw-bold lh-1 mb-2">
+                        <div v-if="esCoordinadorOAdmin && selectedEvent.grupo" class="mb-3">
+                            <button 
+                                @click="irAlGrupo(selectedEvent.grupo.id)" 
+                                class="btn btn-sm btn-soft-group border-0 px-3 py-1.5 rounded-pill d-inline-flex align-items-center gap-1"
+                                :style="{ color: '#1e293b', border: `1px solid ${selectedEvent.grupo.color || '#cbd5e1'}` }"
+                            >
+                                <span class="dot-indicator" :style="{ backgroundColor: selectedEvent.grupo.color || '#cbd5e1' }"></span>
+                                <span class="fw-bold text-truncate" style="max-width: 140px;">{{ selectedEvent.grupo.nombre }}</span>
+                                <i class="bi bi-arrow-right-short text-muted fs-6"></i>
+                            </button>
+                        </div>
+
+                        <div class="mt-2">
+                            <div class="display-3 text-primary fw-bold lh-1 mb-1">
                                 {{ selectedEvent.age }}
                             </div>
-                            <p class="text-muted text-uppercase small fw-bold tracking-wider">Años a cumplir</p>
+                            <p class="text-muted text-uppercase fw-bold tracking-wider mb-2" style="font-size: 0.75rem;">Años a cumplir</p>
+                            <small class="text-secondary d-block mt-2 bg-light p-2 rounded-3">
+                                Nacimiento: {{ formatBirthDate(selectedEvent.originalDate) }}
+                            </small>
                         </div>
                     </div>
-                    <div class="modal-footer justify-content-center bg-light border-0">
+                    <div class="modal-footer justify-content-center bg-light border-0 py-2">
                         <button type="button" class="btn btn-outline-secondary btn-sm px-4 rounded-pill" data-bs-dismiss="modal">Cerrar</button>
                     </div>
                 </div>
@@ -217,7 +280,28 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-/* Estilos FullCalendar */
+.dot-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.btn-soft-group {
+    background-color: #f8fafc;
+    font-size: 0.75rem;
+    transition: all 0.2s ease;
+}
+
+.btn-soft-group:hover {
+    background-color: #f1f5f9;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.rounded-4 { border-radius: 1rem !important; }
+
+/* Estilos de tabla del calendario */
 :deep(.fc table), :deep(.fc tbody), :deep(.fc thead), :deep(.fc tr), :deep(.fc td), :deep(.fc th) {
     background-color: transparent !important;
     border-color: var(--fc-border-color) !important;
@@ -230,13 +314,11 @@ onMounted(async () => {
     --fc-event-border-color: transparent;
 }
 
-/* Día Hover */
 :deep(.fc-daygrid-day:hover) {
     background-color: #f8fafc !important;
     cursor: pointer;
 }
 
-/* Eventos Estilo Píldora */
 :deep(.fc-event) {
     border-radius: 50px;
     padding: 2px 8px;
@@ -246,9 +328,8 @@ onMounted(async () => {
     margin-bottom: 2px !important;
 }
 
-:deep(.fc-daygrid-event-dot) { display: none; } /* Ocultar punto en month view */
+:deep(.fc-daygrid-event-dot) { display: none; }
 
-/* Header */
 :deep(.fc-toolbar-title) {
     font-size: 1.25rem !important;
     text-transform: capitalize;
@@ -270,7 +351,6 @@ onMounted(async () => {
     border-color: #3b82f6;
 }
 
-/* Día actual más bonito */
 :deep(.fc-day-today .fc-daygrid-day-number) {
     background-color: #3b82f6;
     color: white;
