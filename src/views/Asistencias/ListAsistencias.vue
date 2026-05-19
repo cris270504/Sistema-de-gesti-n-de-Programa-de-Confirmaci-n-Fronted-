@@ -233,7 +233,7 @@ async function loadMatrix() {
 
                         map[hijo.id][reunion.id] = {
                             estado: estadoFinal,
-                            nota: estadoFinal ? 'Registro familiar' : ''
+                            nota: estadoFinal,
                         };
                     });
                 });
@@ -639,6 +639,10 @@ const formatColDate = (dateStr) => {
                         <thead class="bg-light sticky-top" style="z-index: 10;">
                             <tr>
                                 <th class="sticky-col start-0 bg-light text-start ps-4 py-3 shadow-sm-right"
+                                    style="width: 1%; min-width: 45px; font-size: 0.8rem;">
+                                    N°
+                                </th>
+                                <th class="sticky-col start-0 bg-light text-start ps-4 py-3 shadow-sm-right"
                                     style="min-width: 280px; z-index: 20;">
                                     {{ labelSingular }}
                                 </th>
@@ -648,14 +652,20 @@ const formatColDate = (dateStr) => {
                                         :title="r.nombre_tema">
                                         {{ r.nombre_tema }}
                                     </div>
-                                    <div class="fw-bold text-dark" style="font-size: 0.9rem;">{{ formatColDate(r.fecha)
-                                        }}</div>
+                                    <div class="fw-bold text-dark" style="font-size: 0.9rem;">
+                                        {{ formatColDate(r.fecha) }}
+                                    </div>
                                 </th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="p in filteredPersonas" :key="p.id"
+                            <tr v-for="(p, index) in filteredPersonas" :key="p.id"
                                 :class="{ 'bg-light opacity-75': p.estado === 'retirado' }">
+
+                                <td class="text-center align-middle text-muted small fw-medium bg-white border-end">
+                                    {{ index + 1 }}
+                                </td>
+
                                 <td class="text-start sticky-col bg-white ps-4 py-2 shadow-sm-right">
                                     <div class="d-flex align-items-center">
                                         <div>
@@ -719,10 +729,6 @@ const formatColDate = (dateStr) => {
                     <h6 class="fw-bold text-dark mb-0">
                         {{ getNameOfPerson(popover.personaId) }}
                     </h6>
-                    <small v-if="tipoActual === 'Apoderados'" class="text-primary d-block font-monospace"
-                        style="font-size: 0.75rem;">
-                        REUNIÓN DE APODERADOS
-                    </small>
                     <small class="text-muted">{{ getDateOfReunion(popover.reunionId) }}</small>
                 </div>
 
@@ -743,6 +749,7 @@ const formatColDate = (dateStr) => {
                             'bg-info-subtle text-info border-info': popover.estado === 'falta justificada',
                             'bg-danger-subtle text-danger border-danger': popover.estado === 'falta injustificada'
                         }">
+                            {{ popover.estado }}
                         </span>
                     </div>
                 </div>
@@ -778,57 +785,57 @@ const formatColDate = (dateStr) => {
                     </div>
 
                     <div v-else class="mb-3">
-                        <p class="small text-muted mb-2">Registro de asistencia por familiar:</p>
+                        <div v-if="getApoderadosDeHijo(popover.personaId).length > 0">
+                            <div class="text-center mb-2 bg-light p-2 rounded-3">
+                                <small class="text-muted d-block tracking-wider text-uppercase fw-bold"
+                                    style="font-size: 0.65rem;">
+                                    {{ getApoderadosDeHijo(popover.personaId)[0].pivot?.tipo || 'Apoderado' }} Asignado:
+                                </small>
+                                <span class="fw-semibold text-dark small">
+                                    {{ getApoderadosDeHijo(popover.personaId)[0].nombres }} {{
+                                        getApoderadosDeHijo(popover.personaId)[0].apellidos }}
+                                </span>
+                            </div>
 
-                        <div class="list-group">
-                            <div v-for="apo in getApoderadosDeHijo(popover.personaId)" :key="apo.id"
-                                class="list-group-item px-2 py-3">
+                            <div class="status-grid">
+                                <button class="btn-status btn-status-success"
+                                    :class="{ active: checkStatusApoderado(getApoderadosDeHijo(popover.personaId)[0], popover.reunionId) === 'asistio' }"
+                                    @click="setApoderadoStatus(getApoderadosDeHijo(popover.personaId)[0], popover.reunionId, 'asistio')">
+                                    <i class="bi bi-check-circle-fill icon-lg"></i>
+                                    <span>Asistió</span>
+                                </button>
 
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <span class="fw-medium text-dark small">{{ apo.nombres }} {{ apo.apellidos }}</span>
-                                    <span class="badge bg-light text-secondary border">
-                                        {{ apo.pivot?.tipo || 'Apoderado' }}
-                                    </span>
-                                </div>
+                                <button class="btn-status btn-status-warning"
+                                    :class="{ active: checkStatusApoderado(getApoderadosDeHijo(popover.personaId)[0], popover.reunionId) === 'tardanza' }"
+                                    @click="setApoderadoStatus(getApoderadosDeHijo(popover.personaId)[0], popover.reunionId, 'tardanza')">
+                                    <i class="bi bi-clock-fill icon-lg"></i>
+                                    <span>Tardanza</span>
+                                </button>
 
-                                <div class="d-flex gap-1 justify-content-center">
-                                    <button type="button" class="btn btn-sm flex-grow-1"
-                                        :class="checkStatusApoderado(apo, popover.reunionId) === 'asistio' ? 'btn-success' : 'btn-outline-success'"
-                                        @click="setApoderadoStatus(apo, popover.reunionId, 'asistio')" title="Asistió">
-                                        <i class="bi bi-check-lg"></i>
-                                    </button>
+                                <button class="btn-status btn-status-info"
+                                    :class="{ active: checkStatusApoderado(getApoderadosDeHijo(popover.personaId)[0], popover.reunionId) === 'falta justificada' }"
+                                    @click="setApoderadoStatus(getApoderadosDeHijo(popover.personaId)[0], popover.reunionId, 'falta justificada')">
+                                    <i class="bi bi-file-medical-fill icon-lg"></i>
+                                    <span>Justificada</span>
+                                </button>
 
-                                    <button type="button" class="btn btn-sm flex-grow-1"
-                                        :class="checkStatusApoderado(apo, popover.reunionId) === 'tardanza' ? 'btn-warning' : 'btn-outline-warning'"
-                                        @click="setApoderadoStatus(apo, popover.reunionId, 'tardanza')"
-                                        title="Tardanza">
-                                        <i class="bi bi-clock"></i>
-                                    </button>
-
-                                    <button type="button" class="btn btn-sm flex-grow-1"
-                                        :class="checkStatusApoderado(apo, popover.reunionId) === 'falta justificada' ? 'btn-info text-white' : 'btn-outline-info'"
-                                        @click="setApoderadoStatus(apo, popover.reunionId, 'falta justificada')"
-                                        title="Justificada">
-                                        <i class="bi bi-file-medical"></i>
-                                    </button>
-
-                                    <button type="button" class="btn btn-sm flex-grow-1"
-                                        :class="checkStatusApoderado(apo, popover.reunionId) === 'falta injustificada' ? 'btn-danger' : 'btn-outline-danger'"
-                                        @click="setApoderadoStatus(apo, popover.reunionId, 'falta injustificada')"
-                                        title="Falta">
-                                        <i class="bi bi-x-lg"></i>
-                                    </button>
-                                </div>
+                                <button class="btn-status btn-status-danger"
+                                    :class="{ active: checkStatusApoderado(getApoderadosDeHijo(popover.personaId)[0], popover.reunionId) === 'falta injustificada' }"
+                                    @click="setApoderadoStatus(getApoderadosDeHijo(popover.personaId)[0], popover.reunionId, 'falta injustificada')">
+                                    <i class="bi bi-x-circle-fill icon-lg"></i>
+                                    <span>Injustificada</span>
+                                </button>
                             </div>
                         </div>
 
-                        <div v-if="getApoderadosDeHijo(popover.personaId).length === 0"
-                            class="alert alert-warning x-small mb-0 mt-2">
-                            <i class="bi bi-exclamation-triangle me-1"></i> No tiene apoderados registrados.
+                        <div v-else class="alert alert-warning text-center small mb-0 p-3 rounded-3">
+                            <i class="bi bi-exclamation-triangle-fill d-block fs-4 mb-1 text-warning"></i>
+                            No se encontró un apoderado registrado para este confirmando.
                         </div>
                     </div>
 
                 </div>
+
                 <div class="input-group">
                     <span class="input-group-text bg-light border-end-0"><i class="bi bi-chat-text"></i></span>
                     <input id="popoverInput" v-model="popover.nota" class="form-control border-start-0"

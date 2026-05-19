@@ -7,7 +7,10 @@ const api = axios.create({
   // En desarrollo usa el proxy (/api), en producción usa la URL real
   baseURL: import.meta.env.MODE === 'production' 
     ? 'https://sistema-de-gestion-de-programa-de.onrender.com/api' 
-    : '/api'
+    : '/api',
+    headers: {
+    'Accept': 'application/json' 
+  }
 });
 
 api.interceptors.request.use((config) => {  

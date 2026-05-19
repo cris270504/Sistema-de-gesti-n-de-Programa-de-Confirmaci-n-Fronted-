@@ -16,6 +16,7 @@ import ListCronograma from '../views/Cronograma/ListCronograma.vue'
 import ListSacramentos from '../views/Sacramentos/ListSacramentos.vue'
 import ListRequisitos from '../views/Requisitos/ListRequisitos.vue'
 import Listcumpleanos from '../views/Cumpleanos/listCumpleanos.vue'
+import ListJustificaciones from '../views/Justificaciones/ListJustificaciones.vue'
 
 function hasSession() {
   const token = localStorage.getItem(LS_TOKEN_KEY)
@@ -127,6 +128,14 @@ const router = createRouter({
           component: () => import('../views/Asistencias/ListAsistencias.vue'),
           props: { defaultTipo: 'Apoderados' },
           meta: { title: 'Asistencia Apoderados', permission: 'ver todas las asistencias' }
+        },
+
+        //JUSTIFICACIONES
+        {
+          path: '/justificaciones',
+          name: 'justificaciones',
+          component: ListJustificaciones,
+          meta: {title: 'Justificaciones', permission: 'ver todas las asistencias'}
         },
 
         //SACRAMENTOS

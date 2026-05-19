@@ -16,6 +16,7 @@ import {
   FireIcon,
   WalletIcon,
   CakeIcon,
+  ClipboardIcon,
 } from '@heroicons/vue/24/outline';
 import { Cake, CakeSlice, CalendarIcon } from 'lucide-vue-next';
 
@@ -62,6 +63,7 @@ const navigationItems = computed(() => {
     { name: 'Sacramentos', to: { name: 'sacramentos' }, icon: FireIcon, permission: 'ver todos los sacramentos' },
     { name: 'Requisitos', to: { name: 'requisitos' }, icon: WalletIcon, permission: 'ver todos los requisitos' },
     { name: 'Usuarios', to: { name: 'users' }, icon: UsersIcon, permission: 'ver usuarios' },
+    { name: 'Justificaciones', to: {name: 'justificaciones'}, icon: ClipboardIcon,permission: 'ver todas las asistencias' }
   ];
 
   const tieneGrupos = user?.grupo_id || (user?.grupos && user.grupos.length > 0);
