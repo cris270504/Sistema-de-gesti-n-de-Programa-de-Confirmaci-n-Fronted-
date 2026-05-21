@@ -20,6 +20,14 @@ export function deleteConfirmandoById(id) {
   return api.delete(`/confirmandos/${id}`).then(res => res.data)
 }
 
+export function retirarConfirmandoById(id) {
+  return api.put(`/confirmandos/${id}/retirar`).then(res => res.data);
+}
+
+export function getConfirmandosStats() {
+  return api.get('/confirmandos/retention-stats').then(res => res.data);
+}
+
 export function importarConfirmandosExcel(formData) {
     // Agregamos el header para que Laravel sepa que viene un archivo
     return api.post('/confirmandos/importar', formData, {
@@ -42,3 +50,4 @@ export const exportarConfirmandosExcel = async () => {
     link.click();
     link.remove();
 };
+

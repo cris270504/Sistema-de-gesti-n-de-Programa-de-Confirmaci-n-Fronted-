@@ -17,37 +17,29 @@ import ConfirmandoModal from '../../components/Modals/confirmandoModal.vue';
 
 const props = defineProps({
     id: { type: [Number, String], required: true }
-})
+});
 
+// --- STORES ---
 const gruposStore = useGruposStore();
 const usersStore = useUsersStore();
 const confirmandosStore = useConfirmandosStore();
 const authStore = useAuthStore();
 
+// --- REACTIVE STATE & REFS FROM STORES ---
 const { items: allUsers, loading: loadingUsers } = storeToRefs(usersStore);
-const { items: allConfirmandos, loading: loadingConfirmandos } = storeToRefs(confirmandosStore);
-const { fetchAll: fetchAllConfirmandos } = confirmandosStore;
+const { confirmandosAlerta, items: allConfirmandos, loading: loadingConfirmandos } = storeToRefs(confirmandosStore);
 
 const grupo = ref(null);
 const loadingGrupo = ref(true);
 
-// --- COMPUTED PARA EL COLOR DEL GRUPO ---
-const groupColor = computed(() => grupo.value?.color || '#2563eb');
-
-const confirmandosActivos = computed(() => {
-    return filteredConfirmandosModal.value.filter(c => c.estado === 'en_preparacion');
-});
-
-// Modales refs
+// --- MODALES REFS ---
 const catequistasModalInstance = ref(null);
 const confirmandosModalInstance = ref(null);
 const docsModalInstance = ref(null);
 const apoderadosInfoModalInstance = ref(null);
 const modalRef = ref(null);
-const abrirEditar = (id) => modalRef.value.open(id);
-const recargarTabla = () => fetchAllConfirmandos();
 
-// Estados locales
+// --- ESTADOS LOCALES ---
 const selectedCatechistIds = ref([]);
 const savingCatequistas = ref(false);
 const confirmandoSearchQuery = ref('');
@@ -55,25 +47,56 @@ const selectedConfirmandoIds = ref([]);
 const savingConfirmandos = ref(false);
 const docDraft = ref({ confirmando_id: null, nombre: '', sacramento_faltante: '', requisitos: [] });
 const savingDocs = ref(false);
-
-// Estado para el modal de ver apoderados
 const currentApoderadosView = ref({ nombreConfirmando: '', apoderados: [] });
+
+// --- COMPUTED PROPERTIES ---
+const groupColor = computed(() => grupo.value?.color || '#2563eb');
+
+// Filtrado seguro para el modal de asignación (Muestra activos + los ya pertenecientes a este grupo aunque varíen de estado)
+const confirmandosActivos = computed(() => {
+    const currentGroupId = Number(props.id);
+    return filteredConfirmandosModal.value.filter(c =>
+        c.estado === 'en_preparacion' || Number(c.grupo_id) === currentGroupId
+    );
+});
+
+// --- MÉTODOS DE NAVEGACIÓN Y APERTURA ---
+const abrirEditar = (id) => modalRef.value.open(id);
+
+const recargarTabla = async () => {
+    try {
+        await confirmandosStore.fetchAll();
+        await loadGroupData();
+    } catch (e) {
+        console.error("Error al recargar datos:", e);
+    }
+};
 
 // --- CICLO DE VIDA ---
 onMounted(async () => {
-    const promises = [loadGroupData(), confirmandosStore.fetchAll(true)];
+    loadingGrupo.value = true;
+
+    // Agrupamos las cargas iniciales de forma atómica y limpia sin duplicar llamadas
+    const promises = [
+        loadGroupData(),
+        confirmandosStore.fetchAll()
+    ];
+
     if (authStore.can('ver usuarios') || authStore.can('asignar catequista')) {
-        usersStore.fetchAll(true);
+        promises.push(usersStore.fetchAll());
     }
+
     await Promise.all(promises);
     initModals();
 });
 
 onUnmounted(() => {
+    // Destrucción limpia de instancias para evitar memory leaks en el DOM
     catequistasModalInstance.value?.dispose();
     confirmandosModalInstance.value?.dispose();
     docsModalInstance.value?.dispose();
     apoderadosInfoModalInstance.value?.dispose();
+
     const backdrops = document.querySelectorAll('.modal-backdrop');
     backdrops.forEach(el => el.remove());
     document.body.classList.remove('modal-open');
@@ -102,7 +125,6 @@ const initModals = () => {
 };
 
 async function loadGroupData() {
-    loadingGrupo.value = true;
     try {
         const g = await gruposStore.fetchById(Number(props.id));
         if (g) {
@@ -164,8 +186,6 @@ const handleSaveCatequistas = async () => {
 const availableConfirmandos = computed(() => {
     if (!allConfirmandos.value) return [];
     const currentGroupId = Number(props.id);
-
-    // Filtro estricto: confirmandos sin grupo asignado (null/0) O confirmandos que ya pertenecen a este grupo
     return allConfirmandos.value.filter(c => !c.grupo_id || Number(c.grupo_id) === currentGroupId);
 });
 
@@ -186,7 +206,7 @@ const handleSaveConfirmandos = async () => {
     savingConfirmandos.value = true;
     try {
         await gruposStore.assignConfirmandos(props.id, selectedConfirmandoIds.value);
-        await loadGroupData();
+        await recargarTabla();
         showAlerta('Confirmandos actualizados', 'success');
         confirmandosModalInstance.value.hide();
     } catch (e) {
@@ -206,6 +226,19 @@ const toggleSelectAllFiltered = (event) => {
     } else {
         selectedConfirmandoIds.value = selectedConfirmandoIds.value.filter(id => !filteredIds.includes(id));
     }
+};
+
+// --- LÓGICA REUTILIZABLE DE SEMÁFORO INDIVIDUAL ---
+const getAlertaFaltas = (confirmando) => {
+    const AlertaProcesada = confirmandosAlerta.value.find(c => c.id === confirmando.id);
+    if (!AlertaProcesada) return null;
+
+    return {
+        nivel_riesgo: AlertaProcesada.nivel_riesgo,
+        motivo_alerta: AlertaProcesada.motivo_alerta,
+        claseFila: AlertaProcesada.nivel_riesgo === 'ALTO' ? 'row-critica' :
+            AlertaProcesada.nivel_riesgo === 'MEDIO' ? 'row-preventiva' : ''
+    };
 };
 
 // --- LÓGICA APODERADOS ---
@@ -243,14 +276,16 @@ const openDocsModal = (confirmando) => {
     docsModalInstance.value?.show();
 };
 
-const toggleDocState = (req) => { req.pivot.estado = req.pivot.estado === 'entregado' ? 'pendiente' : 'entregado'; };
+const toggleDocState = (req) => {
+    req.pivot.estado = req.pivot.estado === 'entregado' ? 'pendiente' : 'entregado';
+};
 
 const handleSaveDocs = async () => {
     savingDocs.value = true;
     try {
         const payload = { requisitos_actualizar: docDraft.value.requisitos.map(r => ({ id: r.id, estado: r.pivot.estado })) };
         await confirmandosStore.save(docDraft.value.confirmando_id, payload);
-        await loadGroupData();
+        await recargarTabla();
         docsModalInstance.value.hide();
     } catch (e) {
         console.error(e);
@@ -265,50 +300,31 @@ const countEntregados = (requisitos) => {
     return requisitos.filter(r => r.pivot.estado === 'entregado').length;
 };
 
-const getAlertaFaltas = (confirmando) => {
-    const asistencias = confirmando.asistencias || [];
-    const ESTADO_BUSCADO = 'falta injustificada';
+// --- UNIFICACIÓN DE DATOS DEL STORE CON EL GRUPO ACTUAL ---
+const confirmandosFiltradosConAsistencia = computed(() => {
+    if (!grupo.value || !grupo.value.confirmandos) return [];
 
-    let consecutivas = 0;
-    for (let i = asistencias.length - 1; i >= 0; i--) {
-        if (asistencias[i].estado === ESTADO_BUSCADO) consecutivas++;
-        else break;
-    }
+    // Mapeamos los integrantes asignados al grupo, pero extrayendo sus datos reales del Store
+    return grupo.value.confirmandos.map(miembroGrupo => {
+        // Buscamos al chico en la lista fresca global de confirmandos del store
+        const datosRealesStore = allConfirmandos.value.find(c => c.id === miembroGrupo.id);
 
-    const totales = asistencias.filter(a => a.estado === ESTADO_BUSCADO).length;
-
-    if (consecutivas === 2 || totales === 4) {
-        return {
-            nivel: 'critico',
-            icono: 'AlertOctagon',
-            mensaje: consecutivas === 2 ? 'A una falta consecutiva del retiro' : 'A una falta acumulada del retiro',
-            claseFila: 'row-critica'
-        };
-    }
-
-    if (totales === 3) {
-        return {
-            nivel: 'preventivo',
-            icono: 'AlertTriangle',
-            mensaje: 'Ya tiene 3 faltas acumuladas',
-            claseFila: 'row-preventiva'
-        };
-    }
-
-    return null;
-};
+        // Si existe en el store, devolvemos ese objeto con sus contadores calculados; si no, dejamos el del grupo
+        return datosRealesStore ? datosRealesStore : miembroGrupo;
+    });
+});
 </script>
 
 <template>
     <div class="main-container py-3 py-lg-4 px-2 px-md-4">
 
-        <div v-if="loadingGrupo || !grupo" class="text-center py-5">
+        <div v-if="loadingGrupo" class="text-center py-5">
             <div class="spinner-border text-theme" role="status"></div>
             <p class="mt-2 text-muted">Cargando gestión del grupo...</p>
         </div>
 
         <div v-else-if="!grupo" class="alert alert-danger m-4">
-            No se pudo cargar la información del grupo.
+            ⚠️ El grupo pastoral no existe o no se pudo cargar la información.
         </div>
 
         <div v-else>
@@ -333,7 +349,6 @@ const getAlertaFaltas = (confirmando) => {
             </div>
 
             <div class="row g-4">
-
                 <div class="col-xl-8">
                     <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
                         <div
@@ -359,7 +374,7 @@ const getAlertaFaltas = (confirmando) => {
                                     <tr>
                                         <th class="ps-4 py-2" style="width: 50px;">N°</th>
                                         <th class="py-2">Confirmando</th>
-                                        <th class="py-2">Contacto</th>
+                                        <th class="py-2">Situacion</th>
                                         <th class="py-2 text-center">Progreso</th>
                                         <th class="py-2 text-center">Apoderados</th>
                                         <th class="pe-4 py-2 text-end">Acciones</th>
@@ -371,8 +386,8 @@ const getAlertaFaltas = (confirmando) => {
                                             No hay confirmandos registrados en este grupo pastoral.
                                         </td>
                                     </tr>
-                                    <tr v-for="(conf, i) in grupo.confirmandos" :key="conf.id" class="hover-row"
-                                        :class="getAlertaFaltas(conf)?.claseFila">
+                                    <tr v-for="(conf, i) in confirmandosFiltradosConAsistencia" :key="conf.id"
+                                        class="hover-row" :class="getAlertaFaltas(conf)?.claseFila">
                                         <td class="ps-4">
                                             <span class="text-muted fw-bold">{{ i + 1 }}</span>
                                         </td>
@@ -380,23 +395,41 @@ const getAlertaFaltas = (confirmando) => {
                                             <div>
                                                 <div class="fw-bold text-dark">{{ conf.apellidos }}, {{ conf.nombres }}
                                                 </div>
-                                                <div v-if="getAlertaFaltas(conf)" class="mt-1">
-                                                    <span :title="getAlertaFaltas(conf).mensaje"
-                                                        :class="['badge-alert-glow', getAlertaFaltas(conf).nivel]">
-                                                        <component
-                                                            :is="getAlertaFaltas(conf).icono === 'AlertOctagon' ? AlertOctagon : AlertTriangle"
-                                                            :size="10" class="me-1" />
-                                                        <span>RIESGO CRÍTICO</span>
+
+                                                <div v-if="conf.celular"
+                                                    class="small text-secondary d-flex align-items-center gap-1">
+                                                    <Phone :size="12" /> {{ conf.celular }}
+                                                </div>
+                                                <span v-else class="text-muted small fst-italic">No hay celular
+                                                    registrado</span>
+
+                                                <div v-if="getAlertaFaltas(conf) && getAlertaFaltas(conf)?.nivel_riesgo !== 'NINGUNO'"
+                                                    class="mt-1">
+                                                    <span :title="getAlertaFaltas(conf)?.motivo_alerta"
+                                                        :class="['badge-alert-glow', getAlertaFaltas(conf)?.nivel_riesgo]">
+
+                                                        <AlertOctagon
+                                                            v-if="getAlertaFaltas(conf)?.nivel_riesgo === 'ALTO'"
+                                                            :size="12" class="me-1 mb-0.5" />
+                                                        <AlertTriangle v-else :size="12" class="me-1 mb-0.5" />
+
+                                                        <span class="fw-semibold">RIESGO CRÍTICO</span>
                                                     </span>
                                                 </div>
                                             </div>
                                         </td>
                                         <td>
-                                            <div v-if="conf.celular"
-                                                class="small text-secondary d-flex align-items-center gap-1">
-                                                <Phone :size="12" /> {{ conf.celular }}
+                                            <div>
+                                                <span
+                                                    class="badge bg-warning-subtle text-warning border border-warning-subtle me-1">
+                                                    {{ conf.total_faltas_justificadas || 0 }} Falta(s) justificada(s)
+                                                </span>
                                             </div>
-                                            <span v-else class="text-muted small italic">No hay celular registrado</span>
+                                            <div class="mt-1">
+                                                <span class="badge bg-info-subtle text-info border border-info-subtle">
+                                                    {{ conf.total_tardanzas || 0 }} Tardanza(s)
+                                                </span>
+                                            </div>
                                         </td>
                                         <td style="width: 20%;">
                                             <div class="d-flex align-items-center justify-content-center gap-2 px-3">
@@ -406,9 +439,10 @@ const getAlertaFaltas = (confirmando) => {
                                                         backgroundColor: groupColor
                                                     }"></div>
                                                 </div>
-                                                <span class="small fw-bold text-muted">{{
-                                                    countEntregados(conf.requisitos) }}/{{ conf.requisitos?.length || 0
-                                                    }}</span>
+                                                <span class="small fw-bold text-muted">
+                                                    {{ countEntregados(conf.requisitos) }}/{{ conf.requisitos?.length ||
+                                                        0 }}
+                                                </span>
                                             </div>
                                         </td>
                                         <td class="text-center">
@@ -441,7 +475,6 @@ const getAlertaFaltas = (confirmando) => {
                 </div>
 
                 <div class="col-xl-4">
-
                     <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h6
@@ -471,7 +504,7 @@ const getAlertaFaltas = (confirmando) => {
                             </div>
                         </div>
                         <div v-else class="text-center py-4 border border-dashed rounded-3 bg-light">
-                            <span class="text-muted small italic">Sin catequistas vinculados</span>
+                            <span class="text-muted small fst-italic">Sin catequistas vinculados</span>
                         </div>
                     </div>
 
@@ -560,7 +593,7 @@ const getAlertaFaltas = (confirmando) => {
                                 <tr>
                                     <th class="ps-4 py-2" style="width: 50px;">
                                         <input class="form-check-input" type="checkbox"
-                                            @change="toggleSelectAllFiltered">
+                                            @change="toggleSelectAllFiltered($event)">
                                     </th>
                                     <th class="py-2">Nombre</th>
                                     <th class="py-2">Estado</th>
@@ -579,15 +612,18 @@ const getAlertaFaltas = (confirmando) => {
                                     </td>
                                     <td class="small">
                                         <span v-if="conf.grupo_id"
-                                            class="badge bg-success-subtle text-success border-0 px-3 py-1">Inscrito en
-                                            este grupo</span>
-                                        <span v-else class="badge bg-secondary-subtle text-muted border-0 px-3 py-1">Sin
-                                            asignar</span>
+                                            class="badge bg-success-subtle text-success border-0 px-3 py-1">
+                                            Inscrito en este grupo
+                                        </span>
+                                        <span v-else class="badge bg-secondary-subtle text-muted border-0 px-3 py-1">
+                                            Sin asignar
+                                        </span>
                                     </td>
                                 </tr>
                                 <tr v-if="confirmandosActivos.length === 0">
-                                    <td colspan="3" class="text-center py-4 text-muted small">No hay confirmandos
-                                        disponibles para agregar.</td>
+                                    <td colspan="3" class="text-center py-4 text-muted small">
+                                        No hay confirmandos disponibles para agregar.
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>
@@ -632,8 +668,8 @@ const getAlertaFaltas = (confirmando) => {
                                         <User :size="16" />
                                     </div>
                                     <div>
-                                        <div class="fw-bold text-dark small">{{ apo.apellidos }}, {{ apo.nombres }}
-                                        </div>
+                                        <div class="fw-bold text-dark table-title-sub small">{{ apo.apellidos }}, {{
+                                            apo.nombres }}</div>
                                         <span class="badge bg-secondary-subtle text-muted fw-normal border-0 mt-1"
                                             style="font-size: 0.7rem;">
                                             {{ apo.pivot?.tipo || 'Apoderado' }}

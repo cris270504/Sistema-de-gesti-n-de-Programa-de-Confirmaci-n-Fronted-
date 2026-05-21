@@ -6,7 +6,9 @@ import { useConfirmandosStore } from '../stores/confirmandos';
 import { onMounted, computed, ref } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { useReunionesStore } from '../stores/reunions';
-import { CalendarIcon, ChatBubbleLeftRightIcon, ExclamationTriangleIcon, ClockIcon, MapPinIcon, UserGroupIcon } from '@heroicons/vue/24/outline';
+import { CalendarIcon, ArrowDownCircleIcon, ChatBubbleLeftRightIcon, ExclamationTriangleIcon, ClockIcon, MapPinIcon, UserGroupIcon } from '@heroicons/vue/24/outline';
+import { CircleAlert } from 'lucide-vue-next';
+import { showAlerta, confirmar } from '@/funciones';
 
 const authStore = useAuthStore();
 const confirmandosStore = useConfirmandosStore();
@@ -38,30 +40,81 @@ const confirmandosAlerta = computed(() => {
   const data = confirmandosRaw.value || [];
 
   return data.map(c => {
-    // Calculamos los contadores dinámicamente para cada confirmando
-    const conteo = (c.asistencias || []).reduce((acc, curr) => {
-      // Ajusta los strings 'falta' o 'tardanza' según los uses en tu BD
-      if (curr.estado === 'falta injustificada') acc.faltas++;
-      if (curr.estado === 'tardanza') acc.tardanzas++;
-      return acc;
-    }, { faltas: 0, tardanzas: 0 });
+    const asistencias = c.asistencias || [];
 
-    // Obtenemos el apoderado (si existe)
+    // 1. ORDENAR ASISTENCIAS POR FECHA (De la más antigua a la más reciente)
+    // Esto es vital para poder calcular las faltas consecutivas correctamente
+    const asistenciasOrdenadas = [...asistencias].sort((a, b) => {
+      // Si tienes el objeto reunion mapeado, usa su fecha, sino curr.created_at
+      return new Date(a.reunion?.fecha || a.created_at) - new Date(b.reunion?.fecha || b.created_at);
+    });
+
+    // 2. CONTADORES DINÁMICOS Y DETECCIÓN DE CONSECUTIVAS
+    let maxInjustificadasSeguidas = 0;
+    let contadorSeguidasActual = 0;
+
+    const conteo = asistenciasOrdenadas.reduce((acc, curr) => {
+      if (curr.estado === 'falta injustificada') {
+        acc.faltas_injustificadas++;
+
+        // Lógica de consecutividad
+        contadorSeguidasActual++;
+        if (contadorSeguidasActual > maxInjustificadasSeguidas) {
+          maxInjustificadasSeguidas = contadorSeguidasActual;
+        }
+      } else if (curr.estado === 'asistio' || curr.estado === 'tardanza') {
+        // Si asistió o llegó tarde, se corta la racha de faltas seguidas
+        contadorSeguidasActual = 0;
+      }
+
+      if (curr.estado === 'falta justificada') acc.faltas_justificadas++;
+      if (curr.estado === 'tardanza') acc.tardanzas++;
+
+      return acc;
+    }, { faltas_injustificadas: 0, faltas_justificadas: 0, tardanzas: 0 });
+
+    // 3. DETERMINAR NIVEL DE RIESGO Y MOTIVO (SEMÁFORO)
+    let nivelRiesgo = 'NINGUNO';
+    let motivoAlerta = '';
+
+    // RIESGO ROJO: Criterio estricto de expulsión inminente (2 seguidas o 4 alternadas)
+    if (maxInjustificadasSeguidas >= 2 || conteo.faltas_injustificadas >= 4) {
+      nivelRiesgo = 'ALTO';
+      motivoAlerta = maxInjustificadasSeguidas >= 2
+        ? `Alerta Crítica: ${maxInjustificadasSeguidas} faltas injustificadas SEGUIDAS.`
+        : `Alerta Crítica: ${conteo.faltas_injustificadas} faltas injustificadas acumuladas.`;
+    }
+    // RIESGO NARANJA: Acumulación peligrosa de Justificadas (Ej: más de 4)
+    else if (conteo.faltas_justificadas >= 4) {
+      nivelRiesgo = 'MEDIO';
+      motivoAlerta = `Alerta de Desconexión: Tiene ${conteo.faltas_justificadas} faltas justificadas. Está perdiendo el hilo del programa.`;
+    }
+    // RIESGO AMARILLO: Problema de puntualidad (Ej: más de 4 tardanzas)
+    else if (conteo.tardanzas >= 4) {
+      nivelRiesgo = 'BAJO';
+      motivoAlerta = `Alerta de Impuntualidad: Acumula ${conteo.tardanzas} tardanzas. Requiere llamado de atención.`;
+    }
+
     const apoderado = c.apoderados && c.apoderados.length > 0 ? c.apoderados[0] : null;
 
     return {
       ...c,
-      nombre_completo: `${c.nombres} ${c.apellidos}`, // Concatenamos nombres
-      total_faltas: conteo.faltas,
+      nombre_completo: `${c.apellidos}, ${c.nombres}`,
+      total_faltas_injustificadas: conteo.faltas_injustificadas,
+      total_faltas_justificadas: conteo.faltas_justificadas,
       total_tardanzas: conteo.tardanzas,
-      nombre_apoderado: apoderado ? apoderado.nombre : 'No asignado',
-      celular_apoderado: apoderado ? apoderado.celular : c.celular // Fallback al celular del chico
+      injustificadas_seguidas: maxInjustificadasSeguidas,
+      nivel_riesgo: nivelRiesgo,
+      motivo_alerta: motivoAlerta,
+      nombre_apoderado: apoderado ? `${apoderado.apellidos}, ${apoderado.nombres}` : 'No asignado',
+      celular_apoderado: apoderado ? apoderado.celular : c.celular
     };
   }).filter(c => {
-    // Filtro de seguridad por rol y criterios de alerta
+    // Filtrado por grupo/rol y que tenga CUALQUIER nivel de alerta activo
     const cumpleRol = esGestor || c.grupo_id === authStore.user?.grupo_id;
-    const tieneRiesgo = c.total_faltas > 1 || c.total_tardanzas > 5;
-    return cumpleRol && tieneRiesgo;
+    const estaActivo = c.estado !== 'retirado';
+    const tieneAlerta = c.nivel_riesgo !== 'NINGUNO';
+    return cumpleRol && estaActivo && tieneAlerta;
   });
 });
 
@@ -70,6 +123,23 @@ const listaCatequistas = computed(() => {
   return usuarios.filter(u => u.roles && u.roles.includes('catequista'));
 });
 
+const confirmarRetiroJoven = async (joven) => {
+    const confirmado = await confirmar({
+        titulo: '¿Retirar confirmando del programa?',
+        texto: `Estás a punto de registrar la baja formal de ${joven.nombre_completo} debido a la acumulación crítica de inasistencias.`,
+        icono: 'warning',
+        confirmarTexto: 'Sí, retirar del programa',
+        cancelarTexto: 'Cancelar'
+    });
+
+    if (confirmado) {
+        
+        const exito = await confirmandosStore.registrarRetiro(joven.id, joven.nombre_completo);
+        if (exito) {
+          await fetchConfirmandos();
+        }
+    }
+};
 </script>
 
 <template>
@@ -135,23 +205,40 @@ const listaCatequistas = computed(() => {
               <thead class="bg-light text-muted small text-uppercase">
                 <tr>
                   <th class="ps-4">Nombre</th>
-                  <th v-if="esGestor">Grupo</th>
                   <th>Situación</th>
                   <th>Apoderado / WhatsApp</th>
+                  <th
+                    v-if="confirmandosAlerta.some(c => c.injustificadas_seguidas >= 3 || c.total_faltas_injustificadas >= 5)">
+                    RETIRO</th>
                 </tr>
               </thead>
               <tbody class="small">
                 <tr v-for="c in confirmandosAlerta" :key="c.id">
-                  <td class="ps-4 fw-bold">{{ c.nombre_completo }}</td>
-                  <td v-if="esGestor">{{ c.grupo?.nombre || 'Sin grupo' }}</td>
+                  <td class="ps-4">
+                    <div class="fw-bold">
+                      {{ c.nombre_completo }}
+                    </div>
+
+                    <span v-if="esGestor">{{ c.grupo?.nombre || 'Sin grupo' }}</span>
+                    <div class="small mt-0.5" :class="{
+                      'text-danger fw-semibold': c.nivel_riesgo === 'ALTO',
+                      'text-warning-custom': c.nivel_riesgo === 'MEDIO',
+                      'text-muted': c.nivel_riesgo === 'BAJO'
+                    }">
+                      {{ c.motivo_alerta }}
+                    </div>
+                  </td>
                   <td>
-                    <!-- Mostramos los contadores que calculamos en la computada -->
-                    <span v-if="c.total_faltas > 1" class="text-danger d-block">
-                      ● {{ c.total_faltas }} inasistencias
-                    </span>
-                    <span v-if="c.total_tardanzas > 5" class="text-warning d-block">
-                      ● {{ c.total_tardanzas }} tardanzas
-                    </span>
+                    <div>
+                      <span class="badge bg-warning-subtle text-warning border border-warning-subtle me-1">
+                        {{ c.total_faltas_justificadas }} Falta(s) justificada(s)
+                      </span>
+                    </div>
+                    <div>
+                      <span class="badge bg-info-subtle text-info border border-info-subtle">
+                        {{ c.total_tardanzas }} Tardanza(s)
+                      </span>
+                    </div>
                   </td>
                   <td>
                     <div class="fw-bold">{{ c.nombre_apoderado }}</div>
@@ -159,6 +246,13 @@ const listaCatequistas = computed(() => {
                       class="text-success text-decoration-none">
                       <i class="bi bi-whatsapp me-1"></i>{{ c.celular_apoderado }}
                     </a>
+                  </td>
+                  <td v-if="c.injustificadas_seguidas >= 3 || c.total_faltas_injustificadas >= 5" class="text-center">
+                    <button type="button" @click="confirmarRetiroJoven(c)"
+                      class="btn btn-sm btn-link p-1 rounded-circle hover-danger-btn d-inline-flex align-items-center justify-content-center"
+                      style="width: 32px; height: 32px;" title="Dar de baja y retirar del programa">
+                      <CircleAlert class="h-5 w-5 text-danger" />
+                    </button>
                   </td>
                 </tr>
                 <!-- Mensaje si no hay alertas -->
@@ -283,13 +377,16 @@ const listaCatequistas = computed(() => {
 .bg-light-subtle {
   background-color: #f8fafc !important;
 }
+
 .btn-primary-subtle {
-  background-color: #e7f0fe !important; /* El azul suave que usas en los badges */
+  background-color: #e7f0fe !important;
+  /* El azul suave que usas en los badges */
   transition: all 0.2s ease;
 }
 
 .btn-primary-subtle:hover {
-  background-color: #d1e3fd !important; /* Un tono ligeramente más oscuro al pasar el mouse */
+  background-color: #d1e3fd !important;
+  /* Un tono ligeramente más oscuro al pasar el mouse */
   color: #0d6efd !important;
 }
 </style>
