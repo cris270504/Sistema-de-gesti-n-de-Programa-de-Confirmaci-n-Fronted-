@@ -5,15 +5,16 @@ import { useUsersStore } from '../../stores/users';
 import { useConfirmandosStore } from '../../stores/confirmandos';
 import { storeToRefs } from 'pinia';
 import { Modal } from 'bootstrap';
-import { showAlerta } from '@/funciones';
+import { showAlerta, showErroresDeValidacion } from '@/funciones'; // Asegurado
 import { useAuthStore } from '@/stores/auth';
 import {
     FileText, CheckCircle, AlertCircle, ArrowLeft,
     UserPlus, Users, Search, User, Phone, Pencil,
     ShieldCheck, Plus, Eye,
-    AlertTriangle, AlertOctagon, Clock
+    AlertTriangle, AlertOctagon, Clock, X
 } from 'lucide-vue-next';
 import ConfirmandoModal from '../../components/Modals/confirmandoModal.vue';
+import { confirmar } from '../../funciones';
 
 const props = defineProps({
     id: { type: [Number, String], required: true }
@@ -52,11 +53,35 @@ const currentApoderadosView = ref({ nombreConfirmando: '', apoderados: [] });
 // --- COMPUTED PROPERTIES ---
 const groupColor = computed(() => grupo.value?.color || '#2563eb');
 
-// Filtrado seguro para el modal de asignación (Muestra activos + los ya pertenecientes a este grupo aunque varíen de estado)
-const confirmandosActivos = computed(() => {
+
+const availableConfirmandos = computed(() => {
+    if (!allConfirmandos.value) return [];
     const currentGroupId = Number(props.id);
-    return filteredConfirmandosModal.value.filter(c =>
-        c.estado === 'en_preparacion' || Number(c.grupo_id) === currentGroupId
+    
+    return allConfirmandos.value.filter(c => {
+        // Si está retirado, lo sacamos del mapa de inmediato
+        if (c.estado === 'retirado') return false;
+        
+        // Si no está retirado, evaluamos si no tiene grupo o es de este grupo
+        return !c.grupo_id || Number(c.grupo_id) === currentGroupId;
+    });
+});
+/**
+ * 1. CORREGIDO: Universo de confirmandos aptos para el grupo (Excluye retirados)
+ * Se procesa primero para que el buscador trabaje sobre la data limpia.
+ */
+const confirmandosActivos = computed(() => {
+    return filteredConfirmandosModal.value; 
+});
+
+/**
+ * 2. CORREGIDO: Buscador del modal reactivo acoplado a los confirmandos activos
+ */
+const filteredConfirmandosModal = computed(() => {
+    const query = confirmandoSearchQuery.value.trim().toLowerCase();
+    if (!query) return availableConfirmandos.value;
+    return availableConfirmandos.value.filter(c => 
+        `${c.nombres} ${c.apellidos}`.toLowerCase().includes(query)
     );
 });
 
@@ -76,7 +101,6 @@ const recargarTabla = async () => {
 onMounted(async () => {
     loadingGrupo.value = true;
 
-    // Agrupamos las cargas iniciales de forma atómica y limpia sin duplicar llamadas
     const promises = [
         loadGroupData(),
         confirmandosStore.fetchAll()
@@ -91,7 +115,6 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
-    // Destrucción limpia de instancias para evitar memory leaks en el DOM
     catequistasModalInstance.value?.dispose();
     confirmandosModalInstance.value?.dispose();
     docsModalInstance.value?.dispose();
@@ -103,25 +126,27 @@ onUnmounted(() => {
     document.body.style = '';
 });
 
+// 3. CORREGIDO: Watch seguro esperando el renderizado del DOM posterior a los datos
 watch(() => props.id, async () => {
+    loadingGrupo.value = true;
     await loadGroupData();
-    initModals();
+    nextTick(() => {
+        initModals();
+    });
 });
 
 const initModals = () => {
-    nextTick(() => {
-        const modalElCat = document.getElementById('catequistasModal');
-        if (modalElCat) catequistasModalInstance.value = new Modal(modalElCat);
+    const modalElCat = document.getElementById('catequistasModal');
+    if (modalElCat) catequistasModalInstance.value = new Modal(modalElCat);
 
-        const modalElConf = document.getElementById('confirmandosModal');
-        if (modalElConf) confirmandosModalInstance.value = new Modal(modalElConf);
+    const modalElConf = document.getElementById('confirmandosModal');
+    if (modalElConf) confirmandosModalInstance.value = new Modal(modalElConf);
 
-        const modalElDocs = document.getElementById('docsModal');
-        if (modalElDocs) docsModalInstance.value = new Modal(modalElDocs);
+    const modalElDocs = document.getElementById('docsModal');
+    if (modalElDocs) docsModalInstance.value = new Modal(modalElDocs);
 
-        const modalElApo = document.getElementById('apoderadosInfoModal');
-        if (modalElApo) apoderadosInfoModalInstance.value = new Modal(modalElApo);
-    });
+    const modalElApo = document.getElementById('apoderadosInfoModal');
+    if (modalElApo) apoderadosInfoModalInstance.value = new Modal(modalElApo);
 };
 
 async function loadGroupData() {
@@ -173,7 +198,7 @@ const handleSaveCatequistas = async () => {
         await gruposStore.assignCatequists(props.id, selectedCatechistIds.value);
         await loadGroupData();
         showAlerta('Catequistas actualizados', 'success');
-        catequistasModalInstance.value.hide();
+        catequistasModalInstance.value?.hide();
     } catch (e) {
         console.error(e);
         showAlerta('Error al guardar', 'error');
@@ -182,22 +207,18 @@ const handleSaveCatequistas = async () => {
     }
 };
 
-// --- LÓGICA DE ASIGNACIÓN FILTRADA (SOLO HUÉRFANOS Y PROPIOS) ---
-const availableConfirmandos = computed(() => {
-    if (!allConfirmandos.value) return [];
-    const currentGroupId = Number(props.id);
-    return allConfirmandos.value.filter(c => !c.grupo_id || Number(c.grupo_id) === currentGroupId);
-});
-
-const filteredConfirmandosModal = computed(() => {
-    const query = confirmandoSearchQuery.value.trim().toLowerCase();
-    if (!query) return availableConfirmandos.value;
-    return availableConfirmandos.value.filter(c => `${c.nombres} ${c.apellidos}`.toLowerCase().includes(query));
-});
-
 const openConfirmandosModal = () => {
     if (loadingConfirmandos.value) return showAlerta('Cargando...', 'info');
-    if (grupo.value) selectedConfirmandoIds.value = grupo.value.confirmandos?.map(c => c.id) || [];
+    
+    if (grupo.value) {
+        // Mapeamos los IDs de los confirmandos del grupo, pero SOLO si su estado global en el store NO es 'retirado'
+        selectedConfirmandoIds.value = grupo.value.confirmandos
+            ?.filter(miembro => {
+                const globalData = allConfirmandos.value.find(c => c.id === miembro.id);
+                return globalData ? globalData.estado !== 'retirado' : true;
+            })
+            .map(c => c.id) || [];
+    }
     confirmandosModalInstance.value?.show();
 };
 
@@ -208,7 +229,7 @@ const handleSaveConfirmandos = async () => {
         await gruposStore.assignConfirmandos(props.id, selectedConfirmandoIds.value);
         await recargarTabla();
         showAlerta('Confirmandos actualizados', 'success');
-        confirmandosModalInstance.value.hide();
+        confirmandosModalInstance.value?.hide();
     } catch (e) {
         console.error(e);
         showAlerta('Error al guardar', 'error');
@@ -228,8 +249,10 @@ const toggleSelectAllFiltered = (event) => {
     }
 };
 
-// --- LÓGICA REUTILIZABLE DE SEMÁFORO INDIVIDUAL ---
+// 4. CORREGIDO: Control de cortocircuito defensivo para confirmandosAlerta
 const getAlertaFaltas = (confirmando) => {
+    if (!confirmandosAlerta.value || confirmandosAlerta.value.length === 0) return null;
+    
     const AlertaProcesada = confirmandosAlerta.value.find(c => c.id === confirmando.id);
     if (!AlertaProcesada) return null;
 
@@ -286,7 +309,7 @@ const handleSaveDocs = async () => {
         const payload = { requisitos_actualizar: docDraft.value.requisitos.map(r => ({ id: r.id, estado: r.pivot.estado })) };
         await confirmandosStore.save(docDraft.value.confirmando_id, payload);
         await recargarTabla();
-        docsModalInstance.value.hide();
+        docsModalInstance.value?.hide();
     } catch (e) {
         console.error(e);
         showAlerta('Error al guardar documentos', 'error');
@@ -301,17 +324,19 @@ const countEntregados = (requisitos) => {
 };
 
 // --- UNIFICACIÓN DE DATOS DEL STORE CON EL GRUPO ACTUAL ---
+// --- UNIFICACIÓN DE DATOS DEL STORE CON EL GRUPO ACTUAL ---
 const confirmandosFiltradosConAsistencia = computed(() => {
     if (!grupo.value || !grupo.value.confirmandos) return [];
+    if (!allConfirmandos.value || allConfirmandos.value.length === 0) return grupo.value.confirmandos;
 
-    // Mapeamos los integrantes asignados al grupo, pero extrayendo sus datos reales del Store
-    return grupo.value.confirmandos.map(miembroGrupo => {
-        // Buscamos al chico en la lista fresca global de confirmandos del store
+    // 1. Mapeamos y actualizamos la data fresca del store
+    const unificados = grupo.value.confirmandos.map(miembroGrupo => {
         const datosRealesStore = allConfirmandos.value.find(c => c.id === miembroGrupo.id);
-
-        // Si existe en el store, devolvemos ese objeto con sus contadores calculados; si no, dejamos el del grupo
         return datosRealesStore ? datosRealesStore : miembroGrupo;
     });
+
+    // 2. FILTRO CRUCIAL: Excluir retirados de la tabla exterior del dashboard
+    return unificados.filter(c => c.estado !== 'retirado');
 });
 </script>
 
@@ -324,7 +349,7 @@ const confirmandosFiltradosConAsistencia = computed(() => {
         </div>
 
         <div v-else-if="!grupo" class="alert alert-danger m-4">
-            ⚠️ El grupo pastoral no existe o no se pudo cargar la información.
+            El grupo pastoral no existe o no se pudo cargar la información.
         </div>
 
         <div v-else>
@@ -353,11 +378,6 @@ const confirmandosFiltradosConAsistencia = computed(() => {
                     <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
                         <div
                             class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
-                            <h6
-                                class="fw-bold text-secondary mb-0 text-uppercase small d-flex align-items-center gap-2">
-                                <Users :size="16" />
-                                <span>Integrantes Inscritos ({{ grupo.confirmandos?.length || 0 }})</span>
-                            </h6>
                             <button v-if="authStore.can('asignar confirmandos')"
                                 class="btn btn-sm btn-theme rounded-pill px-3 shadow-none"
                                 @click="openConfirmandosModal" :disabled="loadingConfirmandos">

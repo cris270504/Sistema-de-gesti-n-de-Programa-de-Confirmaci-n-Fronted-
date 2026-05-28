@@ -3,7 +3,8 @@ import { showAlerta } from '@/funciones';
 import {
     getJustificacionesPendientes,
     saveJustificacionAcuerdo,
-    completeJustificacion
+    completeJustificacion,
+    rejectJustificacion
 } from '../services/justificaciones';
 import api from '@/lib/api';
 
@@ -59,6 +60,15 @@ export const useJustificacionesStore = defineStore('justificaciones', {
                 const msg = e?.response?.data?.message || 'Error al validar la justificación';
                 showAlerta(msg, 'error');
                 return false;
+            }
+        },
+
+        async rechazarAcuerdo(asistenciaId) {
+            try {
+                const data = await rejectJustificacion(asistenciaId);
+                return data;
+            } catch (error) {
+                throw error;
             }
         }
     },

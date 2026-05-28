@@ -2,13 +2,14 @@
 import { ref, onMounted, computed } from 'vue';
 import { useJustificacionesStore } from '../../stores/justificaciones';
 import { storeToRefs } from 'pinia';
-import { showAlerta } from '@/funciones';
+import { showAlerta, showErroresDeValidacion } from '@/funciones';
 import Swal from 'sweetalert2';
 import { completeJustificacion } from '@/services/justificaciones';
 import {
     Pencil, Trash, Plus, User, Phone, Calendar, Users,
-    Wand2, Trash2, Save, Upload, Check // <-- AGREGA 'Check' AQUÍ
+    Wand2, Trash2, Save, Upload, Check, X
 } from 'lucide-vue-next';
+import { confirmar } from '../../funciones';
 
 const justificacionesStore = useJustificacionesStore();
 const { items: pendientes, loading } = storeToRefs(justificacionesStore);
@@ -46,17 +47,21 @@ const listaGruposUnicos = computed(() => {
     // Extraemos todos los nombres de grupo y eliminamos duplicados usando Set
     const grupos = pendientes.value.map(item => item.grupo);
     return [...new Set(grupos)].filter(Boolean).sort();
-}); 
+});
 
-// Buscador simple por nombre de confirmando o grupo
+// Buscador simple por nombre de confirmando o grupo (Blindado contra nulos)
 const filteredPendientes = computed(() => {
     if (!pendientes.value) return [];
 
     return pendientes.value.filter(item => {
-        // Filtro por cuadro de texto
-        const query = filterQuery.value.toLowerCase();
-        const coincideBusqueda = item.confirmando.toLowerCase().includes(query) ||
-            item.grupo.toLowerCase().includes(query);
+        const query = filterQuery.value ? filterQuery.value.toLowerCase() : '';
+
+        // ➔ SOLUCIÓN: Aseguramos que si 'confirmando' o 'grupo' son nulos, se evalúen como string vacío
+        const nombreConfirmando = item.confirmando ? item.confirmando.toLowerCase() : '';
+        const nombreGrupo = item.grupo ? item.grupo.toLowerCase() : '';
+
+        // Ahora el buscador nunca fallará, aunque el dato venga roto de la DB
+        const coincideBusqueda = nombreConfirmando.includes(query) || nombreGrupo.includes(query);
 
         // Filtro por combo de grupo
         const coincideGrupo = !grupoSeleccionado.value || item.grupo === grupoSeleccionado.value;
@@ -135,6 +140,20 @@ const formatFechaFalta = (dateStr) => {
     return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
 };
 
+const getClaseAlertaFecha = (fechaFaltaStr) => {
+    if (!fechaFaltaStr) return '';
+
+    const fechaFalta = new Date(fechaFaltaStr);
+    const hoy = new Date();
+
+    // Convertimos la diferencia a días absolutos limpios
+    const diferenciaMilisegundos = hoy - fechaFalta;
+    const diasTranscurridos = Math.floor(diferenciaMilisegundos / (1000 * 60 * 60 * 24));
+
+    // Si pasaron 14 días o más, activamos la alerta amarilla de "Última semana"
+    return diasTranscurridos >= 7 ? 'fila-alerta-amarilla' : '';
+};
+
 const confirmarCumplimientoSwal = async (item) => {
     Swal.fire({
         title: '¿Validar cumplimiento de acuerdo?',
@@ -158,6 +177,29 @@ const confirmarCumplimientoSwal = async (item) => {
             }
         }
     });
+};
+
+const rechazarCumplimientoSwal = async (item) => {
+    const seguro = await confirmar({
+        titulo: '¿Marcar como No Cumplido?',
+        texto: `¿Confirmas que el joven ${item.confirmando} NO cumplió con la acción pactada? La falta quedará como Injustificada definitivamente, saldrá de esta lista y se agregará la nota de incumplimiento.`,
+        icono: 'warning',
+        confirmarTexto: 'Sí, marcar como injustificada',
+        cancelarTexto: 'Cancelar'
+    });
+
+    if (seguro) {
+        try {
+            await justificacionesStore.rechazarAcuerdo(item.asistencia_id);
+
+            showAlerta('Falta archivada como injustificada definitivamente.', 'success');
+
+            await justificacionesStore.fetchPendientes();
+        } catch (error) {
+            console.error(error);
+            showErroresDeValidacion(error);
+        }
+    }
 };
 </script>
 
@@ -187,7 +229,7 @@ const confirmarCumplimientoSwal = async (item) => {
                         <select class="form-select form-select-sm fw-medium text-secondary" v-model="grupoSeleccionado">
                             <option value=""> Todos los grupos</option>
                             <option v-for="grupo in listaGruposUnicos" :key="grupo" :value="grupo">
-                                 {{ grupo }}
+                                {{ grupo }}
                             </option>
                         </select>
                     </div>
@@ -253,7 +295,7 @@ const confirmarCumplimientoSwal = async (item) => {
                             </tr>
 
                             <tr v-for="(item, index) in justificacionesFiltradas" :key="item.asistencia_id"
-                                class="hover-row">
+                                class="hover-row" :class="getClaseAlertaFecha(item.fecha_falta)">
                                 <td class="text-center text-muted fw-medium">{{ index + 1 }}</td>
 
                                 <td>
@@ -318,6 +360,12 @@ const confirmarCumplimientoSwal = async (item) => {
                                                 class="btn btn-sm btn-success rounded-circle d-flex align-items-center justify-content-center"
                                                 style="width: 32px; height: 32px;" title="Validar Cumplimiento">
                                                 <Check :size="18" />
+                                            </button>
+
+                                            <button @click="rechazarCumplimientoSwal(item)"
+                                                class="btn btn-sm btn-danger rounded-circle d-flex align-items-center justify-content-center"
+                                                style="width: 32px; height: 32px;" title="Marcar como no cumplido">
+                                                <X :size="18" />
                                             </button>
                                         </template>
 
@@ -479,5 +527,24 @@ const confirmarCumplimientoSwal = async (item) => {
 .hover-row:hover {
     background-color: #f8fafc;
     transition: background-color 0.15s ease;
+}
+
+.fila-alerta-amarilla td {
+    background-color: #fff9db !important;
+    /* Amarillo pastel sutil */
+    border-color: #ffe066 !important;
+    /* Contraste de bordes internos */
+    transition: background-color 0.15s ease;
+}
+
+/* Asegura que el efecto hover de la fila pinte todos sus td en sincronía */
+.fila-alerta-amarilla:hover td {
+    background-color: #fff3b3 !important;
+    /* Amarillo un poco más oscuro al pasar el mouse */
+}
+
+/* Añade una barra indicadora en la primera columna */
+.fila-alerta-amarilla td:first-child {
+    border-left: 5px solid #f59e0b !important; /* Barra naranja/amarilla de advertencia */
 }
 </style>
