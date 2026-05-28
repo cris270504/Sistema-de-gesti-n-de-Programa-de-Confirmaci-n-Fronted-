@@ -35,7 +35,7 @@ export const useJustificacionesStore = defineStore('justificaciones', {
         async registrarAcuerdo(payload) {
             try {
                 await saveJustificacionAcuerdo(payload);
-                showAlerta('Acuerdo registrado. Estado cambiado a Pendiente.', 'success');
+                showAlerta('¡Acuerdo registrado con éxito!', 'success');
 
                 // Recarga automática y sincronizada de la lista local
                 await this.fetchPendientes();

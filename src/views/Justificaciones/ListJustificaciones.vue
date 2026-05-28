@@ -126,7 +126,6 @@ const guardarAcuerdo = async () => {
         filterQuery.value = '';
 
         cerrarModal();
-        showAlerta('¡Acuerdo registrado con éxito!', 'success');
     }
 
     saving.value = false;
