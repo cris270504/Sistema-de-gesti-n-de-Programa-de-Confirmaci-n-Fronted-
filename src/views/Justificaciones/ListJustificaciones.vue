@@ -139,8 +139,12 @@ const formatFechaFalta = (dateStr) => {
     return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
 };
 
+// ➔ MODIFICADO: Ahora solo calcula la alerta si la pestaña activa es 'INJUSTIFICADO'
 const getClaseAlertaFecha = (fechaFaltaStr) => {
     if (!fechaFaltaStr) return '';
+    
+    // Si el usuario está en "Todos", "Pendientes" o "Justificados", no pintamos nada de amarillo
+    if (filtroActual.value !== 'INJUSTIFICADO') return '';
 
     const fechaFalta = new Date(fechaFaltaStr);
     const hoy = new Date();
@@ -149,7 +153,7 @@ const getClaseAlertaFecha = (fechaFaltaStr) => {
     const diferenciaMilisegundos = hoy - fechaFalta;
     const diasTranscurridos = Math.floor(diferenciaMilisegundos / (1000 * 60 * 60 * 24));
 
-    // Si pasaron 14 días o más, activamos la alerta amarilla de "Última semana"
+    // Si pasaron 7 días o más, activamos la alerta amarilla de "Última semana"
     return diasTranscurridos >= 7 ? 'fila-alerta-amarilla' : '';
 };
 
