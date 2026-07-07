@@ -7,8 +7,9 @@ import { onMounted, computed, ref } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { useReunionesStore } from '../stores/reunions';
 import { CalendarIcon, ArrowDownCircleIcon, ChatBubbleLeftRightIcon, ExclamationTriangleIcon, ClockIcon, MapPinIcon, UserGroupIcon } from '@heroicons/vue/24/outline';
-import { CircleAlert } from 'lucide-vue-next';
+import { CircleAlert, User } from 'lucide-vue-next';
 import { showAlerta, confirmar } from '@/funciones';
+import PerfilConfirmandoModal from '@/components/Modals/PerfilConfirmandoModal.vue'; // ➔ NUEVO: Importamos el componente del modal
 
 const authStore = useAuthStore();
 const confirmandosStore = useConfirmandosStore();
@@ -27,6 +28,9 @@ const reunionesStore = useReunionesStore();
 const { fetchUpcoming } = reunionesStore;
 const { upcomingItems, loading: loadingReuniones } = storeToRefs(reunionesStore);
 
+// ➔ NUEVO: Referencia para el modal
+const perfilModalRef = ref(null);
+
 const esGestor = authStore.can('ver usuarios');
 
 onMounted(() => {
@@ -43,53 +47,63 @@ const confirmandosAlerta = computed(() => {
     const asistencias = c.asistencias || [];
 
     // 1. ORDENAR ASISTENCIAS POR FECHA (De la más antigua a la más reciente)
-    // Esto es vital para poder calcular las faltas consecutivas correctamente
     const asistenciasOrdenadas = [...asistencias].sort((a, b) => {
-      // Si tienes el objeto reunion mapeado, usa su fecha, sino curr.created_at
       return new Date(a.reunion?.fecha || a.created_at) - new Date(b.reunion?.fecha || b.created_at);
     });
 
     // 2. CONTADORES DINÁMICOS Y DETECCIÓN DE CONSECUTIVAS
-    let maxInjustificadasSeguidas = 0;
-    let contadorSeguidasActual = 0;
+    let maxInjustificadasSeguidas_Historico = 0; // La peor racha que tuvo en el año
+    let rachaActiva = 0; // La racha EXACTA con la que terminó su última reunión registrada
 
     const conteo = asistenciasOrdenadas.reduce((acc, curr) => {
-      if (curr.estado === 'falta injustificada') {
-        acc.faltas_injustificadas++;
+      const tieneAcuerdoPendiente = curr.justificacion?.estado === 'pendiente';
 
-        // Lógica de consecutividad
-        contadorSeguidasActual++;
-        if (contadorSeguidasActual > maxInjustificadasSeguidas) {
-          maxInjustificadasSeguidas = contadorSeguidasActual;
+      // Si es falta injustificada pura (y no está en trámite)
+      if (curr.estado === 'falta injustificada' && !tieneAcuerdoPendiente) {
+        acc.faltas_injustificadas++;
+        rachaActiva++; // La racha viva sigue creciendo
+
+        if (rachaActiva > maxInjustificadasSeguidas_Historico) {
+          maxInjustificadasSeguidas_Historico = rachaActiva;
         }
-      } else if (curr.estado === 'asistio' || curr.estado === 'tardanza') {
-        // Si asistió o llegó tarde, se corta la racha de faltas seguidas
-        contadorSeguidasActual = 0;
+      }
+      // Si asiste, llega tarde, justifica o hace acuerdo -> LA RACHA ACTIVA SE ROMPE
+      else {
+        rachaActiva = 0;
       }
 
+      // Sumatorias totales
       if (curr.estado === 'falta justificada') acc.faltas_justificadas++;
       if (curr.estado === 'tardanza') acc.tardanzas++;
 
       return acc;
     }, { faltas_injustificadas: 0, faltas_justificadas: 0, tardanzas: 0 });
 
-    // 3. DETERMINAR NIVEL DE RIESGO Y MOTIVO (SEMÁFORO)
+    // 3. DETERMINAR NIVEL DE RIESGO Y MOTIVO (SEMÁFORO MEJORADO)
     let nivelRiesgo = 'NINGUNO';
     let motivoAlerta = '';
 
-    // RIESGO ROJO: Criterio estricto de expulsión inminente (2 seguidas o 4 alternadas)
-    if (maxInjustificadasSeguidas >= 2 || conteo.faltas_injustificadas >= 4) {
+    // PRIORIDAD 1: Regla de Expulsión por Acumulación Total (Peligro Inminente)
+    if (conteo.faltas_injustificadas >= 4) {
       nivelRiesgo = 'ALTO';
-      motivoAlerta = maxInjustificadasSeguidas >= 2
-        ? `Alerta Crítica: ${maxInjustificadasSeguidas} faltas injustificadas SEGUIDAS.`
-        : `Alerta Crítica: ${conteo.faltas_injustificadas} faltas injustificadas acumuladas.`;
+      motivoAlerta = `Alerta Crítica: ${conteo.faltas_injustificadas} faltas injustificadas ACUMULADAS.`;
     }
-    // RIESGO NARANJA: Acumulación peligrosa de Justificadas (Ej: más de 4)
+    // PRIORIDAD 2: Regla de Expulsión por Racha ACTIVA (Está a una falta de irse)
+    else if (rachaActiva >= 2) {
+      nivelRiesgo = 'ALTO';
+      motivoAlerta = `Alerta Crítica: ${rachaActiva} faltas injustificadas en sus ÚLTIMAS reuniones (Riesgo inminente).`;
+    }
+    // PRIORIDAD 3: El "Olvido". Tuvo 3 seguidas en el pasado, rompió la regla, pero nadie lo sacó.
+    else if (maxInjustificadasSeguidas_Historico >= 3) {
+      nivelRiesgo = 'ALTO';
+      motivoAlerta = `Alerta Crítica: Tuvo ${maxInjustificadasSeguidas_Historico} faltas seguidas en el pasado y no fue retirado.`;
+    }
+    // RIESGO NARANJA: Acumulación peligrosa de Justificadas
     else if (conteo.faltas_justificadas >= 4) {
       nivelRiesgo = 'MEDIO';
-      motivoAlerta = `Alerta de Desconexión: Tiene ${conteo.faltas_justificadas} faltas justificadas. Está perdiendo el hilo del programa.`;
+      motivoAlerta = `Alerta de Desconexión: Tiene ${conteo.faltas_justificadas} faltas justificadas. Está perdiendo el hilo.`;
     }
-    // RIESGO AMARILLO: Problema de puntualidad (Ej: más de 4 tardanzas)
+    // RIESGO AMARILLO: Problema de puntualidad
     else if (conteo.tardanzas >= 4) {
       nivelRiesgo = 'BAJO';
       motivoAlerta = `Alerta de Impuntualidad: Acumula ${conteo.tardanzas} tardanzas. Requiere llamado de atención.`;
@@ -103,14 +117,14 @@ const confirmandosAlerta = computed(() => {
       total_faltas_injustificadas: conteo.faltas_injustificadas,
       total_faltas_justificadas: conteo.faltas_justificadas,
       total_tardanzas: conteo.tardanzas,
-      injustificadas_seguidas: maxInjustificadasSeguidas,
+      injustificadas_seguidas: rachaActiva, 
+      racha_historica: maxInjustificadasSeguidas_Historico,
       nivel_riesgo: nivelRiesgo,
       motivo_alerta: motivoAlerta,
       nombre_apoderado: apoderado ? `${apoderado.apellidos}, ${apoderado.nombres}` : 'No asignado',
       celular_apoderado: apoderado ? apoderado.celular : c.celular
     };
   }).filter(c => {
-    // Filtrado por grupo/rol y que tenga CUALQUIER nivel de alerta activo
     const cumpleRol = esGestor || c.grupo_id === authStore.user?.grupo_id;
     const estaActivo = c.estado !== 'retirado';
     const tieneAlerta = c.nivel_riesgo !== 'NINGUNO';
@@ -124,21 +138,20 @@ const listaCatequistas = computed(() => {
 });
 
 const confirmarRetiroJoven = async (joven) => {
-    const confirmado = await confirmar({
-        titulo: '¿Retirar confirmando del programa?',
-        texto: `Estás a punto de registrar la baja formal de ${joven.nombre_completo} debido a la acumulación crítica de inasistencias.`,
-        icono: 'warning',
-        confirmarTexto: 'Sí, retirar del programa',
-        cancelarTexto: 'Cancelar'
-    });
+  const confirmado = await confirmar({
+    titulo: '¿Retirar confirmando del programa?',
+    texto: `Estás a punto de registrar la baja formal de ${joven.nombre_completo} debido a la acumulación crítica de inasistencias.`,
+    icono: 'warning',
+    confirmarTexto: 'Sí, retirar del programa',
+    cancelarTexto: 'Cancelar'
+  });
 
-    if (confirmado) {
-        
-        const exito = await confirmandosStore.registrarRetiro(joven.id, joven.nombre_completo);
-        if (exito) {
-          await fetchConfirmandos();
-        }
+  if (confirmado) {
+    const exito = await confirmandosStore.registrarRetiro(joven.id, joven.nombre_completo);
+    if (exito) {
+      await fetchConfirmandos();
     }
+  }
 };
 </script>
 
@@ -215,17 +228,27 @@ const confirmarRetiroJoven = async (joven) => {
               <tbody class="small">
                 <tr v-for="c in confirmandosAlerta" :key="c.id">
                   <td class="ps-4">
-                    <div class="fw-bold">
-                      {{ c.nombre_completo }}
-                    </div>
+                    <!-- ➔ NUEVO: Contenedor flexible para alinear el botón y el nombre -->
+                    <div class="d-flex align-items-start gap-2">
+                      <button @click="perfilModalRef.abrir(c.id)"
+                        class="btn btn-sm btn-light text-secondary rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 mt-1"
+                        style="width: 28px; height: 28px;" title="Ver Ficha Completa">
+                        <User :size="14" />
+                      </button>
 
-                    <span v-if="esGestor">{{ c.grupo?.nombre || 'Sin grupo' }}</span>
-                    <div class="small mt-0.5" :class="{
-                      'text-danger fw-semibold': c.nivel_riesgo === 'ALTO',
-                      'text-warning-custom': c.nivel_riesgo === 'MEDIO',
-                      'text-muted': c.nivel_riesgo === 'BAJO'
-                    }">
-                      {{ c.motivo_alerta }}
+                      <div>
+                        <div class="fw-bold fs-6">
+                          {{ c.nombre_completo }}
+                        </div>
+                        <span v-if="esGestor">{{ c.grupo?.nombre || 'Sin grupo' }}</span>
+                        <div class="small mt-0.5" :class="{
+                          'text-danger fw-semibold': c.nivel_riesgo === 'ALTO',
+                          'text-warning-custom': c.nivel_riesgo === 'MEDIO',
+                          'text-muted': c.nivel_riesgo === 'BAJO'
+                        }">
+                          {{ c.motivo_alerta }}
+                        </div>
+                      </div>
                     </div>
                   </td>
                   <td>
@@ -234,7 +257,7 @@ const confirmarRetiroJoven = async (joven) => {
                         {{ c.total_faltas_justificadas }} Falta(s) justificada(s)
                       </span>
                     </div>
-                    <div>
+                    <div class="mt-1">
                       <span class="badge bg-info-subtle text-info border border-info-subtle">
                         {{ c.total_tardanzas }} Tardanza(s)
                       </span>
@@ -265,6 +288,7 @@ const confirmarRetiroJoven = async (joven) => {
             </table>
           </div>
         </div>
+
         <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
           <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
             <h6 class="mb-0 fw-bold d-flex align-items-center">
@@ -287,8 +311,7 @@ const confirmarRetiroJoven = async (joven) => {
                     <div class="bg-primary text-white rounded-4 p-2 text-center shadow-sm" style="min-width: 65px;">
                       <span class="d-block fw-bold fs-4">{{ new Date(actividad.fecha).getDate() }}</span>
                       <span class="small text-uppercase">{{ new Date(actividad.fecha).toLocaleString('es', {
-                        month:
-                          'short'
+                        month: 'short'
                       }) }}</span>
                     </div>
                   </div>
@@ -316,7 +339,6 @@ const confirmarRetiroJoven = async (joven) => {
 
       <!-- COLUMNA LATERAL (DERECHA) -->
       <div class="col-xl-4">
-
         <!-- MÉTRICAS DE PROGRESO -->
         <div class="card border-0 shadow-sm rounded-4 p-4 mb-4" v-if="authStore.can('ver confirmandos')">
           <h6 class="fw-bold text-muted text-uppercase small mb-3">Estado de Retención</h6>
@@ -345,8 +367,6 @@ const confirmarRetiroJoven = async (joven) => {
           </div>
         </div>
 
-        <!-- PRÓXIMAS ACTIVIDADES (MÁS COMPACTO) -->
-
         <!-- AVISOS RÁPIDOS -->
         <div class="p-4 rounded-4 bg-primary text-white shadow-sm mb-4">
           <div class="d-flex align-items-center mb-2">
@@ -359,6 +379,9 @@ const confirmarRetiroJoven = async (joven) => {
       </div>
     </div>
   </main>
+
+  <!-- ➔ NUEVO: Componente inyectado al final del template -->
+  <PerfilConfirmandoModal ref="perfilModalRef" />
 </template>
 
 <style scoped>

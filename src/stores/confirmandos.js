@@ -1,13 +1,14 @@
 import { defineStore } from 'pinia'
 import { useAuthStore } from './auth';
-import { 
-    createConfirmando, 
-    deleteConfirmandoById, 
-    getConfirmandoById, 
-    getConfirmandosList, 
-    updateConfirmando, 
-    importarConfirmandosExcel, 
+import {
+    createConfirmando,
+    deleteConfirmandoById,
+    getConfirmandoById,
+    getConfirmandosList,
+    updateConfirmando,
+    importarConfirmandosExcel,
     retirarConfirmandoById,
+    obtenerPerfilConfirmando,
     getConfirmandosStats // <-- 1. IMPORTANTE: Asegúrate de tener exportada esta función en tu service
 } from '../services/confirmandos';
 import { confirmarEliminacion, showAlerta, showErroresDeValidacion } from '@/funciones'
@@ -124,7 +125,7 @@ export const useConfirmandosStore = defineStore('confirmandos', {
         async fetchMetricas() {
             try {
                 const res = await getConfirmandosStats();
-                
+
                 const activos = res.en_preparacion || 0;
                 const retirados = res.retirado || 0;
                 const total = res.total || 1; // Evita división por 0
@@ -161,6 +162,27 @@ export const useConfirmandosStore = defineStore('confirmandos', {
                 return confirmando;
             } catch (e) {
                 this.error = e?.response?.data?.message || e?.message || `Error al obtener confirmando ${id}`;
+                showAlerta(this.error, 'error');
+                throw e;
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        async fetchPerfilById(id) {
+            this.loading = true;
+            this.error = null;
+            try {
+                const confirmandoId = Number(id);
+
+                // Llamamos al servicio (este ya devuelve res.data)
+                const perfil = await obtenerPerfilConfirmando(confirmandoId);
+
+                // Retornamos el perfil directamente, SIN reemplazar this.items
+                return perfil;
+
+            } catch (e) {
+                this.error = e?.response?.data?.message || e?.message || `Error al obtener el perfil del confirmando ${id}`;
                 showAlerta(this.error, 'error');
                 throw e;
             } finally {

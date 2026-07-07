@@ -12,6 +12,10 @@ export function createConfirmando(confirmando) {
   return api.post('/confirmandos', confirmando).then(res => res.data)
 }
 
+export function obtenerPerfilConfirmando(id){
+  return api.get(`/confirmandos/${id}/perfil`).then(res => res.data)
+}
+
 export function updateConfirmando(id, confirmando) {
   return api.put(`/confirmandos/${id}`, confirmando).then(res => res.data)
 }

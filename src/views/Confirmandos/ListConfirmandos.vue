@@ -5,12 +5,15 @@ import { storeToRefs } from 'pinia';
 import { onMounted, ref, computed, nextTick } from 'vue';
 import {
     Pencil, Trash, Plus, User, Phone, Calendar, Users,
-    Wand2, Trash2, Save, Upload
+    Wand2, Trash2, Save, Upload, Eye
 } from 'lucide-vue-next';
 import { useAuthStore } from '@/stores/auth';
 import { Modal } from 'bootstrap';
 import ConfirmandoModal from '../../components/Modals/confirmandoModal.vue';
 import { showAlerta } from '@/funciones';
+import PerfilConfirmandoModal from '../../components/Modals/PerfilConfirmandoModal.vue';
+
+const perfilModalRef = ref(null);
 
 // --- STORES ---
 const confirmandosStore = useConfirmandosStore();
@@ -24,9 +27,11 @@ const { fetchAll: fetchAllConfirmandos, remove: removeConfirmando } = confirmand
 const confirmandoSearchQuery = ref('');
 const modalRef = ref(null); // Ref para el modal de Crear/Editar
 
+
 // --- LÓGICA DE IMPORTACIÓN EXCEL ---
 const fileInputRef = ref(null);
 const isImporting = ref(false);
+
 
 const importModalInstance = ref(null);
 
@@ -277,7 +282,7 @@ const openApoderadosModal = (confirmando) => {
                     <span v-if="isImporting" class="spinner-border spinner-border-sm me-2"></span>
                     <Upload v-else :size="18" class="me-2" />
                     <span class="fw-bold fs-7 text-uppercase">{{ isImporting ? 'Importando...' : 'Importar Excel'
-                        }}</span>
+                    }}</span>
                 </button>
 
                 <button v-if="authStore.can('crear grupos')" @click="abrirGenerador"
@@ -405,6 +410,12 @@ const openApoderadosModal = (confirmando) => {
                             </td>
                             <td class="text-end pe-4 py-2">
                                 <div class="d-inline-flex gap-2">
+                                    <button @click="perfilModalRef.abrir(c.id)""
+                                        class=" btn btn-sm btn-soft-suggest rounded-circle d-flex align-items-center
+                                        justify-content-center me-1" style="width: 32px; height: 32px;"
+                                        title="Ver Ficha Completa">
+                                        <Eye :size="16" />
+                                    </button>
                                     <button class="btn btn-action btn-soft-info" title="Ver Apoderados"
                                         @click="openApoderadosModal(c)">
                                         <Users :size="18" />
@@ -503,7 +514,7 @@ const openApoderadosModal = (confirmando) => {
                             <div v-for="(name, index) in groupNames" :key="index" class="d-flex gap-2">
                                 <div class="input-group">
                                     <span class="input-group-text bg-white text-muted border-end-0">{{ index + 1
-                                        }}</span>
+                                    }}</span>
                                     <input type="text" class="form-control border-start-0" v-model="groupNames[index]"
                                         placeholder="Nombre del grupo">
                                 </div>
@@ -622,6 +633,7 @@ const openApoderadosModal = (confirmando) => {
             </div>
         </div>
     </div>
+    <PerfilConfirmandoModal ref="perfilModalRef" />
 </template>
 
 <style scoped>
@@ -775,5 +787,41 @@ const openApoderadosModal = (confirmando) => {
 
 .dashed-border {
     border-style: dashed !important;
+}
+
+.popover-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(15, 23, 42, 0.2);
+    backdrop-filter: blur(2px);
+    z-index: 1040;
+}
+
+/* Caja central flotante */
+.mini-dialog {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1050;
+    border: none;
+}
+
+/* Animaciones de aparición */
+.popover-anim-enter-active {
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.popover-anim-leave-active {
+    transition: all 0.15s ease;
+}
+
+.popover-anim-enter-from,
+.popover-anim-leave-to {
+    opacity: 0;
+    transform: translate(-50%, -40%) scale(0.9);
 }
 </style>
