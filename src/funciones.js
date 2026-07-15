@@ -17,6 +17,16 @@ export function showAlerta(mensaje, icono = 'info', focoId = '') {
   })
 }
 
+export function isTokenExpired(token) {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    if (!payload.exp) return true
+    return Date.now() >= payload.exp * 1000
+  } catch {
+    return true // token corrupto = inválido
+  }
+}
+
 export function showErroresDeValidacion(errorObj) {
   if (errorObj && typeof errorObj === 'object' && !Array.isArray(errorObj) && !(errorObj instanceof Error)) {
     const lista = Object.entries(errorObj)

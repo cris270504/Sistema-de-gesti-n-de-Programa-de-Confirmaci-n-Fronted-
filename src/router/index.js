@@ -3,6 +3,7 @@ import { LS_TOKEN_KEY, LS_USER_KEY } from '@/constants/auth'
 import { useAuthStore } from '@/stores/auth'
 import { showAlerta } from '@/funciones'
 
+import NotFound from '../views/NotFound.vue'
 import Login from '../views/Auth/Login.vue'
 import DefaultLayout from '../components/DefaultLayout.vue'
 import ListarUsuarios from '../views/Users/ListUsers.vue'
@@ -17,11 +18,18 @@ import ListSacramentos from '../views/Sacramentos/ListSacramentos.vue'
 import ListRequisitos from '../views/Requisitos/ListRequisitos.vue'
 import Listcumpleanos from '../views/Cumpleanos/listCumpleanos.vue'
 import ListJustificaciones from '../views/Justificaciones/ListJustificaciones.vue'
+import { isTokenExpired } from '@/funciones'
 
 function hasSession() {
   const token = localStorage.getItem(LS_TOKEN_KEY)
   const user = localStorage.getItem(LS_USER_KEY)
-  return !!token && !!user
+  if (!token || !user) return false
+  if (isTokenExpired(token)) {
+    localStorage.removeItem(LS_TOKEN_KEY)
+    localStorage.removeItem(LS_USER_KEY)
+    return false
+  }
+  return true
 }
 
 const router = createRouter({
@@ -135,7 +143,7 @@ const router = createRouter({
           path: '/justificaciones',
           name: 'justificaciones',
           component: ListJustificaciones,
-          meta: {title: 'Justificaciones', permission: 'ver todas las asistencias'}
+          meta: { title: 'Justificaciones', permission: 'ver todas las asistencias' }
         },
 
         //SACRAMENTOS
@@ -168,6 +176,12 @@ const router = createRouter({
           component: Roles,
           meta: { title: 'Lista de roles', permission: ['ver roles', 'ver permisos'] }
         },
+
+        {
+          path: '/:pathMatch(.*)*',
+          name: 'NotFound',
+          component: NotFound
+        }
       ],
     },
     // Público
