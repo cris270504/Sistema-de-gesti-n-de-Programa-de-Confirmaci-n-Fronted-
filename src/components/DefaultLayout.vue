@@ -1,11 +1,11 @@
 <template>
     <div class="layout">
         <!-- Sidebar navigation -->
-        <Sidebar />
+        <Sidebar v-if="$route.meta.requiresLayout !== false" />
 
         <div class="content-wrapper">
             <!-- Top navigation bar -->
-            <Navbar />
+            <Navbar v-if="$route.meta.requiresLayout !== false" />
 
             <!-- Main content area -->
             <main class="main-content">

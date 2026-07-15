@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 const router = useRouter()
 
 const volverAlInicio = () => {
-  router.push('/dashboard')
+  router.push('/')
 }
 </script>
 
