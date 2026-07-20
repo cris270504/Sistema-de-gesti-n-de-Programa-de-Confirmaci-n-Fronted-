@@ -94,9 +94,6 @@ const filteredPersonas = computed(() => {
         // 1. Obtenemos los IDs y los forzamos a ser números
         const misGruposIds = (authStore.user?.grupo_ids || []).map(Number);
 
-        // 2. Log para ver qué está pasando realmente en la consola del navegador
-        console.log("Mis grupos permitidos:", misGruposIds);
-
         lista = lista.filter(p => {
             const idDelConfirmando = Number(p.grupo_id || p.grupo?.id);
             const estaPermitido = misGruposIds.includes(idDelConfirmando);
@@ -509,7 +506,6 @@ const saveChanges = async () => {
 
         // CORRECCIÓN: Usar grupo_ids porque migramos a una tabla pivote de muchos a muchos
         if (esCatequista && user.grupo_ids && user.grupo_ids.length > 0) {
-            console.log("Redirigiendo a miGrupo con ID:", user.grupo_ids[0]);
             router.push({ name: 'miGrupo', params: { id: user.grupo_ids[0] } });
         }
 

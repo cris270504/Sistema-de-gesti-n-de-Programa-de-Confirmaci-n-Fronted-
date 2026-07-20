@@ -40,9 +40,6 @@ const open = (conf) => {
     // Esto asegura que leamos el JSON completo que me mostraste, 
     // ignorando versiones "incompletas" que puedan venir de la vista de Grupos.
     const fullConf = confirmandosStore.items.find(c => c.id === conf.id) || conf;
-    
-    // 2. Imprimimos en consola para que puedas verificar que los datos llegan
-    console.log(`Documentos de ${fullConf.nombres}:`, fullConf.requisitos);
 
     docDraft.value = {
         confirmando_id: fullConf.id,

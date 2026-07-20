@@ -83,7 +83,6 @@ export const useAuthStore = defineStore('auth', {
         return { ok: false, loggedIn: false }
 
       } catch (e) {
-        console.log('REGISTER ERROR:', e?.response?.data);
         this.error = e?.response?.data?.message || 'No se pudo registrar'
         const errors = e?.response?.data?.errors || null
         if (!errors) showAlerta(this.error, 'error')
