@@ -63,18 +63,16 @@ const popover = ref({
 });
 
 const hasAssignedGroups = computed(() => {
-    const user = authStore.user;
-    if (!user) return false;
-
-    return !!(user.grupo_id || (user.grupos && user.grupos.length > 0));
+    // Asegúrate de que usamos grupo_ids, que es el nombre correcto ahora
+    return authStore.user?.grupo_ids && authStore.user.grupo_ids.length > 0;
 });
 
 const canAccess = computed(() => {
-    // 1. Si es Coordinador/Admin (puede ver todas), SIEMPRE accede
+    // 1. Permiso total
     if (authStore.can('ver todas las asistencias')) return true;
 
-    // 2. Si es Catequista, solo accede si tiene grupos asignados
-    return hasAssignedGroups.value;
+    // 2. Permiso básico + tener grupos
+    return authStore.can('ver asistencias') && hasAssignedGroups.value;
 });
 
 // --- COMPUTEDS ---
@@ -93,12 +91,21 @@ const filteredPersonas = computed(() => {
 
     // 2. Seguridad para Catequistas (Solo ver sus grupos asignados)
     if (!authStore.can('ver todas las asistencias')) {
-        const misGruposIds = [];
-        if (authStore.user?.grupo_id) misGruposIds.push(Number(authStore.user.grupo_id));
-        if (authStore.user?.grupos) authStore.user.grupos.forEach(g => misGruposIds.push(Number(g.id)));
+        // 1. Obtenemos los IDs y los forzamos a ser números
+        const misGruposIds = (authStore.user?.grupo_ids || []).map(Number);
 
-        if (misGruposIds.length === 0) return [];
-        lista = lista.filter(p => misGruposIds.includes(Number(p.grupo_id || p.grupo?.id)));
+        // 2. Log para ver qué está pasando realmente en la consola del navegador
+        console.log("Mis grupos permitidos:", misGruposIds);
+
+        lista = lista.filter(p => {
+            const idDelConfirmando = Number(p.grupo_id || p.grupo?.id);
+            const estaPermitido = misGruposIds.includes(idDelConfirmando);
+
+            if (!estaPermitido) {
+                console.warn(`Confirmando ${p.nombres} excluido porque su grupo ${idDelConfirmando} no está en [${misGruposIds}]`);
+            }
+            return estaPermitido;
+        });
     }
 
     // 3. Filtro por Dropdown
@@ -135,6 +142,15 @@ watch(currentMonth, () => {
     if (canAccess.value) loadMatrix();
 });
 
+watch(() => route.query.grupo, (newGrupoId) => {
+    // Si la URL cambia de grupo, actualizamos la variable que filtra la tabla
+    if (newGrupoId) {
+        filterGrupo.value = Number(newGrupoId);
+    } else {
+        filterGrupo.value = ''; // Por si el admin regresa a "Todos los grupos"
+    }
+});
+
 watch(() => props.defaultTipo, (newTipo) => {
     if (!canAccess.value) return; // Bloqueo
     tipoActual.value = newTipo;
@@ -166,6 +182,10 @@ function resetData() {
 // --- CARGA DE DATOS (CORE) ---
 async function loadMatrix() {
     if (!currentMonth.value) return;
+
+    if (!filterGrupo.value && hasAssignedGroups.value) {
+        filterGrupo.value = authStore.user.grupo_ids[0];
+    }
     loading.value = true;
     try {
         const data = await asistenciasStore.fetchMatrix(tipoActual.value, currentMonth.value);
@@ -205,6 +225,14 @@ async function loadMatrix() {
                     return p;
                 });
             }
+
+            const authStore = useAuthStore();
+            const puedeVerTodo = authStore.can('ver todas las asistencias') || authStore.isCoordinador;
+            const misGrupos = authStore.user?.grupo_ids || [];
+            if (!puedeVerTodo) {
+                listaProcesada = listaProcesada.filter(p => misGrupos.includes(p.grupo_id));
+            }
+
             personas.value = listaProcesada;
 
             const map = {};
@@ -463,11 +491,15 @@ const saveChanges = async () => {
             updatesByReunion[p.reunion_id].push(p);
         });
 
+        // Esperamos a que todas las peticiones se guarden
         const promises = Object.entries(updatesByReunion).map(([rId, items]) =>
             asistenciasStore.saveBulk(rId, items)
         );
 
         await Promise.all(promises);
+        
+        // Disparamos el éxito y recargamos la matriz
+        showAlerta('Asistencia guardada correctamente', 'success');
         await loadMatrix();
         changes.value = {};
 
@@ -475,13 +507,15 @@ const saveChanges = async () => {
         const roles = user?.roles || [];
         const esCatequista = roles.includes('catequista');
 
-        if (esCatequista && user.grupo_id) {
-            console.log("Redirigiendo a miGrupo con ID:", user.grupo_id);
-            router.push({ name: 'miGrupo', params: { id: user.grupo_id } });
+        // CORRECCIÓN: Usar grupo_ids porque migramos a una tabla pivote de muchos a muchos
+        if (esCatequista && user.grupo_ids && user.grupo_ids.length > 0) {
+            console.log("Redirigiendo a miGrupo con ID:", user.grupo_ids[0]);
+            router.push({ name: 'miGrupo', params: { id: user.grupo_ids[0] } });
         }
 
     } catch (e) {
-        showAlerta('Error al guardar: ' + (e.response?.data?.message || e.message), 'error');
+        // Ahora si el backend falla, mostrará el mensaje aquí
+        showAlerta(e.message || 'Error inesperado al guardar', 'error');
     } finally {
         saving.value = false;
     }

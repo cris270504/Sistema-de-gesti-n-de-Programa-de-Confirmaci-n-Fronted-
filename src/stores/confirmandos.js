@@ -95,7 +95,7 @@ export const useConfirmandosStore = defineStore('confirmandos', {
                     celular_apoderado: apoderado ? apoderado.celular : c.celular
                 };
             }).filter(c => {
-                const cumpleRol = esGestor || c.grupo_id === authStore.user?.grupo_id;
+                const cumpleRol = esGestor || (authStore.user?.grupo_ids || []).includes(c.grupo_id);
                 const estaActivo = c.estado !== 'retirado';
                 const tieneAlerta = c.nivel_riesgo !== 'NINGUNO';
                 return cumpleRol && estaActivo && tieneAlerta;
@@ -112,8 +112,11 @@ export const useConfirmandosStore = defineStore('confirmandos', {
             this.error = null;
             try {
                 this.items = await getConfirmandosList();
+                const authStore = useAuthStore();
                 // 2. Cada vez que cargamos los alumnos ordinarios, disparamos el conteo global de la API
-                await this.fetchMetricas();
+                if (authStore.isCoordinador || authStore.can('ver dashboard')) {
+                    await this.fetchMetricas(); 
+                }
             } catch (e) {
                 this.error = e?.message || 'Error al listar Confirmandos';
             } finally {

@@ -12,7 +12,7 @@ export const useAsistenciasStore = defineStore('asistencias', {
     actions: {
         async fetchByReunion(reunionId) {
             this.loading = true;
-            this.error = null;
+            this.error = null; fetchMatrix
             try {
                 this.items = await getAsistenciasList(reunionId);
             } catch (e) {
@@ -38,14 +38,13 @@ export const useAsistenciasStore = defineStore('asistencias', {
         async saveBulk(reunionId, payload) {
             try {
                 await saveAsistenciasBulk(reunionId, payload);
-                showAlerta('Asistencia guardada correctamente', 'success');
-
-                await this.fetchByReunion(reunionId);
+                // Quitamos el fetchByReunion de aquí porque loadMatrix() ya hace el trabajo
                 return true;
             } catch (e) {
+                // Agregamos un console.error para que, si falla el backend, veas el error real en la consola (F12)
+                console.error("Error real al guardar asistencia:", e);
                 const msg = e?.response?.data?.message || 'Error al guardar asistencia';
-                showAlerta(msg, 'error');
-                return false;
+                throw new Error(msg); // Lanzamos el error para que el componente padre lo atrape
             }
         }
     },

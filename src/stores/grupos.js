@@ -169,17 +169,40 @@ export const useGruposStore = defineStore('grupos', {
                 throw e;
             }
         },
-        
+
         updateCatechistDetails(updatedUser) {
             if (!updatedUser || !updatedUser.id) return;
 
-            this.items.forEach(grupo => {
-                if (grupo.catequistas && grupo.catequistas.length > 0) {
-                    const catequista = grupo.catequistas.find(c => c.id === updatedUser.id);
+            // Extraemos los IDs de los grupos a los que AHORA pertenece
+            // Si por alguna razón viene undefined, asumimos un array vacío
+            const nuevosGruposIds = updatedUser.grupos
+                ? updatedUser.grupos.map(g => g.id)
+                : [];
 
-                    if (catequista) {
-                        catequista.name = updatedUser.name;
-                        catequista.email = updatedUser.email;
+            this.items.forEach(grupo => {
+                if (!grupo.catequistas) {
+                    grupo.catequistas = [];
+                }
+
+                const catequistaIndex = grupo.catequistas.findIndex(c => c.id === updatedUser.id);
+                const perteneceAEsteGrupo = nuevosGruposIds.includes(grupo.id);
+
+                if (perteneceAEsteGrupo) {
+                    if (catequistaIndex !== -1) {
+                        grupo.catequistas[catequistaIndex].name = updatedUser.name;
+                        grupo.catequistas[catequistaIndex].email = updatedUser.email;
+                        grupo.catequistas[catequistaIndex].celular = updatedUser.celular;
+                    } else {
+                        grupo.catequistas.push({
+                            id: updatedUser.id,
+                            name: updatedUser.name,
+                            email: updatedUser.email,
+                            celular: updatedUser.celular
+                        });
+                    }
+                } else {
+                    if (catequistaIndex !== -1) {
+                        grupo.catequistas.splice(catequistaIndex, 1);
                     }
                 }
             });
@@ -203,7 +226,7 @@ export const useGruposStore = defineStore('grupos', {
             try {
                 // Llamamos al servicio
                 const response = await generarGruposEquitativos(payload);
-                
+
                 // Como se crearon grupos nuevos en el backend, nuestra lista 'items' 
                 // está desactualizada. Lo mejor es recargarla.
                 await this.fetchAll();

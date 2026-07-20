@@ -42,11 +42,11 @@ const miGrupoId = computed(() => authStore.user?.grupo_id);
 
 // --- Estado de Modales ---
 const detailsModalInstance = ref(null);
-const selectedEvent = ref({ 
-    id: null, 
-    title: '', 
-    start: '', 
-    description: '', 
+const selectedEvent = ref({
+    id: null,
+    title: '',
+    start: '',
+    description: '',
     type: '',
     age: 0,
     originalDate: '',
@@ -63,13 +63,13 @@ const calendarEvents = computed(() => {
         if (!person.fecha_nacimiento) return;
 
         // Determinar nombre completo
-        const fullName = person.nombres 
-            ? `${person.nombres} ${person.apellidos}` 
+        const fullName = person.nombres
+            ? `${person.nombres} ${person.apellidos}`
             : person.name;
 
-        const parts = person.fecha_nacimiento.split('-'); 
+        const parts = person.fecha_nacimiento.split('-');
         if (parts.length !== 3) return;
-        
+
         const birthMonth = parts[1];
         const birthDay = parts[2];
         const birthYear = parseInt(parts[0]);
@@ -77,7 +77,7 @@ const calendarEvents = computed(() => {
         years.forEach(year => {
             events.push({
                 id: `${type}-${person.id}-${year}`,
-                title: `🎂 ${fullName}`, 
+                title: `🎂 ${fullName}`,
                 start: `${year}-${birthMonth}-${birthDay}`,
                 allDay: true,
                 backgroundColor: color,
@@ -97,7 +97,7 @@ const calendarEvents = computed(() => {
     if (esCoordinadorOAdmin.value) {
         // 1. El Coordinador/Admin ve TODOS los confirmandos
         confirmandos.value.forEach(c => processPerson(c, 'Confirmando', '#3b82f6'));
-        
+
         // 2. Ve TODOS los usuarios con rol de catequista o coordinador
         const catequistas = users.value.filter(u => {
             const roles = u.roles || [];
@@ -109,28 +109,27 @@ const calendarEvents = computed(() => {
         catequistas.forEach(u => processPerson(u, 'Catequista', '#f59e0b'));
     } else {
         // --- VISTA CATEQUISTA (SÓLO SU GRUPO E INTEGRANTES) ---
-        
+
         // 1. Mis Confirmandos directos de mi grupo
-        const misConfirmandos = confirmandos.value.filter(c => Number(c.grupo_id) === Number(miGrupoId.value));
+        const misConfirmandos = confirmandos.value.filter(c =>
+            authStore.user?.grupo_ids?.includes(Number(c.grupo_id))
+        );
         misConfirmandos.forEach(c => processPerson(c, 'Confirmando', '#3b82f6'));
 
         // 2. Mis Colegas Catequistas (Incluido yo mismo)
         // Buscamos en la lista de todos los usuarios a aquellos que compartan grupo_id con mi sesión
         const misColegas = users.value.filter(u => {
-            // El backend asocia al usuario logueado con un grupo_id directo en la sesión.
-            // Para los demás usuarios de la lista, buscamos si su grupo_id coincide con el nuestro.
-            const userGroupId = u.grupo_id || u.grupo?.id;
-            const comparteGrupo = Number(userGroupId) === Number(miGrupoId.value);
-            
+            // Si el usuario tiene un array de grupos, verificamos si hay intersección
+            const usuarioComparteGrupo = u.grupo_ids?.some(id => authStore.user?.grupo_ids?.includes(id));
+
             const roles = u.roles || [];
             const tieneRolPermitido = roles.some(role => {
                 const name = typeof role === 'string' ? role : role.name;
                 return ['catequista', 'coordinador'].includes(name.trim().toLowerCase());
             });
 
-            return comparteGrupo && tieneRolPermitido;
+            return usuarioComparteGrupo && tieneRolPermitido;
         });
-
         misColegas.forEach(u => processPerson(u, 'Catequista', '#f59e0b'));
     }
 
@@ -148,7 +147,7 @@ const calendarOptions = computed(() => ({
     buttonText: { today: 'Hoy', month: 'Mes', list: 'Lista' },
     displayEventTime: false,
     events: calendarEvents.value,
-    
+
     eventClick: (info) => {
         const props = info.event.extendedProps;
         selectedEvent.value = {
@@ -198,17 +197,20 @@ onMounted(async () => {
             <div>
                 <h2 class="h3 text-gray-800 mb-1">Calendario de Cumpleaños</h2>
                 <p class="text-muted mb-0 small">
-                    {{ esCoordinadorOAdmin ? 'Seguimiento general de la comunidad' : 'Cumpleaños en mi Grupo Pastoral' }}
+                    {{ esCoordinadorOAdmin ? 'Seguimiento general de la comunidad' : 'Cumpleaños en mi Grupo Pastoral'
+                    }}
                 </p>
             </div>
-            
+
             <div class="d-flex gap-3">
                 <div class="d-flex align-items-center">
-                    <span class="d-inline-block rounded-circle me-2" style="width: 12px; height: 12px; background-color: #3b82f6;"></span>
+                    <span class="d-inline-block rounded-circle me-2"
+                        style="width: 12px; height: 12px; background-color: #3b82f6;"></span>
                     <small class="text-muted">Confirmandos</small>
                 </div>
                 <div class="d-flex align-items-center">
-                    <span class="d-inline-block rounded-circle me-2" style="width: 12px; height: 12px; background-color: #f59e0b;"></span>
+                    <span class="d-inline-block rounded-circle me-2"
+                        style="width: 12px; height: 12px; background-color: #f59e0b;"></span>
                     <small class="text-muted">Catequistas</small>
                 </div>
             </div>
@@ -225,21 +227,23 @@ onMounted(async () => {
         </div>
 
         <div class="modal fade" id="detailsModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered modal-sm"> 
+            <div class="modal-dialog modal-dialog-centered modal-sm">
                 <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
                     <div class="modal-header bg-primary text-white position-relative overflow-hidden border-0 py-3">
-                        <div class="position-absolute top-0 start-0 w-100 h-100 opacity-25" 
-                             style="background: radial-gradient(circle at top right, white, transparent);"></div>
-                        
-                        <h5 class="modal-title fw-bold position-relative z-1 d-flex align-items-center gap-2" style="font-size: 1.1rem;">
+                        <div class="position-absolute top-0 start-0 w-100 h-100 opacity-25"
+                            style="background: radial-gradient(circle at top right, white, transparent);"></div>
+
+                        <h5 class="modal-title fw-bold position-relative z-1 d-flex align-items-center gap-2"
+                            style="font-size: 1.1rem;">
                             <i class="bi bi-cake2-fill"></i>¡Cumpleaños!
                         </h5>
-                        <button type="button" class="btn-close btn-close-white position-relative z-1 shadow-none" data-bs-dismiss="modal"></button>
+                        <button type="button" class="btn-close btn-close-white position-relative z-1 shadow-none"
+                            data-bs-dismiss="modal"></button>
                     </div>
-                    
+
                     <div class="modal-body text-center py-4">
                         <h4 class="fw-bold text-dark mb-1 fs-5">{{ selectedEvent.title.replace('🎂 ', '') }}</h4>
-                        
+
                         <div class="d-flex justify-content-center gap-2 mb-3">
                             <span class="badge rounded-pill px-3 py-1.5 text-uppercase small"
                                 :class="selectedEvent.type === 'Confirmando' ? 'bg-primary-subtle text-primary' : 'bg-warning-subtle text-warning-emphasis'">
@@ -248,13 +252,13 @@ onMounted(async () => {
                         </div>
 
                         <div v-if="esCoordinadorOAdmin && selectedEvent.grupo" class="mb-3">
-                            <button 
-                                @click="irAlGrupo(selectedEvent.grupo.id)" 
+                            <button @click="irAlGrupo(selectedEvent.grupo.id)"
                                 class="btn btn-sm btn-soft-group border-0 px-3 py-1.5 rounded-pill d-inline-flex align-items-center gap-1"
-                                :style="{ color: '#1e293b', border: `1px solid ${selectedEvent.grupo.color || '#cbd5e1'}` }"
-                            >
-                                <span class="dot-indicator" :style="{ backgroundColor: selectedEvent.grupo.color || '#cbd5e1' }"></span>
-                                <span class="fw-bold text-truncate" style="max-width: 140px;">{{ selectedEvent.grupo.nombre }}</span>
+                                :style="{ color: '#1e293b', border: `1px solid ${selectedEvent.grupo.color || '#cbd5e1'}` }">
+                                <span class="dot-indicator"
+                                    :style="{ backgroundColor: selectedEvent.grupo.color || '#cbd5e1' }"></span>
+                                <span class="fw-bold text-truncate" style="max-width: 140px;">{{
+                                    selectedEvent.grupo.nombre }}</span>
                                 <i class="bi bi-arrow-right-short text-muted fs-6"></i>
                             </button>
                         </div>
@@ -263,14 +267,16 @@ onMounted(async () => {
                             <div class="display-3 text-primary fw-bold lh-1 mb-1">
                                 {{ selectedEvent.age }}
                             </div>
-                            <p class="text-muted text-uppercase fw-bold tracking-wider mb-2" style="font-size: 0.75rem;">Años a cumplir</p>
+                            <p class="text-muted text-uppercase fw-bold tracking-wider mb-2"
+                                style="font-size: 0.75rem;">Años a cumplir</p>
                             <small class="text-secondary d-block mt-2 bg-light p-2 rounded-3">
                                 Nacimiento: {{ formatBirthDate(selectedEvent.originalDate) }}
                             </small>
                         </div>
                     </div>
                     <div class="modal-footer justify-content-center bg-light border-0 py-2">
-                        <button type="button" class="btn btn-outline-secondary btn-sm px-4 rounded-pill" data-bs-dismiss="modal">Cerrar</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm px-4 rounded-pill"
+                            data-bs-dismiss="modal">Cerrar</button>
                     </div>
                 </div>
             </div>
@@ -299,10 +305,17 @@ onMounted(async () => {
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
 
-.rounded-4 { border-radius: 1rem !important; }
+.rounded-4 {
+    border-radius: 1rem !important;
+}
 
 /* Estilos de tabla del calendario */
-:deep(.fc table), :deep(.fc tbody), :deep(.fc thead), :deep(.fc tr), :deep(.fc td), :deep(.fc th) {
+:deep(.fc table),
+:deep(.fc tbody),
+:deep(.fc thead),
+:deep(.fc tr),
+:deep(.fc td),
+:deep(.fc th) {
     background-color: transparent !important;
     border-color: var(--fc-border-color) !important;
 }
@@ -323,12 +336,14 @@ onMounted(async () => {
     border-radius: 50px;
     padding: 2px 8px;
     font-size: 0.8rem;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     border: none !important;
     margin-bottom: 2px !important;
 }
 
-:deep(.fc-daygrid-event-dot) { display: none; }
+:deep(.fc-daygrid-event-dot) {
+    display: none;
+}
 
 :deep(.fc-toolbar-title) {
     font-size: 1.25rem !important;
@@ -339,12 +354,14 @@ onMounted(async () => {
     background-color: white;
     color: #4b5563;
     border: 1px solid #e5e7eb;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
+
 :deep(.fc-button-primary:hover) {
     background-color: #f9fafb;
     color: #111827;
 }
+
 :deep(.fc-button-primary.fc-button-active) {
     background-color: #3b82f6;
     color: white;
