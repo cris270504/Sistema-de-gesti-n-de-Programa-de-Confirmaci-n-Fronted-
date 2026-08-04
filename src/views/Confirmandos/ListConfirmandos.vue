@@ -1,6 +1,6 @@
 <script setup>
 import { useConfirmandosStore } from '../../stores/confirmandos';
-import { useGruposStore } from '../../stores/grupos'; // <--- 1. IMPORTAMOS EL STORE DE GRUPOS
+import { useGruposStore } from '../../stores/grupos';
 import { storeToRefs } from 'pinia';
 import { onMounted, ref, computed, nextTick } from 'vue';
 import {
@@ -17,7 +17,7 @@ const perfilModalRef = ref(null);
 
 // --- STORES ---
 const confirmandosStore = useConfirmandosStore();
-const gruposStore = useGruposStore(); // <--- 2. INSTANCIAMOS EL STORE
+const gruposStore = useGruposStore();
 const authStore = useAuthStore();
 
 const { items: confirmandos, loading, error } = storeToRefs(confirmandosStore);
@@ -25,14 +25,13 @@ const { fetchAll: fetchAllConfirmandos, remove: removeConfirmando } = confirmand
 
 // --- ESTADOS LOCALES ---
 const confirmandoSearchQuery = ref('');
-const modalRef = ref(null); // Ref para el modal de Crear/Editar
-
+const estadoFiltro = ref('en_preparacion');
+const grupoFiltro = ref('todos'); 
+const modalRef = ref(null); 
 
 // --- LÓGICA DE IMPORTACIÓN EXCEL ---
 const fileInputRef = ref(null);
 const isImporting = ref(false);
-
-
 const importModalInstance = ref(null);
 
 const initImportModal = () => {
@@ -40,13 +39,8 @@ const initImportModal = () => {
     if (el) importModalInstance.value = new Modal(el);
 };
 
-const abrirImportModal = () => {
-    importModalInstance.value?.show();
-};
-
-const triggerImport = () => {
-    fileInputRef.value.click();
-};
+const abrirImportModal = () => importModalInstance.value?.show();
+const triggerImport = () => fileInputRef.value.click();
 
 const handleFileUpload = async (event) => {
     const file = event.target.files[0];
@@ -61,9 +55,7 @@ const handleFileUpload = async (event) => {
         return;
     }
 
-    // 2. OCULTAMOS EL MODAL INFORMATIVO ANTES DE EMPEZAR A CARGAR
     importModalInstance.value?.hide();
-
     const formData = new FormData();
     formData.append('archivo', file);
 
@@ -87,15 +79,12 @@ const handleFileUpload = async (event) => {
     }
 };
 
-
 // --- LÓGICA DE APODERADOS ---
 const apoderadosModalInstance = ref(null);
 const selectedApoderados = ref([]);
 const selectedConfirmandoName = ref('');
 
-// =======================================================================
-// --- LÓGICA GENERADOR DE GRUPOS (Integrada con Store) ---
-// =======================================================================
+// --- LÓGICA GENERADOR DE GRUPOS ---
 const generadorModalInstance = ref(null);
 const loadingGenerador = ref(false);
 const groupNames = ref(['']);
@@ -111,69 +100,42 @@ const abrirGenerador = async () => {
     if (gruposStore.items.length === 0) {
         await gruposStore.fetchAll();
     }
-
     if (gruposStore.items.length > 0) {
-        // Mapeamos solo los nombres
         groupNames.value = gruposStore.items.map(g => g.nombre);
     } else {
-        // Si no existen grupos, dejamos uno por defecto para empezar
         groupNames.value = ['Grupo Nuevo 1'];
     }
-    // Calculamos estadísticas visuales (solo frontend)
     const sinGrupo = confirmandos.value.filter(c => !c.grupo_id);
     stats.value = {
         total: sinGrupo.length,
         hombres: sinGrupo.filter(c => c.genero === 'm' || c.genero === 'M').length,
         mujeres: sinGrupo.filter(c => c.genero === 'f' || c.genero === 'F').length
     };
-
     generadorModalInstance.value?.show();
 };
 
-const addGroupInput = () => {
-    groupNames.value.push(`Grupo Nuevo ${groupNames.value.length + 1}`);
-};
-
+const addGroupInput = () => groupNames.value.push(`Grupo Nuevo ${groupNames.value.length + 1}`);
 const removeGroupInput = (index) => {
-    if (groupNames.value.length > 1) {
-        groupNames.value.splice(index, 1);
-    }
+    if (groupNames.value.length > 1) groupNames.value.splice(index, 1);
 };
 
 const generarGruposApi = async () => {
-    // Validaciones básicas
-    if (groupNames.value.some(n => n.trim() === '')) {
-        return showAlerta('Todos los grupos deben tener nombre', 'warning');
-    }
-    if (stats.value.total === 0) {
-        return showAlerta('No hay confirmandos sin grupo para asignar.', 'warning');
-    }
+    if (groupNames.value.some(n => n.trim() === '')) return showAlerta('Todos los grupos deben tener nombre', 'warning');
+    if (stats.value.total === 0) return showAlerta('No hay confirmandos sin grupo para asignar.', 'warning');
 
     loadingGenerador.value = true;
     try {
-        // --- 3. LLAMADA AL STORE ---
-        // El store se encarga de llamar a la API y manejar errores de validación
-        const response = await gruposStore.generateGroups({
-            nombres_grupos: groupNames.value,
-            periodo: periodoActual
-        });
-
-        // Éxito
+        const response = await gruposStore.generateGroups({ nombres_grupos: groupNames.value, periodo: periodoActual });
         showAlerta(response.message, 'success');
         generadorModalInstance.value?.hide();
-
-        // Recargamos la tabla para ver los cambios
         await fetchAllConfirmandos();
-
     } catch (error) {
         console.error("Error en la vista:", error);
-        // Nota: El store ya mostró la alerta de error, aquí solo capturamos para limpiar loading
     } finally {
         loadingGenerador.value = false;
     }
 };
 
-// Predicción visual
 const prediccion = computed(() => {
     const numGrupos = groupNames.value.length;
     if (numGrupos === 0 || stats.value.total === 0) return null;
@@ -183,48 +145,28 @@ const prediccion = computed(() => {
         total: Math.floor(stats.value.total / numGrupos)
     };
 });
-// =======================================================================
 
-const formatGenero = (genero) => {
-    if (!genero) return '---';
-
-    const g = genero.toLowerCase();
-    if (g === 'm') return 'MASCULINO';
-    if (g === 'f') return 'FEMENINO';
-
-    return 'SIN GÉNERO ASIGNADO'; // Por si hay algún otro valor raro
-};
-
-// --- CICLO DE VIDA ---
-onMounted(() => {
-    fetchAllConfirmandos();
-
-    nextTick(() => {
-        const elApo = document.getElementById('apoderadosModal');
-        if (elApo) apoderadosModalInstance.value = new Modal(elApo);
-
-        initGeneradorModal();
-
-        // 3. INICIALIZAMOS EL NUEVO MODAL AQUÍ
-        initImportModal();
-    });
+// --- SELECTOR DE GRUPOS Y FILTROS ---
+const gruposDisponibles = computed(() => {
+    if (authStore.can('ver todos los grupos')) return gruposStore.items;
+    return authStore.user?.grupos || [];
 });
-
-// --- FUNCIONES AUXILIARES ---
-const abrirCrear = () => modalRef.value.open();
-const abrirEditar = (id) => modalRef.value.open(id);
-const recargarTabla = () => fetchAllConfirmandos();
-const estadoFiltro = ref('en_preparacion');
 
 const filteredConfirmandos = computed(() => {
     let lista = confirmandos.value;
 
-    // 1. FILTRO POR ESTADO (A menos que seleccione "todos")
     if (estadoFiltro.value !== 'todos') {
         lista = lista.filter(c => c.estado === estadoFiltro.value);
     }
 
-    // 2. FILTRO POR BÚSQUEDA DE TEXTO (El que ya tenías)
+    if (grupoFiltro.value !== 'todos') {
+        if (grupoFiltro.value === 'sin_grupo') {
+            lista = lista.filter(c => !c.grupo_id);
+        } else {
+            lista = lista.filter(c => c.grupo_id === Number(grupoFiltro.value));
+        }
+    }
+
     const query = confirmandoSearchQuery.value.trim().toLowerCase();
     if (query) {
         lista = lista.filter(c => {
@@ -235,6 +177,25 @@ const filteredConfirmandos = computed(() => {
 
     return lista;
 });
+
+const limpiarFiltros = () => {
+    confirmandoSearchQuery.value = '';
+    estadoFiltro.value = 'todos';
+    grupoFiltro.value = 'todos';
+};
+
+// --- FUNCIONES AUXILIARES RESTAURADAS ---
+const abrirCrear = () => modalRef.value.open();
+const abrirEditar = (id) => modalRef.value.open(id);
+const recargarTabla = () => fetchAllConfirmandos();
+
+const formatGenero = (genero) => {
+    if (!genero) return '---';
+    const g = genero.toLowerCase();
+    if (g === 'm') return 'MASCULINO';
+    if (g === 'f') return 'FEMENINO';
+    return 'SIN GÉNERO ASIGNADO';
+};
 
 const getBadgeEstado = (estado) => {
     const badges = {
@@ -262,6 +223,22 @@ const openApoderadosModal = (confirmando) => {
     selectedApoderados.value = confirmando.apoderados || [];
     apoderadosModalInstance.value?.show();
 };
+
+// --- CICLO DE VIDA ---
+onMounted(() => {
+    fetchAllConfirmandos();
+    
+    if (authStore.can('ver todos los grupos') && gruposStore.items.length === 0) {
+        gruposStore.fetchAll().catch(e => console.error(e));
+    }
+
+    nextTick(() => {
+        const elApo = document.getElementById('apoderadosModal');
+        if (elApo) apoderadosModalInstance.value = new Modal(elApo);
+        initGeneradorModal();
+        initImportModal();
+    });
+});
 </script>
 
 <template>
@@ -307,15 +284,38 @@ const openApoderadosModal = (confirmando) => {
 
         <div v-else class="card border-0 shadow-sm rounded-3 overflow-hidden">
             <div
-                class="p-3 bg-light-gray border-bottom d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
+                class="p-3 bg-light-gray border-bottom d-flex flex-column flex-xl-row justify-content-between align-items-center gap-3">
 
-                <div class="input-group" style="max-width: 450px;">
-                    <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
-                    <input type="text" class="form-control border-start-0 ps-0" v-model="confirmandoSearchQuery"
-                        placeholder="Buscar por apellido o nombre..." :disabled="loading">
+                <!-- Sección Izquierda: Buscador + Selector de Grupos -->
+                <div class="d-flex flex-column flex-sm-row gap-2 w-100" style="max-width: 650px;">
+                    <!-- Buscador -->
+                    <div class="input-group shadow-sm">
+                        <span class="input-group-text bg-white border-end-0 text-muted"><i
+                                class="bi bi-search"></i></span>
+                        <input type="text" class="form-control border-start-0 ps-0" v-model="confirmandoSearchQuery"
+                            placeholder="Buscar por apellido o nombre..." :disabled="loading">
+                        <!-- Botón limpiar búsqueda si hay texto -->
+                        <button v-if="confirmandoSearchQuery" @click="confirmandoSearchQuery = ''"
+                            class="btn btn-white border border-start-0 text-muted">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+
+                    <!-- Selector de Grupos -->
+                    <select class="form-select shadow-sm" style="min-width: 200px;" v-model="grupoFiltro"
+                        :disabled="loading">
+                        <option value="todos">Todos los grupos</option>
+                        <option value="sin_grupo" class="text-danger fw-bold">Sin grupo asignado</option>
+                        <hr class="dropdown-divider">
+                        <option v-for="g in gruposDisponibles" :key="g.id" :value="g.id">
+                            {{ g.nombre }}
+                        </option>
+                    </select>
                 </div>
 
-                <div class="btn-group shadow-sm" role="group">
+                <!-- Sección Derecha: Filtros de Estado -->
+                <div class="btn-group shadow-sm w-100 w-xl-auto" role="group"
+                    style="overflow-x: auto; white-space: nowrap;">
                     <input type="radio" class="btn-check" name="btnradio" id="btnradio1" value="en_preparacion"
                         v-model="estadoFiltro">
                     <label class="btn btn-outline-primary fw-medium" for="btnradio1">En Preparación</label>
@@ -351,9 +351,20 @@ const openApoderadosModal = (confirmando) => {
                     </thead>
                     <tbody>
                         <tr v-if="!filteredConfirmandos || filteredConfirmandos.length === 0">
-                            <td colspan="5" class="text-center py-5 text-muted fs-5">
-                                {{ confirmandoSearchQuery ? 'No hay coincidencias.' : 'No hay confirmandos registrados.'
-                                }}
+                            <td colspan="8" class="text-center py-5">
+                                <div class="d-flex flex-column align-items-center justify-content-center">
+                                    <Users :size="48" class="text-muted opacity-25 mb-3" />
+                                    <h5 class="text-secondary fw-bold">No se encontraron confirmandos</h5>
+                                    <p class="text-muted small">
+                                        {{ confirmandoSearchQuery || grupoFiltro !== 'todos' || estadoFiltro !== 'todos'
+                                            ? 'No hay resultados que coincidan con tus filtros actuales.' : 'Aún no hay confirmandos registrados en el sistema.' }}
+                                    </p>
+                                    <button
+                                        v-if="confirmandoSearchQuery || grupoFiltro !== 'todos' || estadoFiltro !== 'todos'"
+                                        @click="limpiarFiltros" class="btn btn-sm btn-outline-secondary mt-2 shadow-sm">
+                                        Limpiar todos los filtros
+                                    </button>
+                                </div>
                             </td>
                         </tr>
 
@@ -410,8 +421,7 @@ const openApoderadosModal = (confirmando) => {
                             </td>
                             <td class="text-end pe-4 py-2">
                                 <div class="d-inline-flex gap-2">
-                                    <button @click="perfilModalRef.abrir(c.id)""
-                                        class=" btn btn-sm btn-soft-suggest rounded-circle d-flex align-items-center
+                                    <button @click="perfilModalRef.abrir(c.id)" class=" btn btn-sm btn-soft-suggest rounded-circle d-flex align-items-center
                                         justify-content-center me-1" style="width: 32px; height: 32px;"
                                         title="Ver Ficha Completa">
                                         <Eye :size="16" />

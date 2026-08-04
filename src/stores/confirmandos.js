@@ -9,7 +9,6 @@ import {
     importarConfirmandosExcel,
     retirarConfirmandoById,
     obtenerPerfilConfirmando,
-    getConfirmandosStats // <-- 1. IMPORTANTE: Asegúrate de tener exportada esta función en tu service
 } from '../services/confirmandos';
 import { confirmarEliminacion, showAlerta, showErroresDeValidacion } from '@/funciones'
 
@@ -112,11 +111,8 @@ export const useConfirmandosStore = defineStore('confirmandos', {
             this.error = null;
             try {
                 this.items = await getConfirmandosList();
-                const authStore = useAuthStore();
-                // 2. Cada vez que cargamos los alumnos ordinarios, disparamos el conteo global de la API
-                if (authStore.isCoordinador || authStore.can('ver dashboard')) {
-                    await this.fetchMetricas(); 
-                }
+                this.fetchMetricas();
+
             } catch (e) {
                 this.error = e?.message || 'Error al listar Confirmandos';
             } finally {
@@ -125,24 +121,25 @@ export const useConfirmandosStore = defineStore('confirmandos', {
         },
 
         // 3. NUEVA ACCIÓN ORDINARIA QUE SE CONECTA AL CONTROLADOR DE LARAVEL
-        async fetchMetricas() {
+        fetchMetricas() {
             try {
-                const res = await getConfirmandosStats();
+                // 1. Contamos directamente desde el arreglo que ya tenemos en memoria (this.items)
+                const activos = this.items.filter(c => c.estado === 'en_preparacion').length;
+                const retirados = this.items.filter(c => c.estado === 'retirado').length;
+                const confirmados = this.items.filter(c => c.estado === 'confirmado').length;
 
-                const activos = res.en_preparacion || 0;
-                const retirados = res.retirado || 0;
-                const total = res.total || 1; // Evita división por 0
+                const total = this.items.length || 1; // Evita división por 0
 
-                // Almacenamos el cálculo consolidado en el state de forma permanente
+                // 2. Almacenamos el cálculo consolidado en el state
                 this.stats = {
                     activos,
                     retirados,
-                    confirmados: res.confirmado || 0,
+                    confirmados,
                     tasaRetencion: Number(((activos / total) * 100).toFixed(1)),
                     tasaDesercion: Number(((retirados / total) * 100).toFixed(1))
                 };
             } catch (e) {
-                console.error('Error al cargar métricas desde el servidor:', e);
+                console.error('Error al calcular métricas locales:', e);
             }
         },
 
