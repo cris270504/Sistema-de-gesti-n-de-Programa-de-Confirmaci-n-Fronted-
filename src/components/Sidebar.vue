@@ -55,14 +55,6 @@ const toggleMenu = (name) => {
   }
 };
 
-// Carga en background para asegurar que tenemos los datos de los grupos
-onMounted(async () => {
-  if (gruposStore.items.length === 0) {
-    // Reducimos tiempo de espera cargando sin bloquear la interfaz
-    gruposStore.fetchAll().catch(e => console.error(e));
-  }
-});
-
 // Extraemos los detalles completos de los grupos del usuario actual
 const misGruposDetalle = computed(() => {
   const user = authStore.user;

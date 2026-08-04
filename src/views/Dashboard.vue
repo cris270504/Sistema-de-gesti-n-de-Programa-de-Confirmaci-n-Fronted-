@@ -1,142 +1,52 @@
 <script setup>
 import { storeToRefs } from 'pinia';
-import { useUsersStore } from '../stores/users';
-import { useGruposStore } from '../stores/grupos';
-import { useConfirmandosStore } from '../stores/confirmandos';
 import { onMounted, computed, ref } from 'vue';
+
 import { useAuthStore } from '@/stores/auth';
+import { useDashboardStore } from '../stores/dashboard';
 import { useReunionesStore } from '../stores/reunions';
-import { CalendarIcon, ArrowDownCircleIcon, ChatBubbleLeftRightIcon, ExclamationTriangleIcon, ClockIcon, MapPinIcon, UserGroupIcon } from '@heroicons/vue/24/outline';
+import { useConfirmandosStore } from '../stores/confirmandos';
+
+import { CalendarIcon, ChatBubbleLeftRightIcon, ExclamationTriangleIcon, ClockIcon, MapPinIcon } from '@heroicons/vue/24/outline';
 import { CircleAlert, User } from 'lucide-vue-next';
-import { showAlerta, confirmar } from '@/funciones';
-import PerfilConfirmandoModal from '@/components/Modals/PerfilConfirmandoModal.vue'; // ➔ NUEVO: Importamos el componente del modal
+import { confirmar } from '@/funciones';
+import PerfilConfirmandoModal from '@/components/Modals/PerfilConfirmandoModal.vue';
 
+// 1. Instancias
 const authStore = useAuthStore();
-const confirmandosStore = useConfirmandosStore();
-const { fetchAll: fetchConfirmandos } = confirmandosStore;
-const { items: confirmandosRaw, count: cantConfirmandos, stats: metricas } = storeToRefs(confirmandosStore);
+const esGestor = authStore.can('ver usuarios');
 
-const usersStore = useUsersStore();
-const { fetchAll: fetchUsers } = usersStore;
-const { count: cantUsers } = storeToRefs(usersStore);
-
-const gruposStore = useGruposStore();
-const { fetchAll: fetchGrupos } = gruposStore;
-const { count: cantGrupos } = storeToRefs(gruposStore);
+const dashboardStore = useDashboardStore();
+const { metricas, alertas, loading: loadingDashboard } = storeToRefs(dashboardStore);
 
 const reunionesStore = useReunionesStore();
 const { fetchUpcoming } = reunionesStore;
 const { upcomingItems, loading: loadingReuniones } = storeToRefs(reunionesStore);
 
-// ➔ NUEVO: Referencia para el modal
+const confirmandosStore = useConfirmandosStore();
 const perfilModalRef = ref(null);
 
-const esGestor = authStore.can('ver usuarios');
-
+// 2. Carga Inicial ULTRA RÁPIDA (Solo lo estrictamente necesario)
 onMounted(() => {
-  if (authStore.can('ver confirmandos')) fetchConfirmandos();
-  if (authStore.can('ver usuarios')) fetchUsers();
-  if (authStore.can('ver grupos')) fetchGrupos();
-  if (authStore.can('ver cronograma')) fetchUpcoming();
+  dashboardStore.fetchMetricas(); // Trae números y alertas masticadas en 1 sola petición
+  
+  if (authStore.can('ver cronograma') && upcomingItems.value.length === 0) {
+      fetchUpcoming(); // Trae solo las reuniones futuras
+  }
 });
 
+// 3. Propiedades Computadas
+// Reemplazamos las 60 líneas de lógica pesada por un simple filtro de seguridad
 const confirmandosAlerta = computed(() => {
-  const data = confirmandosRaw.value || [];
-
-  return data.map(c => {
-    const asistencias = c.asistencias || [];
-
-    // 1. ORDENAR ASISTENCIAS POR FECHA (De la más antigua a la más reciente)
-    const asistenciasOrdenadas = [...asistencias].sort((a, b) => {
-      return new Date(a.reunion?.fecha || a.created_at) - new Date(b.reunion?.fecha || b.created_at);
-    });
-
-    // 2. CONTADORES DINÁMICOS Y DETECCIÓN DE CONSECUTIVAS
-    let maxInjustificadasSeguidas_Historico = 0; // La peor racha que tuvo en el año
-    let rachaActiva = 0; // La racha EXACTA con la que terminó su última reunión registrada
-
-    const conteo = asistenciasOrdenadas.reduce((acc, curr) => {
-      const tieneAcuerdoPendiente = curr.justificacion?.estado === 'pendiente';
-
-      // Si es falta injustificada pura (y no está en trámite)
-      if (curr.estado === 'falta injustificada' && !tieneAcuerdoPendiente) {
-        acc.faltas_injustificadas++;
-        rachaActiva++; // La racha viva sigue creciendo
-
-        if (rachaActiva > maxInjustificadasSeguidas_Historico) {
-          maxInjustificadasSeguidas_Historico = rachaActiva;
-        }
-      }
-      // Si asiste, llega tarde, justifica o hace acuerdo -> LA RACHA ACTIVA SE ROMPE
-      else {
-        rachaActiva = 0;
-      }
-
-      // Sumatorias totales
-      if (curr.estado === 'falta justificada') acc.faltas_justificadas++;
-      if (curr.estado === 'tardanza') acc.tardanzas++;
-
-      return acc;
-    }, { faltas_injustificadas: 0, faltas_justificadas: 0, tardanzas: 0 });
-
-    // 3. DETERMINAR NIVEL DE RIESGO Y MOTIVO (SEMÁFORO MEJORADO)
-    let nivelRiesgo = 'NINGUNO';
-    let motivoAlerta = '';
-
-    // PRIORIDAD 1: Regla de Expulsión por Acumulación Total (Peligro Inminente)
-    if (conteo.faltas_injustificadas >= 4) {
-      nivelRiesgo = 'ALTO';
-      motivoAlerta = `Alerta Crítica: ${conteo.faltas_injustificadas} faltas injustificadas ACUMULADAS.`;
-    }
-    // PRIORIDAD 2: Regla de Expulsión por Racha ACTIVA (Está a una falta de irse)
-    else if (rachaActiva >= 2) {
-      nivelRiesgo = 'ALTO';
-      motivoAlerta = `Alerta Crítica: ${rachaActiva} faltas injustificadas en sus ÚLTIMAS reuniones (Riesgo inminente).`;
-    }
-    // PRIORIDAD 3: El "Olvido". Tuvo 3 seguidas en el pasado, rompió la regla, pero nadie lo sacó.
-    else if (maxInjustificadasSeguidas_Historico >= 3) {
-      nivelRiesgo = 'ALTO';
-      motivoAlerta = `Alerta Crítica: Tuvo ${maxInjustificadasSeguidas_Historico} faltas seguidas en el pasado y no fue retirado.`;
-    }
-    // RIESGO NARANJA: Acumulación peligrosa de Justificadas
-    else if (conteo.faltas_justificadas >= 4) {
-      nivelRiesgo = 'MEDIO';
-      motivoAlerta = `Alerta de Desconexión: Tiene ${conteo.faltas_justificadas} faltas justificadas. Está perdiendo el hilo.`;
-    }
-    // RIESGO AMARILLO: Problema de puntualidad
-    else if (conteo.tardanzas >= 4) {
-      nivelRiesgo = 'BAJO';
-      motivoAlerta = `Alerta de Impuntualidad: Acumula ${conteo.tardanzas} tardanzas. Requiere llamado de atención.`;
-    }
-
-    const apoderado = c.apoderados && c.apoderados.length > 0 ? c.apoderados[0] : null;
-
-    return {
-      ...c,
-      nombre_completo: `${c.apellidos}, ${c.nombres}`,
-      total_faltas_injustificadas: conteo.faltas_injustificadas,
-      total_faltas_justificadas: conteo.faltas_justificadas,
-      total_tardanzas: conteo.tardanzas,
-      injustificadas_seguidas: rachaActiva, 
-      racha_historica: maxInjustificadasSeguidas_Historico,
-      nivel_riesgo: nivelRiesgo,
-      motivo_alerta: motivoAlerta,
-      nombre_apoderado: apoderado ? `${apoderado.apellidos}, ${apoderado.nombres}` : 'No asignado',
-      celular_apoderado: apoderado ? apoderado.celular : c.celular
-    };
-  }).filter(c => {
-    const cumpleRol = esGestor || c.grupo_id === authStore.user?.grupo_id;
-    const estaActivo = c.estado !== 'retirado';
-    const tieneAlerta = c.nivel_riesgo !== 'NINGUNO';
-    return cumpleRol && estaActivo && tieneAlerta;
+  const dataAlertas = alertas.value || [];
+  
+  return dataAlertas.filter(alerta => {
+    // El gestor ve todas las alertas. El catequista solo ve las de su propio grupo.
+    return esGestor || alerta.grupo_id === authStore.user?.grupo_id;
   });
 });
 
-const listaCatequistas = computed(() => {
-  const usuarios = usersStore.items || [];
-  return usuarios.filter(u => u.roles && u.roles.includes('catequista'));
-});
-
+// 4. Métodos
 const confirmarRetiroJoven = async (joven) => {
   const confirmado = await confirmar({
     titulo: '¿Retirar confirmando del programa?',
@@ -149,7 +59,9 @@ const confirmarRetiroJoven = async (joven) => {
   if (confirmado) {
     const exito = await confirmandosStore.registrarRetiro(joven.id, joven.nombre_completo);
     if (exito) {
-      await fetchConfirmandos();
+      // ➔ CORRECCIÓN CRÍTICA: En lugar de descargar los 458kB de confirmandos de nuevo,
+      // simplemente actualizamos las métricas del dashboard.
+      await dashboardStore.fetchMetricas();
     }
   }
 };
@@ -186,21 +98,21 @@ const confirmarRetiroJoven = async (joven) => {
         <div class="row g-3 mb-4">
           <div v-if="authStore.can('ver confirmandos')" class="col-sm-4">
             <div class="card border-0 shadow-sm rounded-4 text-center p-3">
-              <h2 class="fw-bold mb-0 text-info">{{ cantConfirmandos }}</h2>
+              <h2 class="fw-bold mb-0 text-info">{{ metricas.cant_confirmandos }}</h2>
               <p class="text-muted small mb-0">Confirmandos</p>
               <RouterLink :to="{ name: 'confirmandos' }" class="stretched-link"></RouterLink>
             </div>
           </div>
           <div v-if="authStore.can('ver usuarios')" class="col-sm-4">
             <div class="card border-0 shadow-sm rounded-4 text-center p-3">
-              <h2 class="fw-bold mb-0 text-success">{{ cantUsers }}</h2>
+              <h2 class="fw-bold mb-0 text-success">{{ metricas.cant_users }}</h2>
               <p class="text-muted small mb-0">Usuarios</p>
               <RouterLink :to="{ name: 'users' }" class="stretched-link"></RouterLink>
             </div>
           </div>
           <div v-if="authStore.can('ver grupos')" class="col-sm-4">
             <div class="card border-0 shadow-sm rounded-4 text-center p-3">
-              <h2 class="fw-bold mb-0 text-warning">{{ cantGrupos }}</h2>
+              <h2 class="fw-bold mb-0 text-warning">{{ metricas.cant_grupos }}</h2>
               <p class="text-muted small mb-0">Grupos</p>
               <RouterLink :to="{ name: 'grupos' }" class="stretched-link"></RouterLink>
             </div>
@@ -240,7 +152,7 @@ const confirmarRetiroJoven = async (joven) => {
                         <div class="fw-bold fs-6">
                           {{ c.nombre_completo }}
                         </div>
-                        <span v-if="esGestor">{{ c.grupo?.nombre || 'Sin grupo' }}</span>
+                        <span v-if="esGestor">{{ c.grupo || 'Sin grupo' }}</span>
                         <div class="small mt-0.5" :class="{
                           'text-danger fw-semibold': c.nivel_riesgo === 'ALTO',
                           'text-warning-custom': c.nivel_riesgo === 'MEDIO',
