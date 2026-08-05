@@ -126,7 +126,7 @@ onMounted(() => {
                                     <div>
                                         <div class="fw-bold text-dark fs-6 lh-sm">{{ g.nombre }}</div>
                                         <div class="text-muted mt-1 small d-flex align-items-center">
-                                            <Calendar :size="12" class="me-1" /> {{ g.periodo }}
+                                            <Calendar :size="12" class="me-1" /> {{ g.periodo }} - {{ g.procedencia }}
                                         </div>
                                     </div>
                                 </div>

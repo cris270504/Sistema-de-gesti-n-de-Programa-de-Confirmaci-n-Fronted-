@@ -2,7 +2,7 @@
 import { useConfirmandosStore } from '../../stores/confirmandos';
 import { useGruposStore } from '../../stores/grupos';
 import { storeToRefs } from 'pinia';
-import { onMounted, ref, computed, nextTick } from 'vue';
+import { onMounted, ref, computed, nextTick, watch } from 'vue';
 import {
     Pencil, Trash, Plus, User, Phone, Calendar, Users,
     Wand2, Trash2, Save, Upload, Eye
@@ -20,14 +20,106 @@ const confirmandosStore = useConfirmandosStore();
 const gruposStore = useGruposStore();
 const authStore = useAuthStore();
 
+// NOTA: Como Laravel ahora devuelve "get()", items trae todo el array.
 const { items: confirmandos, loading, error } = storeToRefs(confirmandosStore);
 const { fetchAll: fetchAllConfirmandos, remove: removeConfirmando } = confirmandosStore;
 
 // --- ESTADOS LOCALES ---
-const confirmandoSearchQuery = ref('');
-const estadoFiltro = ref('en_preparacion');
-const grupoFiltro = ref('todos'); 
-const modalRef = ref(null); 
+const modalRef = ref(null);
+
+// Objeto central de filtros
+const filtros = ref({
+    search: '',
+    estado: 'en_preparacion',
+    grupo: 'todos',
+    procedencia: 'todos'
+});
+
+// Paginación Local (Frontend)
+const currentPage = ref(1);
+const itemsPerPage = 25;
+
+// Resetear a la página 1 cada vez que el usuario escriba o cambie un filtro
+watch(filtros, () => {
+    currentPage.value = 1;
+}, { deep: true });
+
+const limpiarFiltros = () => {
+    filtros.value = { search: '', estado: 'todos', grupo: 'todos', procedencia: 'todos' };
+};
+
+// --- LÓGICA DE FILTRADO INSTANTÁNEO ---
+const filteredConfirmandos = computed(() => {
+    let lista = confirmandos.value || [];
+
+    // 1. Filtro de Estado
+    if (filtros.value.estado !== 'todos') {
+        lista = lista.filter(c => c.estado === filtros.value.estado);
+    }
+
+    // 2. Filtro de Procedencia
+    if (filtros.value.procedencia !== 'todos') {
+        lista = lista.filter(c => {
+            if (!c.grupo || !c.grupo.procedencia) return false;
+            const procNormalizada = c.grupo.procedencia.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            return procNormalizada === filtros.value.procedencia;
+        });
+    }
+
+    // 3. Filtro de Grupo
+    if (filtros.value.grupo !== 'todos') {
+        if (filtros.value.grupo === 'sin_grupo') {
+            lista = lista.filter(c => !c.grupo_id);
+        } else {
+            lista = lista.filter(c => c.grupo_id === Number(filtros.value.grupo));
+        }
+    }
+
+    // 4. Buscador por texto (Búsqueda súper rápida que ignora tildes y mayúsculas)
+    const query = filtros.value.search.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    if (query) {
+        lista = lista.filter(c => {
+            const fullName = `${c.nombres} ${c.apellidos}`.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            return fullName.includes(query);
+        });
+    }
+
+    return lista;
+});
+
+// --- LÓGICA DE PAGINACIÓN LOCAL ---
+const totalPages = computed(() => Math.ceil(filteredConfirmandos.value.length / itemsPerPage));
+
+const paginatedConfirmandos = computed(() => {
+    const start = (currentPage.value - 1) * itemsPerPage;
+    const end = start + itemsPerPage;
+    return filteredConfirmandos.value.slice(start, end);
+});
+
+const cambiarPagina = (page) => {
+    if (page >= 1 && page <= totalPages.value) {
+        currentPage.value = page;
+    }
+};
+
+// --- SELECTOR DE GRUPOS DISPONIBLES (EN CASCADA) ---
+const gruposDisponibles = computed(() => {
+    let grupos = authStore.can('ver todos los grupos') ? gruposStore.items : (authStore.user?.grupos || []);
+
+    if (filtros.value.procedencia !== 'todos') {
+        grupos = grupos.filter(g => {
+            if (!g.procedencia) return false;
+            const procNormalizada = g.procedencia.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            return procNormalizada === filtros.value.procedencia;
+        });
+    }
+    return grupos;
+});
+
+// Si cambia la procedencia, reseteamos el grupo
+watch(() => filtros.value.procedencia, () => {
+    filtros.value.grupo = 'todos';
+});
 
 // --- LÓGICA DE IMPORTACIÓN EXCEL ---
 const fileInputRef = ref(null);
@@ -146,44 +238,6 @@ const prediccion = computed(() => {
     };
 });
 
-// --- SELECTOR DE GRUPOS Y FILTROS ---
-const gruposDisponibles = computed(() => {
-    if (authStore.can('ver todos los grupos')) return gruposStore.items;
-    return authStore.user?.grupos || [];
-});
-
-const filteredConfirmandos = computed(() => {
-    let lista = confirmandos.value;
-
-    if (estadoFiltro.value !== 'todos') {
-        lista = lista.filter(c => c.estado === estadoFiltro.value);
-    }
-
-    if (grupoFiltro.value !== 'todos') {
-        if (grupoFiltro.value === 'sin_grupo') {
-            lista = lista.filter(c => !c.grupo_id);
-        } else {
-            lista = lista.filter(c => c.grupo_id === Number(grupoFiltro.value));
-        }
-    }
-
-    const query = confirmandoSearchQuery.value.trim().toLowerCase();
-    if (query) {
-        lista = lista.filter(c => {
-            const fullName = `${c.nombres} ${c.apellidos}`.toLowerCase();
-            return fullName.includes(query);
-        });
-    }
-
-    return lista;
-});
-
-const limpiarFiltros = () => {
-    confirmandoSearchQuery.value = '';
-    estadoFiltro.value = 'todos';
-    grupoFiltro.value = 'todos';
-};
-
 // --- FUNCIONES AUXILIARES RESTAURADAS ---
 const abrirCrear = () => modalRef.value.open();
 const abrirEditar = (id) => modalRef.value.open(id);
@@ -227,7 +281,7 @@ const openApoderadosModal = (confirmando) => {
 // --- CICLO DE VIDA ---
 onMounted(() => {
     fetchAllConfirmandos();
-    
+
     if (authStore.can('ver todos los grupos') && gruposStore.items.length === 0) {
         gruposStore.fetchAll().catch(e => console.error(e));
     }
@@ -259,7 +313,7 @@ onMounted(() => {
                     <span v-if="isImporting" class="spinner-border spinner-border-sm me-2"></span>
                     <Upload v-else :size="18" class="me-2" />
                     <span class="fw-bold fs-7 text-uppercase">{{ isImporting ? 'Importando...' : 'Importar Excel'
-                    }}</span>
+                        }}</span>
                 </button>
 
                 <button v-if="authStore.can('crear grupos')" @click="abrirGenerador"
@@ -277,32 +331,36 @@ onMounted(() => {
             </div>
         </div>
 
-        <div v-if="loading" class="text-center py-5">
-            <div class="spinner-border text-secondary" role="status"></div>
-        </div>
-        <div v-else-if="error" class="alert alert-danger" role="alert">{{ error }}</div>
+        <!-- El contenedor principal (Los filtros NUNCA desaparecen) -->
+        <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
 
-        <div v-else class="card border-0 shadow-sm rounded-3 overflow-hidden">
             <div
                 class="p-3 bg-light-gray border-bottom d-flex flex-column flex-xl-row justify-content-between align-items-center gap-3">
-
                 <!-- Sección Izquierda: Buscador + Selector de Grupos -->
                 <div class="d-flex flex-column flex-sm-row gap-2 w-100" style="max-width: 650px;">
                     <!-- Buscador -->
                     <div class="input-group shadow-sm">
-                        <span class="input-group-text bg-white border-end-0 text-muted"><i
-                                class="bi bi-search"></i></span>
-                        <input type="text" class="form-control border-start-0 ps-0" v-model="confirmandoSearchQuery"
+                        <span class="input-group-text bg-white border-end-0 text-muted">
+                            <i class="bi bi-search"></i>
+                        </span>
+                        <input type="text" class="form-control border-start-0 ps-0" v-model="filtros.search"
                             placeholder="Buscar por apellido o nombre..." :disabled="loading">
-                        <!-- Botón limpiar búsqueda si hay texto -->
-                        <button v-if="confirmandoSearchQuery" @click="confirmandoSearchQuery = ''"
+                        <button v-if="filtros.search" @click="filtros.search = ''"
                             class="btn btn-white border border-start-0 text-muted">
                             <i class="bi bi-x-lg"></i>
                         </button>
                     </div>
 
+                    <!-- Selector de Procedencia (Reducido) -->
+                    <select v-model="filtros.procedencia" class="form-select shadow-sm"
+                        style="width: 130px; flex-shrink: 0;" :disabled="loading">
+                        <option value="todos">Todos</option>
+                        <option value="sede">Sede</option>
+                        <option value="caserio">Caserío</option>
+                    </select>
+
                     <!-- Selector de Grupos -->
-                    <select class="form-select shadow-sm" style="min-width: 200px;" v-model="grupoFiltro"
+                    <select class="form-select shadow-sm" style="min-width: 180px;" v-model="filtros.grupo"
                         :disabled="loading">
                         <option value="todos">Todos los grupos</option>
                         <option value="sin_grupo" class="text-danger fw-bold">Sin grupo asignado</option>
@@ -313,30 +371,42 @@ onMounted(() => {
                     </select>
                 </div>
 
-                <!-- Sección Derecha: Filtros de Estado -->
+                <!-- Sección Derecha: Filtros de Estado (Botones compactos) -->
                 <div class="btn-group shadow-sm w-100 w-xl-auto" role="group"
                     style="overflow-x: auto; white-space: nowrap;">
                     <input type="radio" class="btn-check" name="btnradio" id="btnradio1" value="en_preparacion"
-                        v-model="estadoFiltro">
-                    <label class="btn btn-outline-primary fw-medium" for="btnradio1">En Preparación</label>
+                        v-model="filtros.estado" :disabled="loading">
+                    <label class="btn btn-outline-primary btn-sm fw-medium px-2 py-1" for="btnradio1">En
+                        Preparación</label>
 
                     <input type="radio" class="btn-check" name="btnradio" id="btnradio2" value="confirmado"
-                        v-model="estadoFiltro">
-                    <label class="btn btn-outline-success fw-medium" for="btnradio2">Confirmados</label>
+                        v-model="filtros.estado" :disabled="loading">
+                    <label class="btn btn-outline-success btn-sm fw-medium px-2 py-1"
+                        for="btnradio2">Confirmados</label>
 
                     <input type="radio" class="btn-check" name="btnradio" id="btnradio3" value="retirado"
-                        v-model="estadoFiltro">
-                    <label class="btn btn-outline-danger fw-medium" for="btnradio3">Retirados</label>
+                        v-model="filtros.estado" :disabled="loading">
+                    <label class="btn btn-outline-danger btn-sm fw-medium px-2 py-1" for="btnradio3">Retirados</label>
 
                     <input type="radio" class="btn-check" name="btnradio" id="btnradio4" value="todos"
-                        v-model="estadoFiltro">
-                    <label class="btn btn-outline-secondary fw-medium" for="btnradio4">Todos</label>
+                        v-model="filtros.estado" :disabled="loading">
+                    <label class="btn btn-outline-secondary btn-sm fw-medium px-2 py-1" for="btnradio4">Todos</label>
                 </div>
             </div>
 
+            <!-- Gestión de Errores Visuales -->
+            <div v-if="error" class="alert alert-danger m-3" role="alert">{{ error }}</div>
 
+            <!-- Contenedor de la Tabla -->
             <div class="table-responsive">
-                <table class="table align-middle mb-0">
+
+                <!-- Spinner SOLO de carga inicial. ¡No reaparece al buscar! -->
+                <div v-if="loading" class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="text-muted mt-2 small">Cargando registros...</p>
+                </div>
+
+                <table v-else class="table align-middle mb-0">
                     <thead class="bg-light-gray">
                         <tr>
                             <th class="ps-4 py-2 text-secondary text-uppercase fw-bold">#</th>
@@ -350,17 +420,22 @@ onMounted(() => {
                         </tr>
                     </thead>
                     <tbody>
+                        <!-- ➔ ACTUALIZADO: Evalúa filteredConfirmandos -->
                         <tr v-if="!filteredConfirmandos || filteredConfirmandos.length === 0">
                             <td colspan="8" class="text-center py-5">
                                 <div class="d-flex flex-column align-items-center justify-content-center">
                                     <Users :size="48" class="text-muted opacity-25 mb-3" />
                                     <h5 class="text-secondary fw-bold">No se encontraron confirmandos</h5>
                                     <p class="text-muted small">
-                                        {{ confirmandoSearchQuery || grupoFiltro !== 'todos' || estadoFiltro !== 'todos'
-                                            ? 'No hay resultados que coincidan con tus filtros actuales.' : 'Aún no hay confirmandos registrados en el sistema.' }}
+                                        {{
+                                            filtros.search || filtros.grupo !== 'todos' || filtros.procedencia !== 'todos'
+                                                || filtros.estado !== 'todos'
+                                                ? 'No hay resultados que coincidan con tus filtros actuales.'
+                                                : 'Aún no hay confirmandos registrados en el sistema.'
+                                        }}
                                     </p>
                                     <button
-                                        v-if="confirmandoSearchQuery || grupoFiltro !== 'todos' || estadoFiltro !== 'todos'"
+                                        v-if="filtros.search || filtros.grupo !== 'todos' || filtros.procedencia !== 'todos' || filtros.estado !== 'todos'"
                                         @click="limpiarFiltros" class="btn btn-sm btn-outline-secondary mt-2 shadow-sm">
                                         Limpiar todos los filtros
                                     </button>
@@ -368,8 +443,11 @@ onMounted(() => {
                             </td>
                         </tr>
 
-                        <tr v-for="(c, index) in filteredConfirmandos" :key="c.id" class="hover-row">
-                            <td class="py-2 text-center text-muted fw-medium">{{ index + 1 }}</td>
+                        <!-- ➔ ACTUALIZADO: Itera sobre paginatedConfirmandos -->
+                        <tr v-for="(c, index) in paginatedConfirmandos" :key="c.id" class="hover-row">
+                            <td class="py-2 text-center text-muted fw-medium">
+                                {{ (currentPage - 1) * itemsPerPage + index + 1 }}
+                            </td>
                             <td class="py-2">
                                 <div class="d-flex align-items-center">
                                     <div>
@@ -404,7 +482,8 @@ onMounted(() => {
                                     :style="{ borderColor: c.grupo.color }">
                                     <span class="dot-indicator"
                                         :style="{ backgroundColor: c.grupo.color || '#cbd5e1' }"></span>
-                                    <span class="text-dark-subtle me-1">{{ c.grupo.nombre }}</span>
+                                    <span class="text-dark-subtle me-1">{{ c.grupo.nombre }} - {{ c.grupo.procedencia
+                                        }}</span>
                                     <i class="bi bi-arrow-right-short text-muted"></i>
                                 </router-link>
 
@@ -421,9 +500,9 @@ onMounted(() => {
                             </td>
                             <td class="text-end pe-4 py-2">
                                 <div class="d-inline-flex gap-2">
-                                    <button @click="perfilModalRef.abrir(c.id)" class=" btn btn-sm btn-soft-suggest rounded-circle d-flex align-items-center
-                                        justify-content-center me-1" style="width: 32px; height: 32px;"
-                                        title="Ver Ficha Completa">
+                                    <button @click="perfilModalRef.abrir(c.id)"
+                                        class=" btn btn-sm btn-soft-suggest rounded-circle d-flex align-items-center justify-content-center me-1"
+                                        style="width: 32px; height: 32px;" title="Ver Ficha Completa">
                                         <Eye :size="16" />
                                     </button>
                                     <button class="btn btn-action btn-soft-info" title="Ver Apoderados"
@@ -444,6 +523,30 @@ onMounted(() => {
                         </tr>
                     </tbody>
                 </table>
+
+                <!-- ➔ ACTUALIZADO: Paginador frontend -->
+                <nav v-if="totalPages > 1 && !loading"
+                    class="d-flex justify-content-between align-items-center p-3 bg-white border-top">
+                    <div class="text-muted small">
+                        Mostrando página <span class="fw-bold">{{ currentPage }}</span> de <span class="fw-bold">{{
+                            totalPages }}</span> (Total: {{ filteredConfirmandos.length }}
+                        resultados)
+                    </div>
+                    <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item" :class="{ disabled: currentPage === 1 }">
+                            <button class="page-link" @click="cambiarPagina(currentPage - 1)">Anterior</button>
+                        </li>
+
+                        <li v-for="page in totalPages" :key="page" class="page-item"
+                            :class="{ active: page === currentPage }">
+                            <button class="page-link" @click="cambiarPagina(page)">{{ page }}</button>
+                        </li>
+
+                        <li class="page-item" :class="{ disabled: currentPage === totalPages }">
+                            <button class="page-link" @click="cambiarPagina(currentPage + 1)">Siguiente</button>
+                        </li>
+                    </ul>
+                </nav>
             </div>
         </div>
 
@@ -476,7 +579,7 @@ onMounted(() => {
                                     </div>
                                     <span class="badge bg-blue-subtle text-primary border border-blue-200">
                                         {{ ap.pivot?.tipo_apoderado_id === 1 ? 'Padre' : (ap.pivot?.tipo_apoderado_id
-                                            === 2 ? 'Madre' : 'Tutor') }}
+                                        === 2 ? 'Madre' : 'Tutor') }}
                                     </span>
                                 </div>
                             </div>
@@ -524,7 +627,7 @@ onMounted(() => {
                             <div v-for="(name, index) in groupNames" :key="index" class="d-flex gap-2">
                                 <div class="input-group">
                                     <span class="input-group-text bg-white text-muted border-end-0">{{ index + 1
-                                    }}</span>
+                                        }}</span>
                                     <input type="text" class="form-control border-start-0" v-model="groupNames[index]"
                                         placeholder="Nombre del grupo">
                                 </div>
@@ -593,7 +696,6 @@ onMounted(() => {
 
                         <h6 class="fw-bold text-secondary text-uppercase fs-7 mb-3">Estructura Obligatoria (Fila 1 =
                             Títulos)</h6>
-
                         <div class="table-responsive border rounded-3 mb-3">
                             <table class="table table-sm table-bordered mb-0 text-center align-middle">
                                 <thead class="table-light">
@@ -633,7 +735,6 @@ onMounted(() => {
                     <div class="modal-footer border-top-0 px-4 pb-4 d-flex justify-content-between">
                         <button type="button" class="btn btn-light text-secondary fw-medium"
                             data-bs-dismiss="modal">Cancelar</button>
-
                         <button @click="triggerImport" class="btn btn-success px-4 d-flex align-items-center">
                             <Upload :size="18" class="me-2" />
                             Seleccionar Archivo y Subir
@@ -642,6 +743,7 @@ onMounted(() => {
                 </div>
             </div>
         </div>
+
     </div>
     <PerfilConfirmandoModal ref="perfilModalRef" />
 </template>

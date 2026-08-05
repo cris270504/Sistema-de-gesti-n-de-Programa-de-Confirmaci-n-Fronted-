@@ -15,15 +15,14 @@ import { confirmarEliminacion, showAlerta, showErroresDeValidacion } from '@/fun
 export const useConfirmandosStore = defineStore('confirmandos', {
     state: () => ({
         items: [],
-        stats: {
-            activos: 0,
-            retirados: 0,
-            confirmados: 0,
-            tasaRetencion: 0,
-            tasaDesercion: 0
+        pagination: {
+            currentPage: 1,
+            lastPage: 1,
+            total: 0
         },
         loading: false,
         error: null,
+        stats: {}
     }),
 
     getters: {
@@ -110,7 +109,12 @@ export const useConfirmandosStore = defineStore('confirmandos', {
             this.loading = true;
             this.error = null;
             try {
-                this.items = await getConfirmandosList();
+                // "response" recibe directamente lo que retornó el servicio (el Array completo)
+                const response = await getConfirmandosList();
+
+                // ➔ CAMBIO AQUÍ: Asignamos 'response' directamente, sin el '.data'
+                this.items = response;
+
                 this.fetchMetricas();
 
             } catch (e) {
