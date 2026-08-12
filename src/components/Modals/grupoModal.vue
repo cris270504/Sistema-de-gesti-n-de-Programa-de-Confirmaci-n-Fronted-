@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref, computed } from 'vue';
+import { onMounted, onUnmounted, ref, computed } from 'vue';
 import { useGruposStore } from '../../stores/grupos';
 import { showAlerta } from '@/funciones';
 import { Modal } from 'bootstrap';
@@ -32,6 +32,10 @@ onMounted(() => {
     backdrop: 'static',
     keyboard: false
   });
+});
+
+onUnmounted(() => {
+  modalInstance.value?.dispose();
 });
 
 // --- FUNCIÓN PÚBLICA OPEN ---
@@ -86,7 +90,7 @@ async function submitUpdate() {
     nombre: draft.value.nombre?.trim(),
     periodo: draft.value.periodo?.trim(),
     color: draft.value.color,
-    procedencia: draft.value.procedencia.trim(),
+    procedencia: (draft.value.procedencia || '').trim(),
   };
 
   if (!payload.nombre) return showAlerta('El nombre es obligatorio', 'warning');

@@ -41,8 +41,8 @@ const confirmandosAlerta = computed(() => {
   const dataAlertas = alertas.value || [];
   
   return dataAlertas.filter(alerta => {
-    // El gestor ve todas las alertas. El catequista solo ve las de su propio grupo.
-    return esGestor || alerta.grupo_id === authStore.user?.grupo_id;
+    // El gestor ve todas las alertas. El catequista solo ve las de sus propios grupos.
+    return esGestor || (authStore.user?.grupo_ids || []).includes(alerta.grupo_id);
   });
 });
 

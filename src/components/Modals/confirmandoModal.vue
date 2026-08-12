@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useConfirmandosStore } from '../../stores/confirmandos';
 import { useGruposStore } from '../../stores/grupos';
 import { useSacramentosStore } from '../../stores/sacramentos';
@@ -9,6 +9,7 @@ import { useAuthStore } from '@/stores/auth';
 import { storeToRefs } from 'pinia';
 import { showAlerta } from '@/funciones';
 import { Modal } from 'bootstrap';
+import api from '@/lib/api';
 
 const emit = defineEmits(['saved']);
 
@@ -96,6 +97,10 @@ onMounted(() => {
     backdrop: 'static',
     keyboard: false
   });
+});
+
+onUnmounted(() => {
+  modalInstance.value?.dispose();
 });
 
 // --- FUNCIÓN PÚBLICA OPEN ---

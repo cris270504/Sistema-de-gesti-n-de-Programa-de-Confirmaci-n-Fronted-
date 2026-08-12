@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed, nextTick } from 'vue';
+import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useRequisitosStore } from '../../stores/requisitos'; // Asegúrate de la ruta
 import { Modal } from 'bootstrap';
@@ -29,6 +29,10 @@ onMounted(async () => {
     const el = document.getElementById('requisitoModal');
     if (el) modalInstance.value = new Modal(el);
   });
+});
+
+onUnmounted(() => {
+  modalInstance.value?.dispose();
 });
 
 // --- Métodos ---

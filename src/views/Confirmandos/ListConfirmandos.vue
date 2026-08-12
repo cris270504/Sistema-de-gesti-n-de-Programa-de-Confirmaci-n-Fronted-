@@ -2,7 +2,7 @@
 import { useConfirmandosStore } from '../../stores/confirmandos';
 import { useGruposStore } from '../../stores/grupos';
 import { storeToRefs } from 'pinia';
-import { onMounted, ref, computed, nextTick, watch, defineAsyncComponent } from 'vue';
+import { onMounted, onUnmounted, ref, computed, nextTick, watch, defineAsyncComponent } from 'vue';
 import {
     Pencil, Trash, Plus, User, Phone, Calendar, Users,
     Wand2, Trash2, Save, Upload, Eye
@@ -352,6 +352,12 @@ onMounted(() => {
         initGeneradorModal();
         initImportModal();
     });
+});
+
+onUnmounted(() => {
+    apoderadosModalInstance.value?.dispose();
+    generadorModalInstance.value?.dispose();
+    importModalInstance.value?.dispose();
 });
 </script>
 

@@ -123,32 +123,5 @@ export const useUsersStore = defineStore('users', {
         return false
       }
     },
-    async updateProfile(payload) {
-      if (!this.user || !this.user.id) {
-        showAlerta('No estás autenticado', 'error');
-        return false;
-      }
-      const userId = this.user.id;
-      try {
-        const response = await updateUser(userId, payload);
-        const updatedUser = response?.user;
-        if (!updatedUser) {
-          throw new Error('La API no devolvió un usuario actualizado.');
-        }
-
-        this.user = { ...this.user, ...updatedUser };
-        localStorage.setItem(LS_USER_KEY, JSON.stringify(this.user));
-        showAlerta('Perfil actualizado', 'success');
-        return true;
-
-      } catch (e) {
-        console.error("Error al actualizar perfil:", e);
-        showErroresDeValidacion(e?.response?.data?.errors || e);
-        if (!e?.response?.data?.errors) {
-          showAlerta(e?.response?.data?.message || e?.message || 'No se pudo actualizar', 'error');
-        }
-        throw e;
-      }
-    },
   },
 })

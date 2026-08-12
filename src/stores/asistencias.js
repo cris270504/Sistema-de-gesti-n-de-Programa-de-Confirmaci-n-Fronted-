@@ -12,7 +12,7 @@ export const useAsistenciasStore = defineStore('asistencias', {
     actions: {
         async fetchByReunion(reunionId) {
             this.loading = true;
-            this.error = null; fetchMatrix
+            this.error = null;
             try {
                 this.items = await getAsistenciasList(reunionId);
             } catch (e) {

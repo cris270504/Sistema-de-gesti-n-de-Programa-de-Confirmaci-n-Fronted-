@@ -1,7 +1,7 @@
 <script setup>
 import { storeToRefs } from 'pinia';
 import { Modal } from 'bootstrap';
-import { ref, computed, onMounted, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 
 // --- FullCalendar Imports ---
@@ -37,8 +37,6 @@ const esCoordinadorOAdmin = computed(() => {
         return ['admin', 'coordinador', 'super-admin'].includes(name.trim().toLowerCase());
     });
 });
-
-const miGrupoId = computed(() => authStore.user?.grupo_id);
 
 // --- Estado de Modales ---
 const detailsModalInstance = ref(null);
@@ -188,6 +186,10 @@ onMounted(async () => {
         const detailsEl = document.getElementById('detailsModal');
         if (detailsEl) detailsModalInstance.value = new Modal(detailsEl);
     });
+});
+
+onUnmounted(() => {
+    detailsModalInstance.value?.dispose();
 });
 </script>
 

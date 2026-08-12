@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed, nextTick } from 'vue';
+import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { storeToRefs } from 'pinia';
 import { Modal } from 'bootstrap';
@@ -250,8 +250,8 @@ const handleAttendance = () => {
     fecha: mesStr
   };
 
-  if (authStore.user?.grupo_id) {
-    queryParams.grupo = authStore.user.grupo_id;
+  if (authStore.user?.grupo_ids?.length) {
+    queryParams.grupo = authStore.user.grupo_ids[0];
   }
 
   router.push({
@@ -272,6 +272,11 @@ onMounted(async () => {
     const formEl = document.getElementById('formModal');
     if (formEl) formModalInstance.value = new Modal(formEl);
   });
+});
+
+onUnmounted(() => {
+  detailsModalInstance.value?.dispose();
+  formModalInstance.value?.dispose();
 });
 </script>
 

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { useGruposStore } from '@/stores/grupos';
 import { useRoute } from 'vue-router';
@@ -45,15 +45,22 @@ const isChildActive = (child) => {
 };
 
 // Control del menú desplegable
+let toggleMenuTimeoutId = null;
+
 const toggleMenu = (name) => {
   if (!isSidebarOpen.value) {
     isSidebarOpen.value = true;
     // Pequeño delay para que la animación del sidebar termine antes de abrir el submenú
-    setTimeout(() => { openMenus.value[name] = !openMenus.value[name]; }, 150);
+    clearTimeout(toggleMenuTimeoutId);
+    toggleMenuTimeoutId = setTimeout(() => { openMenus.value[name] = !openMenus.value[name]; }, 150);
   } else {
     openMenus.value[name] = !openMenus.value[name];
   }
 };
+
+onUnmounted(() => {
+  clearTimeout(toggleMenuTimeoutId);
+});
 
 // Extraemos los detalles completos de los grupos del usuario actual
 const misGruposDetalle = computed(() => {

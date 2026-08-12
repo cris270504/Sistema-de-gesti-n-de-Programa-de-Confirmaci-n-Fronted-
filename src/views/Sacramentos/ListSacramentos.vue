@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref, nextTick, computed } from 'vue';
+import { onMounted, onUnmounted, ref, nextTick, computed } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useSacramentosStore } from '../../stores/sacramentos';
 import { useRequisitosStore } from '../../stores/requisitos';
@@ -30,6 +30,10 @@ onMounted(async () => {
         const el = document.getElementById('sacramentoModal');
         if (el) modalInstance.value = new Modal(el);
     });
+});
+
+onUnmounted(() => {
+    modalInstance.value?.dispose();
 });
 
 // --- Métodos ---

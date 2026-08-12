@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useUsersStore } from '../../stores/users';
 import { useRolesStore } from '../../stores/roles';
 import { useGruposStore } from '../../stores/grupos'; // ➔ NUEVO: Importamos el store de grupos
@@ -41,6 +41,10 @@ onMounted(() => {
     backdrop: 'static',
     keyboard: false
   });
+});
+
+onUnmounted(() => {
+  modalInstance.value?.dispose();
 });
 
 const open = async (id = null) => {
@@ -261,7 +265,7 @@ async function submitUpdate() {
               </div>
 
               <!-- ➔ NUEVO: SECCIÓN DE GRUPOS -->
-              <div class="col-md-14">
+              <div class="col-md-4">
                 <label class="form-label fw-bold text-secondary small text-uppercase mb-2">Asignar Grupos (Opcional)</label>
                 <div class="roles-container p-3 rounded-3 bg-white border">
                   <div v-if="availableGrupos && availableGrupos.length" class="d-flex flex-wrap gap-2">
