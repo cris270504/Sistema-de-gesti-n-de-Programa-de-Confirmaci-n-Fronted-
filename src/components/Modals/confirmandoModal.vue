@@ -233,28 +233,31 @@ async function submitUpdate() {
 </script>
 
 <template>
-  <div class="modal fade" ref="modalRef" tabindex="-1" aria-hidden="true">
+  <div class="modal fade" ref="modalRef" tabindex="-1" role="dialog" aria-modal="true"
+    aria-labelledby="confirmandoModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
       <div class="modal-content">
 
-        <div class="modal-header">
+        <header class="modal-header">
           <div>
-            <h5 class="modal-title fw-bold text-white">
-              <i class="bi me-2 text-white-50" :class="isEditing ? 'bi-pencil-square' : 'bi-person-plus-fill'"></i>
+            <h5 id="confirmandoModalLabel" class="modal-title fw-bold text-white">
+              <i class="bi me-2 text-white-50" :class="isEditing ? 'bi-pencil-square' : 'bi-person-plus-fill'"
+                aria-hidden="true"></i>
               {{ title }}
             </h5>
             <p class="text-white-50 small mb-0">Gestión de datos del confirmando y familia.</p>
           </div>
-          <button type="button" class="btn-close btn-close-white" @click="close" aria-label="Close"></button>
-        </div>
+          <button type="button" class="btn-close btn-close-white" @click="close" aria-label="Cerrar"></button>
+        </header>
 
         <div class="modal-body">
-          <div v-if="loading && isEditing" class="text-center py-5">
-            <div class="spinner-border text-primary" role="status"></div>
+          <div v-if="loading && isEditing" class="text-center py-5" role="status" aria-live="polite">
+            <div class="spinner-border text-primary"></div>
             <p class="mt-2 text-muted fw-medium">Cargando expediente...</p>
           </div>
 
-          <form v-else @submit.prevent="submitUpdate" id="confirmandoForm" class="needs-validation">
+          <form v-else @submit.prevent="submitUpdate" id="confirmandoForm" class="needs-validation"
+            aria-labelledby="confirmandoModalLabel">
             <div class="row g-4">
 
               <div class="col-12">
@@ -266,9 +269,9 @@ async function submitUpdate() {
                     class="text-danger">*</span></label>
                 <div class="input-group">
                   <span class="input-group-text bg-blue-soft text-primary border-end-0"><i
-                      class="bi bi-person-lines-fill"></i></span>
+                      class="bi bi-person-lines-fill" aria-hidden="true"></i></span>
                   <input v-model="draft.apellidos" type="text" class="form-control border-start-0" required
-                    :disabled="saving">
+                    aria-label="Apellidos del confirmando" :disabled="saving">
                 </div>
               </div>
 
@@ -277,9 +280,9 @@ async function submitUpdate() {
                     class="text-danger">*</span></label>
                 <div class="input-group">
                   <span class="input-group-text bg-blue-soft text-primary border-end-0"><i
-                      class="bi bi-person-fill"></i></span>
+                      class="bi bi-person-fill" aria-hidden="true"></i></span>
                   <input v-model="draft.nombres" type="text" class="form-control border-start-0" required
-                    :disabled="saving">
+                    aria-label="Nombres del confirmando" :disabled="saving">
                 </div>
               </div>
 
@@ -287,9 +290,9 @@ async function submitUpdate() {
                 <label class="form-label fw-bold text-secondary small text-uppercase">Fecha Nacimiento </label>
                 <div class="input-group">
                   <span class="input-group-text bg-blue-soft text-primary border-end-0"><i
-                      class="bi bi-calendar-event"></i></span>
+                      class="bi bi-calendar-event" aria-hidden="true"></i></span>
                   <input v-model="draft.fecha_nacimiento" :max="maxDate" type="date" class="form-control border-start-0"
-                    :disabled="saving">
+                    aria-label="Fecha de nacimiento" :disabled="saving">
                 </div>
               </div>
 
@@ -297,9 +300,9 @@ async function submitUpdate() {
                 <label class="form-label fw-bold text-secondary small text-uppercase">Celular</label>
                 <div class="input-group">
                   <span class="input-group-text bg-blue-soft text-primary border-end-0"><i
-                      class="bi bi-phone"></i></span>
+                      class="bi bi-phone" aria-hidden="true"></i></span>
                   <input v-model="draft.celular" type="tel" class="form-control border-start-0" maxlength="9"
-                    :disabled="saving">
+                    aria-label="Celular del confirmando" :disabled="saving">
                 </div>
               </div>
 
@@ -307,10 +310,11 @@ async function submitUpdate() {
                 <label class="form-label fw-bold text-secondary small text-uppercase">Género</label>
                 <div class="input-group">
                   <span class="input-group-text bg-blue-soft text-primary border-end-0">
-                    <i class="bi bi-person"></i>
+                    <i class="bi bi-person" aria-hidden="true"></i>
                   </span>
 
-                  <select v-model="draft.genero" class="form-select border-start-0" :disabled="saving">
+                  <select v-model="draft.genero" class="form-select border-start-0" aria-label="Género del confirmando"
+                    :disabled="saving">
                     <option :value="null">-- Sin asignar --</option>
                     <option value="m">Masculino</option>
                     <option value="f">Femenino</option>
@@ -325,7 +329,7 @@ async function submitUpdate() {
 
               <div class="col-md-6">
                 <label class="form-label fw-bold text-secondary small text-uppercase">Grupo Asignado</label>
-                <select v-model="draft.grupo_id" class="form-select"
+                <select v-model="draft.grupo_id" class="form-select" aria-label="Grupo asignado al confirmando"
                   :disabled="saving || authStore.user?.roles?.includes('catequista')">
                   <option :value="null">-- Sin asignar --</option>
                   <option v-for="g in availableGrupos" :key="g.id" :value="g.id">
@@ -336,7 +340,8 @@ async function submitUpdate() {
 
               <div class="col-md-6">
                 <label class="form-label fw-bold text-secondary small text-uppercase">Estado del Confirmando</label>
-                <select v-model="draft.estado" class="form-select border-start-0" :disabled="saving || authStore.user?.roles?.includes('catequista')">
+                <select v-model="draft.estado" class="form-select border-start-0" aria-label="Estado del confirmando"
+                  :disabled="saving || authStore.user?.roles?.includes('catequista')">
                   <option value="en_preparacion">En Preparación</option>
                   <option value="confirmado">Confirmado (Finalizado)</option>
                   <option value="retirado">Retirado / Desertó</option>
@@ -348,7 +353,7 @@ async function submitUpdate() {
                   Sacramento faltante
                 </label>
                 <select v-model="draft.sacramento_faltante_id" class="form-select border-primary" required
-                  :disabled="saving">
+                  aria-label="Sacramento faltante" :disabled="saving">
                   <option :value="null" disabled>-- Seleccionar --</option>
                   <option v-for="sac in availableSacramentos" :key="sac.id" :value="sac.id">{{ sac.nombre }}</option>
                 </select>
@@ -359,13 +364,13 @@ async function submitUpdate() {
                   <h6 class="text-uppercase text-secondary fw-bold small mb-0">Apoderados</h6>
                   <button type="button" class="btn btn-sm btn-soft-primary fw-bold" @click="addApoderado"
                     :disabled="saving">
-                    <i class="bi bi-plus-lg me-1"></i> Agregar
+                    <i class="bi bi-plus-lg me-1" aria-hidden="true"></i> Agregar
                   </button>
                 </div>
 
                 <div v-if="draft.apoderados.length === 0"
                   class="text-center p-4 bg-light rounded-3 text-muted border border-dashed">
-                  <i class="bi bi-people display-6 opacity-25"></i>
+                  <i class="bi bi-people display-6 opacity-25" aria-hidden="true"></i>
                   <p class="mb-0 mt-2 small">No hay apoderados registrados.</p>
                 </div>
 
@@ -374,13 +379,14 @@ async function submitUpdate() {
                     class="card border shadow-sm apoderado-card">
                     <div class="card-body p-3 position-relative">
                       <button type="button" class="btn-close position-absolute top-0 end-0 m-2"
-                        @click="removeApoderado(index)" :disabled="saving"></button>
+                        :aria-label="`Eliminar apoderado ${index + 1}`" @click="removeApoderado(index)"
+                        :disabled="saving"></button>
 
                       <div class="row g-2">
                         <div class="col-12 mb-1">
                           <label class="form-label small fw-bold text-primary mb-1">Parentesco</label>
                           <select v-model="ap.tipo_apoderado_id" class="form-select form-select-sm" required
-                            :disabled="saving">
+                            :aria-label="`Parentesco del apoderado ${index + 1}`" :disabled="saving">
                             <option value="" disabled>-- Seleccione --</option>
                             <option v-for="tipo in tiposApoderado" :key="tipo.id" :value="tipo.id">{{ tipo.nombre }}
                             </option>
@@ -390,11 +396,13 @@ async function submitUpdate() {
                         <div class="col-md-6 position-relative">
                           <label class="form-label small text-muted mb-0">Apellidos</label>
                           <input type="text" v-model="ap.apellidos" class="form-control form-control-sm" required
-                            :disabled="saving" @input="buscarPadresExistentes($event, index)"
+                            :aria-label="`Apellidos del apoderado ${index + 1}`" :disabled="saving"
+                            @input="buscarPadresExistentes($event, index)"
                             placeholder="Escriba para buscar..." autocomplete="off">
 
                           <ul v-if="ap.sugerencias && ap.sugerencias.length > 0"
-                            class="list-group position-absolute w-100 shadow-lg z-3 mt-1">
+                            class="list-group position-absolute w-100 shadow-lg z-3 mt-1"
+                            aria-label="Sugerencias de apoderados existentes">
                             <li v-for="p in ap.sugerencias" :key="p.id" @click="seleccionarPadreExistente(p, index)"
                               class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 cursor-pointer">
                               <div>
@@ -409,17 +417,18 @@ async function submitUpdate() {
                         <div class="col-md-6">
                           <label class="form-label small text-muted mb-0">Nombres</label>
                           <input type="text" v-model="ap.nombres" class="form-control form-control-sm" required
-                            :disabled="saving">
+                            :aria-label="`Nombres del apoderado ${index + 1}`" :disabled="saving">
                         </div>
 
                         <div class="col-md-6">
                           <label class="form-label small text-muted mb-0">Celular</label>
                           <div class="input-group input-group-sm">
                             <input type="tel" v-model="ap.celular" class="form-control" maxlength="9"
-                              :disabled="saving">
+                              :aria-label="`Celular del apoderado ${index + 1}`" :disabled="saving">
                             <button v-if="ap.es_existente" class="btn btn-outline-danger" type="button"
+                              :aria-label="`Quitar selección de apoderado existente ${index + 1}`"
                               @click="limpiarSeleccion(index)">
-                              <i class="bi bi-x-circle"></i>
+                              <i class="bi bi-x-circle" aria-hidden="true"></i>
                             </button>
                           </div>
                         </div>
@@ -433,7 +442,7 @@ async function submitUpdate() {
           </form>
         </div>
 
-        <div class="modal-footer bg-light-subtle">
+        <footer class="modal-footer bg-light-subtle">
           <button type="button" class="btn btn-outline-secondary px-4 fw-medium border-0" @click="close"
             :disabled="saving">
             Cancelar
@@ -441,13 +450,13 @@ async function submitUpdate() {
           <button type="submit" form="confirmandoForm" class="btn btn-primary px-4 fw-medium shadow-sm"
             :disabled="saving">
             <template v-if="saving">
-              <span class="spinner-border spinner-border-sm me-2"></span>
+              <span class="spinner-border spinner-border-sm me-2" role="status" aria-label="Guardando"></span>
             </template>
             <template v-else>
-              <i class="bi bi-check-lg me-1"></i> Guardar
+              <i class="bi bi-check-lg me-1" aria-hidden="true"></i> Guardar
             </template>
           </button>
-        </div>
+        </footer>
 
       </div>
     </div>

@@ -49,14 +49,15 @@ defineExpose({ abrir });
 <template>
     <!-- TELEPORT evita que el modal rompa el diseño del componente padre -->
     <Teleport to="body">
-        <div v-if="modalVisible" class="popover-backdrop" @click="cerrar"></div>
+        <div v-if="modalVisible" class="popover-backdrop" aria-hidden="true" @click="cerrar"></div>
 
         <transition name="popover-anim">
-            <div v-if="modalVisible" class="mini-dialog shadow-lg rounded-4 bg-white p-0"
-                style="width: 700px; max-width: 95vw;">
+            <div v-if="modalVisible" class="mini-dialog shadow-lg rounded-4 bg-white p-0" role="dialog"
+                aria-modal="true" aria-labelledby="perfilConfirmandoLabel" style="width: 700px; max-width: 95vw;">
 
                 <!-- 1. SKELETON LOADER (ESTADO DE CARGA) -->
-                <div v-if="cargando" class="placeholder-glow d-flex flex-column" style="height: 100%;">
+                <div v-if="cargando" class="placeholder-glow d-flex flex-column" style="height: 100%;" role="status"
+                    aria-live="polite" aria-label="Cargando ficha del confirmando">
                     <div class="p-4 border-bottom bg-light rounded-top-4">
                         <span class="placeholder col-6 mb-2 rounded bg-secondary opacity-25" style="height: 28px; display: block;"></span>
                         <span class="placeholder col-3 rounded-pill bg-primary opacity-25" style="height: 20px; display: block;"></span>
@@ -92,15 +93,15 @@ defineExpose({ abrir });
                 <!-- 2. CONTENIDO REAL (CUANDO YA CARGÓ LA DATA) -->
                 <div v-else-if="perfilActivo" class="d-flex flex-column" style="max-height: 90vh;">
                     
-                    <div class="p-4 border-bottom bg-light rounded-top-4 d-flex justify-content-between align-items-start">
+                    <header class="p-4 border-bottom bg-light rounded-top-4 d-flex justify-content-between align-items-start">
                         <div>
-                            <h4 class="fw-bold text-dark mb-1">{{ perfilActivo.joven.nombres }} {{ perfilActivo.joven.apellidos }}</h4>
+                            <h4 id="perfilConfirmandoLabel" class="fw-bold text-dark mb-1">{{ perfilActivo.joven.nombres }} {{ perfilActivo.joven.apellidos }}</h4>
                             <span class="badge bg-primary rounded-pill">{{ perfilActivo.joven.grupo }}</span>
                         </div>
-                        <button type="button" class="btn-close" @click="cerrar"></button>
-                    </div>
+                        <button type="button" class="btn-close" aria-label="Cerrar" @click="cerrar"></button>
+                    </header>
 
-                    <div class="p-4 overflow-y-auto">
+                    <section class="p-4 overflow-y-auto" aria-label="Detalle de asistencia y contacto">
                         <h6 class="text-uppercase text-muted fw-bold mb-3" style="font-size: 0.75rem;">Resumen de Asistencia General</h6>
                         
                         <div class="row g-2 mb-4">
@@ -136,7 +137,7 @@ defineExpose({ abrir });
                                 <div v-if="perfilActivo.apoderado" class="bg-light p-3 rounded-3 border">
                                     <div class="fw-bold text-dark">{{ perfilActivo.apoderado.nombres }} {{ perfilActivo.apoderado.apellidos }}</div>
                                     <div class="text-muted small mt-1 d-flex align-items-center">
-                                        <Phone :size="14" class="me-2" /> {{ perfilActivo.apoderado.celular || 'No registrado' }}
+                                        <Phone :size="14" class="me-2" aria-hidden="true" /> {{ perfilActivo.apoderado.celular || 'No registrado' }}
                                     </div>
                                 </div>
                                 <div v-else class="bg-light p-3 rounded-3 border text-muted fst-italic small">
@@ -152,14 +153,15 @@ defineExpose({ abrir });
                             </div>
                         </div>
 
-                        <h6 class="text-uppercase text-muted fw-bold mb-2" style="font-size: 0.75rem;">Historial Completo de Asistencias</h6>
+                        <h6 id="historialAsistenciasLabel" class="text-uppercase text-muted fw-bold mb-2" style="font-size: 0.75rem;">Historial Completo de Asistencias</h6>
                         <div class="border rounded-3 overflow-hidden">
-                            <table class="table table-sm table-hover mb-0">
+                            <table class="table table-sm table-hover mb-0" aria-labelledby="historialAsistenciasLabel">
+                                <caption class="visually-hidden">Historial completo de asistencias del confirmando</caption>
                                 <thead class="bg-light text-muted small">
                                     <tr>
-                                        <th class="ps-3">Fecha</th>
-                                        <th>Tema de la Reunión</th>
-                                        <th class="text-end pe-3">Estado</th>
+                                        <th class="ps-3" scope="col">Fecha</th>
+                                        <th scope="col">Tema de la Reunión</th>
+                                        <th class="text-end pe-3" scope="col">Estado</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -184,7 +186,7 @@ defineExpose({ abrir });
                                 </tbody>
                             </table>
                         </div>
-                    </div>
+                    </section>
                 </div>
             </div>
         </transition>
