@@ -93,7 +93,8 @@ export const useConfirmandosStore = defineStore('confirmandos', {
                     celular_apoderado: apoderado ? apoderado.celular : c.celular
                 };
             }).filter(c => {
-                const cumpleRol = esGestor || (authStore.user?.grupo_ids || []).includes(c.grupo_id);
+                const misGrupos = (authStore.user?.grupo_ids || []).map(Number);
+                const cumpleRol = esGestor || misGrupos.includes(Number(c.grupo_id));
                 const estaActivo = c.estado !== 'retirado';
                 const tieneAlerta = c.nivel_riesgo !== 'NINGUNO';
                 return cumpleRol && estaActivo && tieneAlerta;

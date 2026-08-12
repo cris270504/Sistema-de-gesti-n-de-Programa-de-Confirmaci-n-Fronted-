@@ -39,10 +39,12 @@ onMounted(() => {
 // Reemplazamos las 60 líneas de lógica pesada por un simple filtro de seguridad
 const confirmandosAlerta = computed(() => {
   const dataAlertas = alertas.value || [];
-  
+  // Normalizamos a Number: el backend no es consistente entre string/number para los IDs de grupo.
+  const misGrupos = (authStore.user?.grupo_ids || []).map(Number);
+
   return dataAlertas.filter(alerta => {
     // El gestor ve todas las alertas. El catequista solo ve las de sus propios grupos.
-    return esGestor || (authStore.user?.grupo_ids || []).includes(alerta.grupo_id);
+    return esGestor || misGrupos.includes(Number(alerta.grupo_id));
   });
 });
 
