@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores/auth';
 import { useDashboardStore } from '../stores/dashboard';
 import { useReunionesStore } from '../stores/reunions';
 import { useConfirmandosStore } from '../stores/confirmandos';
+import { useGruposStore } from '../stores/grupos';
 
 import { CalendarIcon, ChatBubbleLeftRightIcon, ExclamationTriangleIcon, ClockIcon, MapPinIcon } from '@heroicons/vue/24/outline';
 import { CircleAlert, User } from 'lucide-vue-next';
@@ -24,27 +25,48 @@ const { fetchUpcoming } = reunionesStore;
 const { upcomingItems, loading: loadingReuniones } = storeToRefs(reunionesStore);
 
 const confirmandosStore = useConfirmandosStore();
+const gruposStore = useGruposStore();
 const perfilModalRef = ref(null);
 
 // 2. Carga Inicial ULTRA RÁPIDA (Solo lo estrictamente necesario)
 onMounted(() => {
   dashboardStore.fetchMetricas(); // Trae números y alertas masticadas en 1 sola petición
-  
+
   if (authStore.can('ver cronograma') && upcomingItems.value.length === 0) {
       fetchUpcoming(); // Trae solo las reuniones futuras
+  }
+
+  // Un catequista necesita esto para poder mapear sus grupo_ids a nombres (ver abajo).
+  // Usamos fetchById (permiso "ver grupos") en vez de fetchAll ("ver todos los grupos",
+  // que un catequista no tiene) para no pedir un endpoint al que no tiene acceso.
+  if (!esGestor) {
+      const misGrupoIds = authStore.user?.grupo_ids || [];
+      misGrupoIds.forEach(id => {
+          if (!gruposStore.items.some(g => g.id === id)) {
+              gruposStore.fetchById(id).catch(() => {});
+          }
+      });
   }
 });
 
 // 3. Propiedades Computadas
-// Reemplazamos las 60 líneas de lógica pesada por un simple filtro de seguridad
+// El backend NO manda grupo_id en cada alerta, solo el nombre del grupo ("grupo"),
+// así que para filtrar por "mis grupos" necesitamos resolver mis grupo_ids a nombres.
+const misNombresDeGrupo = computed(() => {
+  const misIds = authStore.user?.grupo_ids || [];
+  return new Set(
+    gruposStore.items
+      .filter(g => misIds.includes(g.id))
+      .map(g => g.nombre)
+  );
+});
+
 const confirmandosAlerta = computed(() => {
   const dataAlertas = alertas.value || [];
-  // Normalizamos a Number: el backend no es consistente entre string/number para los IDs de grupo.
-  const misGrupos = (authStore.user?.grupo_ids || []).map(Number);
 
   return dataAlertas.filter(alerta => {
     // El gestor ve todas las alertas. El catequista solo ve las de sus propios grupos.
-    return esGestor || misGrupos.includes(Number(alerta.grupo_id));
+    return esGestor || misNombresDeGrupo.value.has(alerta.grupo);
   });
 });
 

@@ -29,6 +29,20 @@ const gruposStore = useGruposStore();
 const isSidebarOpen = ref(true);
 const openMenus = ref({});
 
+// Un catequista no tiene "ver todos los grupos" (permiso que exige /grupos, el listado
+// completo), así que nadie más carga este store por él. Igual que en AsignacionGrupo.vue,
+// usamos fetchById por cada grupo asignado (permiso "ver grupos") para no pedir un
+// endpoint al que no tiene acceso. Sin esto, sus grupo_ids nunca se resuelven a
+// nombres/objetos y toda la sección "Mi grupo" del menú desaparece.
+onMounted(() => {
+  const misGrupoIds = authStore.user?.grupo_ids || [];
+  misGrupoIds.forEach(id => {
+    if (!gruposStore.items.some(g => g.id === id)) {
+      gruposStore.fetchById(id).catch(() => {});
+    }
+  });
+});
+
 const isChildActive = (child) => {
   // 1. Verificamos si la ruta usa query (ej. Asistencias)
   if (child.to.query && child.to.query.grupo) {
