@@ -1,6 +1,13 @@
 @import "tailwindcss";
 @reference "tailwindcss";
 
+/* Token de marca: alinea las utilidades Tailwind (text-primary, bg-primary/5, etc.)
+   con el azul ya usado en Sidebar/Dashboard, evitando clases "primary" sin efecto. */
+@theme {
+  --color-primary: #2563eb;
+  --color-primary-foreground: #ffffff;
+}
+
 /* ===== RESET GLOBAL ===== */
 *,
 *::before,

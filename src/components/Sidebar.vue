@@ -215,7 +215,7 @@ defineExpose({ toggleSidebar });
         <!-- Divisor visual cuando está colapsado -->
         <div v-else-if="idx !== 0" class="border-t border-slate-200 mx-4 mb-2 mt-1"></div>
 
-        <div class="flex flex-col gap-1">
+        <div class="flex flex-col gap-1.5">
           <template v-for="item in section.items" :key="item.name">
 
             <!-- Enlace Simple -->
@@ -316,7 +316,7 @@ defineExpose({ toggleSidebar });
 
 .nav-link--active {
   background-color: #eff6ff;
-  color: #1d4ed8;
+  color: var(--color-primary);
 }
 
 /* Indicador azul a la izquierda */
@@ -327,7 +327,7 @@ defineExpose({ toggleSidebar });
   bottom: 10%;
   width: 4px;
   border-radius: 0 4px 4px 0;
-  background-color: #2563eb;
+  background-color: var(--color-primary);
   transition: transform 0.2s, opacity 0.2s;
 }
 </style>

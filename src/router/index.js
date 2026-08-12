@@ -3,22 +3,24 @@ import { LS_TOKEN_KEY, LS_USER_KEY } from '@/constants/auth'
 import { useAuthStore } from '@/stores/auth'
 import { showAlerta } from '@/funciones'
 
-import NotFound from '../views/NotFound.vue'
-import Login from '../views/Auth/Login.vue'
 import DefaultLayout from '../components/DefaultLayout.vue'
-import ListarUsuarios from '../views/Users/ListUsers.vue'
-import Roles from '../views/Auth/Roles.vue'
-import Profile from '../views/Profile/profile.vue'
-import ListConfirmandos from '../views/Confirmandos/ListConfirmandos.vue'
-import ListGrupos from '../views/Grupos/ListGrupos.vue'
-import AsignacionGrupo from '../views/Grupos/AsignacionGrupo.vue'
-import Dashboard from '../views/Dashboard.vue'
-import ListCronograma from '../views/Cronograma/ListCronograma.vue'
-import ListSacramentos from '../views/Sacramentos/ListSacramentos.vue'
-import ListRequisitos from '../views/Requisitos/ListRequisitos.vue'
-import Listcumpleanos from '../views/Cumpleanos/listCumpleanos.vue'
-import ListJustificaciones from '../views/Justificaciones/ListJustificaciones.vue'
 import { isTokenExpired } from '@/funciones'
+
+// Lazy loading: cada vista se descarga en su propio chunk solo cuando se visita la ruta
+const NotFound = () => import('../views/NotFound.vue')
+const Login = () => import('../views/Auth/Login.vue')
+const ListarUsuarios = () => import('../views/Users/ListUsers.vue')
+const Roles = () => import('../views/Auth/Roles.vue')
+const Profile = () => import('../views/Profile/profile.vue')
+const ListConfirmandos = () => import('../views/Confirmandos/ListConfirmandos.vue')
+const ListGrupos = () => import('../views/Grupos/ListGrupos.vue')
+const AsignacionGrupo = () => import('../views/Grupos/AsignacionGrupo.vue')
+const Dashboard = () => import('../views/Dashboard.vue')
+const ListCronograma = () => import('../views/Cronograma/ListCronograma.vue')
+const ListSacramentos = () => import('../views/Sacramentos/ListSacramentos.vue')
+const ListRequisitos = () => import('../views/Requisitos/ListRequisitos.vue')
+const Listcumpleanos = () => import('../views/Cumpleanos/listCumpleanos.vue')
+const ListJustificaciones = () => import('../views/Justificaciones/ListJustificaciones.vue')
 
 function hasSession() {
   const token = localStorage.getItem(LS_TOKEN_KEY)
