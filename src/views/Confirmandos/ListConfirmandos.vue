@@ -2,18 +2,48 @@
 import { useConfirmandosStore } from '../../stores/confirmandos';
 import { useGruposStore } from '../../stores/grupos';
 import { storeToRefs } from 'pinia';
-import { onMounted, ref, computed, nextTick, watch } from 'vue';
+import { onMounted, ref, computed, nextTick, watch, defineAsyncComponent } from 'vue';
 import {
     Pencil, Trash, Plus, User, Phone, Calendar, Users,
     Wand2, Trash2, Save, Upload, Eye
 } from 'lucide-vue-next';
 import { useAuthStore } from '@/stores/auth';
 import { Modal } from 'bootstrap';
-import ConfirmandoModal from '../../components/Modals/confirmandoModal.vue';
 import { showAlerta } from '@/funciones';
-import PerfilConfirmandoModal from '../../components/Modals/PerfilConfirmandoModal.vue';
+
+// Lazy-loading: estos modales no son visibles en el primer renderizado (Above the fold)
+const ConfirmandoModal = defineAsyncComponent(() =>
+    import('../../components/Modals/confirmandoModal.vue')
+);
+const PerfilConfirmandoModal = defineAsyncComponent(() =>
+    import('../../components/Modals/PerfilConfirmandoModal.vue')
+);
 
 const perfilModalRef = ref(null);
+const isPerfilModalLoading = ref(false);
+const pendingPerfilId = ref(null);
+const hasPendingPerfilAction = ref(false);
+
+// El componente async puede no estar montado aún cuando el usuario hace clic;
+// si aún no hay ref, encolamos la acción y la disparamos cuando el watch detecte el montaje.
+watch(perfilModalRef, (instance) => {
+    if (instance && hasPendingPerfilAction.value) {
+        instance.abrir(pendingPerfilId.value);
+        hasPendingPerfilAction.value = false;
+        pendingPerfilId.value = null;
+        isPerfilModalLoading.value = false;
+    }
+});
+
+const abrirPerfil = (id) => {
+    if (perfilModalRef.value) {
+        perfilModalRef.value.abrir(id);
+        return;
+    }
+    isPerfilModalLoading.value = true;
+    pendingPerfilId.value = id;
+    hasPendingPerfilAction.value = true;
+};
 
 // --- STORES ---
 const confirmandosStore = useConfirmandosStore();
@@ -26,6 +56,18 @@ const { fetchAll: fetchAllConfirmandos, remove: removeConfirmando } = confirmand
 
 // --- ESTADOS LOCALES ---
 const modalRef = ref(null);
+const isConfirmandoModalLoading = ref(false);
+const pendingConfirmandoId = ref(undefined);
+const hasPendingConfirmandoAction = ref(false);
+
+watch(modalRef, (instance) => {
+    if (instance && hasPendingConfirmandoAction.value) {
+        instance.open(pendingConfirmandoId.value);
+        hasPendingConfirmandoAction.value = false;
+        pendingConfirmandoId.value = undefined;
+        isConfirmandoModalLoading.value = false;
+    }
+});
 
 // Objeto central de filtros
 const filtros = ref({
@@ -239,8 +281,26 @@ const prediccion = computed(() => {
 });
 
 // --- FUNCIONES AUXILIARES RESTAURADAS ---
-const abrirCrear = () => modalRef.value.open();
-const abrirEditar = (id) => modalRef.value.open(id);
+const abrirCrear = () => {
+    if (modalRef.value) {
+        modalRef.value.open();
+        return;
+    }
+    isConfirmandoModalLoading.value = true;
+    pendingConfirmandoId.value = undefined;
+    hasPendingConfirmandoAction.value = true;
+};
+
+const abrirEditar = (id) => {
+    if (modalRef.value) {
+        modalRef.value.open(id);
+        return;
+    }
+    isConfirmandoModalLoading.value = true;
+    pendingConfirmandoId.value = id;
+    hasPendingConfirmandoAction.value = true;
+};
+
 const recargarTabla = () => fetchAllConfirmandos();
 
 const formatGenero = (genero) => {
@@ -323,8 +383,10 @@ onMounted(() => {
                 </button>
 
                 <div v-if="authStore.can('crear confirmandos')">
-                    <button @click="abrirCrear" class="btn btn-primary shadow-sm px-3 py-2 d-flex align-items-center">
-                        <Plus :size="18" class="me-2" stroke-width="2.5" />
+                    <button @click="abrirCrear" :disabled="isConfirmandoModalLoading"
+                        class="btn btn-primary shadow-sm px-3 py-2 d-flex align-items-center">
+                        <span v-if="isConfirmandoModalLoading" class="spinner-border spinner-border-sm me-2"></span>
+                        <Plus v-else :size="18" class="me-2" stroke-width="2.5" />
                         <span class="fw-bold fs-7 text-uppercase">Nuevo Confirmando</span>
                     </button>
                 </div>
@@ -500,18 +562,20 @@ onMounted(() => {
                             </td>
                             <td class="text-end pe-4 py-2">
                                 <div class="d-inline-flex gap-2">
-                                    <button @click="perfilModalRef.abrir(c.id)"
+                                    <button @click="abrirPerfil(c.id)" :disabled="isPerfilModalLoading"
                                         class=" btn btn-sm btn-soft-suggest rounded-circle d-flex align-items-center justify-content-center me-1"
                                         style="width: 32px; height: 32px;" title="Ver Ficha Completa">
-                                        <Eye :size="16" />
+                                        <span v-if="isPerfilModalLoading" class="spinner-border spinner-border-sm"></span>
+                                        <Eye v-else :size="16" />
                                     </button>
                                     <button class="btn btn-action btn-soft-info" title="Ver Apoderados"
                                         @click="openApoderadosModal(c)">
                                         <Users :size="18" />
                                     </button>
                                     <button class="btn btn-action btn-soft-warning" title="Editar"
-                                        @click="abrirEditar(c.id)">
-                                        <Pencil :size="18" />
+                                        :disabled="isConfirmandoModalLoading" @click="abrirEditar(c.id)">
+                                        <span v-if="isConfirmandoModalLoading" class="spinner-border spinner-border-sm"></span>
+                                        <Pencil v-else :size="18" />
                                     </button>
                                     <button v-if="authStore.can('eliminar confirmandos')"
                                         class="btn btn-action btn-soft-danger" title="Eliminar"
