@@ -356,17 +356,17 @@ onMounted(() => {
 </script>
 
 <template>
-    <div class="main-container">
+    <main class="main-container">
 
-        <div class="d-flex justify-content-between align-items-center mb-4">
+        <header class="d-flex justify-content-between align-items-center mb-4">
             <div>
                 <h2 class="page-title">Confirmandos</h2>
                 <p class="page-subtitle">Gestión de inscritos y sacramentos</p>
             </div>
 
-            <div class="d-flex gap-2">
+            <div class="d-flex gap-2" role="toolbar" aria-label="Acciones de confirmandos">
                 <input type="file" ref="fileInputRef" class="d-none" accept=".xlsx, .xls, .csv"
-                    @change="handleFileUpload">
+                    aria-label="Seleccionar archivo Excel o CSV para importar" @change="handleFileUpload">
 
                 <button v-if="authStore.can('crear confirmandos')" @click="abrirImportModal" :disabled="isImporting"
                     class="btn btn-outline-success shadow-sm px-3 py-2 d-flex align-items-center">
@@ -391,31 +391,33 @@ onMounted(() => {
                     </button>
                 </div>
             </div>
-        </div>
+        </header>
 
         <!-- El contenedor principal (Los filtros NUNCA desaparecen) -->
-        <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
+        <section class="card border-0 shadow-sm rounded-3 overflow-hidden" aria-label="Listado de confirmandos">
 
-            <div
+            <div role="search" aria-label="Filtrar confirmandos"
                 class="p-3 bg-light-gray border-bottom d-flex flex-column flex-xl-row justify-content-between align-items-center gap-3">
                 <!-- Sección Izquierda: Buscador + Selector de Grupos -->
                 <div class="d-flex flex-column flex-sm-row gap-2 w-100" style="max-width: 650px;">
                     <!-- Buscador -->
                     <div class="input-group shadow-sm">
                         <span class="input-group-text bg-white border-end-0 text-muted">
-                            <i class="bi bi-search"></i>
+                            <i class="bi bi-search" aria-hidden="true"></i>
                         </span>
                         <input type="text" class="form-control border-start-0 ps-0" v-model="filtros.search"
-                            placeholder="Buscar por apellido o nombre..." :disabled="loading">
+                            placeholder="Buscar por apellido o nombre..." aria-label="Buscar confirmando por nombre o apellido"
+                            :disabled="loading">
                         <button v-if="filtros.search" @click="filtros.search = ''"
+                            aria-label="Limpiar búsqueda"
                             class="btn btn-white border border-start-0 text-muted">
-                            <i class="bi bi-x-lg"></i>
+                            <i class="bi bi-x-lg" aria-hidden="true"></i>
                         </button>
                     </div>
 
                     <!-- Selector de Procedencia (Reducido) -->
                     <select v-model="filtros.procedencia" class="form-select shadow-sm"
-                        style="width: 130px; flex-shrink: 0;" :disabled="loading">
+                        style="width: 130px; flex-shrink: 0;" aria-label="Filtrar por procedencia" :disabled="loading">
                         <option value="todos">Todos</option>
                         <option value="sede">Sede</option>
                         <option value="caserio">Caserío</option>
@@ -423,7 +425,7 @@ onMounted(() => {
 
                     <!-- Selector de Grupos -->
                     <select class="form-select shadow-sm" style="min-width: 180px;" v-model="filtros.grupo"
-                        :disabled="loading">
+                        aria-label="Filtrar por grupo" :disabled="loading">
                         <option value="todos">Todos los grupos</option>
                         <option value="sin_grupo" class="text-danger fw-bold">Sin grupo asignado</option>
                         <hr class="dropdown-divider">
@@ -434,7 +436,7 @@ onMounted(() => {
                 </div>
 
                 <!-- Sección Derecha: Filtros de Estado (Botones compactos) -->
-                <div class="btn-group shadow-sm w-100 w-xl-auto" role="group"
+                <div class="btn-group shadow-sm w-100 w-xl-auto" role="group" aria-label="Filtrar por estado"
                     style="overflow-x: auto; white-space: nowrap;">
                     <input type="radio" class="btn-check" name="btnradio" id="btnradio1" value="en_preparacion"
                         v-model="filtros.estado" :disabled="loading">
@@ -564,21 +566,24 @@ onMounted(() => {
                                 <div class="d-inline-flex gap-2">
                                     <button @click="abrirPerfil(c.id)" :disabled="isPerfilModalLoading"
                                         class=" btn btn-sm btn-soft-suggest rounded-circle d-flex align-items-center justify-content-center me-1"
-                                        style="width: 32px; height: 32px;" title="Ver Ficha Completa">
+                                        style="width: 32px; height: 32px;" title="Ver Ficha Completa"
+                                        aria-label="Ver ficha completa">
                                         <span v-if="isPerfilModalLoading" class="spinner-border spinner-border-sm"></span>
                                         <Eye v-else :size="16" />
                                     </button>
                                     <button class="btn btn-action btn-soft-info" title="Ver Apoderados"
-                                        @click="openApoderadosModal(c)">
+                                        aria-label="Ver apoderados" @click="openApoderadosModal(c)">
                                         <Users :size="18" />
                                     </button>
                                     <button class="btn btn-action btn-soft-warning" title="Editar"
-                                        :disabled="isConfirmandoModalLoading" @click="abrirEditar(c.id)">
+                                        aria-label="Editar confirmando" :disabled="isConfirmandoModalLoading"
+                                        @click="abrirEditar(c.id)">
                                         <span v-if="isConfirmandoModalLoading" class="spinner-border spinner-border-sm"></span>
                                         <Pencil v-else :size="18" />
                                     </button>
                                     <button v-if="authStore.can('eliminar confirmandos')"
                                         class="btn btn-action btn-soft-danger" title="Eliminar"
+                                        aria-label="Eliminar confirmando"
                                         @click="removeConfirmando(c.id, c.apellidos + ' ' + c.nombres)">
                                         <Trash :size="18" />
                                     </button>
@@ -589,7 +594,7 @@ onMounted(() => {
                 </table>
 
                 <!-- ➔ ACTUALIZADO: Paginador frontend -->
-                <nav v-if="totalPages > 1 && !loading"
+                <nav v-if="totalPages > 1 && !loading" aria-label="Paginación de confirmandos"
                     class="d-flex justify-content-between align-items-center p-3 bg-white border-top">
                     <div class="text-muted small">
                         Mostrando página <span class="fw-bold">{{ currentPage }}</span> de <span class="fw-bold">{{
@@ -598,33 +603,37 @@ onMounted(() => {
                     </div>
                     <ul class="pagination pagination-sm mb-0">
                         <li class="page-item" :class="{ disabled: currentPage === 1 }">
-                            <button class="page-link" @click="cambiarPagina(currentPage - 1)">Anterior</button>
+                            <button class="page-link" aria-label="Página anterior"
+                                :disabled="currentPage === 1" @click="cambiarPagina(currentPage - 1)">Anterior</button>
                         </li>
 
                         <li v-for="page in totalPages" :key="page" class="page-item"
                             :class="{ active: page === currentPage }">
-                            <button class="page-link" @click="cambiarPagina(page)">{{ page }}</button>
+                            <button class="page-link" :aria-current="page === currentPage ? 'page' : undefined"
+                                :aria-label="`Ir a la página ${page}`" @click="cambiarPagina(page)">{{ page }}</button>
                         </li>
 
                         <li class="page-item" :class="{ disabled: currentPage === totalPages }">
-                            <button class="page-link" @click="cambiarPagina(currentPage + 1)">Siguiente</button>
+                            <button class="page-link" aria-label="Página siguiente"
+                                :disabled="currentPage === totalPages" @click="cambiarPagina(currentPage + 1)">Siguiente</button>
                         </li>
                     </ul>
                 </nav>
             </div>
-        </div>
+        </section>
 
-        <div class="modal fade" id="apoderadosModal" tabindex="-1" aria-hidden="true">
+        <div class="modal fade" id="apoderadosModal" tabindex="-1" role="dialog" aria-modal="true"
+            aria-labelledby="apoderadosModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
-                    <div class="modal-header-blue p-4">
-                        <h5 class="modal-title fw-bold text-white mb-0">
-                            <i class="bi bi-people-fill me-2 text-white-50"></i> Apoderados
+                    <header class="modal-header-blue p-4">
+                        <h5 id="apoderadosModalLabel" class="modal-title fw-bold text-white mb-0">
+                            <i class="bi bi-people-fill me-2 text-white-50" aria-hidden="true"></i> Apoderados
                         </h5>
                         <p class="text-white-50 small mb-0 mt-1">Familiares de {{ selectedConfirmandoName }}</p>
                         <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3"
-                            data-bs-dismiss="modal"></button>
-                    </div>
+                            aria-label="Cerrar" data-bs-dismiss="modal"></button>
+                    </header>
                     <div class="modal-body p-4 bg-light-gray-body">
                         <div v-if="selectedApoderados.length === 0" class="text-center text-muted py-4">
                             <div class="mb-2">
@@ -649,24 +658,26 @@ onMounted(() => {
                             </div>
                         </div>
                     </div>
-                    <div class="modal-footer bg-white border-top-0 p-3">
+                    <footer class="modal-footer bg-white border-top-0 p-3">
                         <button type="button" class="btn btn-light w-100 fw-medium text-secondary"
                             data-bs-dismiss="modal">Cerrar</button>
-                    </div>
+                    </footer>
                 </div>
             </div>
         </div>
 
-        <div class="modal fade" id="generadorGruposModal" tabindex="-1" aria-hidden="true">
+        <div class="modal fade" id="generadorGruposModal" tabindex="-1" role="dialog" aria-modal="true"
+            aria-labelledby="generadorGruposModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
                 <div class="modal-content border-0 shadow-lg rounded-4">
-                    <div class="modal-header bg-white border-bottom-0 pt-4 px-4">
+                    <header class="modal-header bg-white border-bottom-0 pt-4 px-4">
                         <div>
-                            <h5 class="fw-bold text-dark mb-1">Generador Automático de Grupos</h5>
+                            <h5 id="generadorGruposModalLabel" class="fw-bold text-dark mb-1">Generador Automático de
+                                Grupos</h5>
                             <p class="text-muted small mb-0">Distribución equitativa por género y edad.</p>
                         </div>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
+                        <button type="button" class="btn-close" aria-label="Cerrar" data-bs-dismiss="modal"></button>
+                    </header>
 
                     <div class="modal-body px-4 py-2">
                         <div class="alert alert-light border d-flex justify-content-around mb-4 bg-light-gray-body">
@@ -685,18 +696,21 @@ onMounted(() => {
                             </div>
                         </div>
 
-                        <label class="form-label fw-bold small text-uppercase text-secondary mb-2">Nombres de los
+                        <label id="gruposNombresLabel"
+                            class="form-label fw-bold small text-uppercase text-secondary mb-2">Nombres de los
                             Grupos</label>
-                        <div class="d-flex flex-column gap-2 mb-3" style="max-height: 200px; overflow-y: auto;">
+                        <div class="d-flex flex-column gap-2 mb-3" role="group" aria-labelledby="gruposNombresLabel"
+                            style="max-height: 200px; overflow-y: auto;">
                             <div v-for="(name, index) in groupNames" :key="index" class="d-flex gap-2">
                                 <div class="input-group">
                                     <span class="input-group-text bg-white text-muted border-end-0">{{ index + 1
                                         }}</span>
                                     <input type="text" class="form-control border-start-0" v-model="groupNames[index]"
-                                        placeholder="Nombre del grupo">
+                                        :aria-label="`Nombre del grupo ${index + 1}`" placeholder="Nombre del grupo">
                                 </div>
                                 <button @click="removeGroupInput(index)" class="btn btn-outline-danger border-0"
-                                    :disabled="groupNames.length === 1" title="Eliminar">
+                                    :disabled="groupNames.length === 1" title="Eliminar"
+                                    :aria-label="`Eliminar grupo ${index + 1}`">
                                     <Trash2 :size="18" />
                                 </button>
                             </div>
@@ -719,7 +733,7 @@ onMounted(() => {
                         </div>
                     </div>
 
-                    <div class="modal-footer border-top-0 px-4 pb-4">
+                    <footer class="modal-footer border-top-0 px-4 pb-4">
                         <button type="button" class="btn btn-light text-secondary fw-medium"
                             data-bs-dismiss="modal">Cancelar</button>
                         <button @click="generarGruposApi" :disabled="loadingGenerador" class="btn btn-primary px-4">
@@ -727,33 +741,35 @@ onMounted(() => {
                             <Save v-else :size="18" class="me-2" />
                             Generar y Asignar
                         </button>
-                    </div>
+                    </footer>
                 </div>
             </div>
         </div>
 
         <ConfirmandoModal ref="modalRef" @saved="recargarTabla" />
 
-        <div class="modal fade" id="importFormatModal" tabindex="-1" aria-hidden="true">
+        <div class="modal fade" id="importFormatModal" tabindex="-1" role="dialog" aria-modal="true"
+            aria-labelledby="importFormatModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content border-0 shadow-lg rounded-4">
-                    <div class="modal-header bg-success-subtle border-bottom-0 pt-4 px-4">
+                    <header class="modal-header bg-success-subtle border-bottom-0 pt-4 px-4">
                         <div class="d-flex align-items-center">
                             <div
                                 class="bg-success text-white rounded-circle p-2 me-3 d-flex align-items-center justify-content-center">
-                                <Upload :size="24" />
+                                <Upload :size="24" aria-hidden="true" />
                             </div>
                             <div>
-                                <h5 class="fw-bold text-dark mb-1">Importar Confirmandos</h5>
+                                <h5 id="importFormatModalLabel" class="fw-bold text-dark mb-1">Importar Confirmandos
+                                </h5>
                                 <p class="text-muted small mb-0">Revisa el formato antes de subir tu Excel</p>
                             </div>
                         </div>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
+                        <button type="button" class="btn-close" aria-label="Cerrar" data-bs-dismiss="modal"></button>
+                    </header>
 
                     <div class="modal-body px-4 py-4">
                         <div class="alert alert-info border-0 bg-light-info small mb-4">
-                            <i class="bi bi-info-circle-fill me-2 text-info"></i>
+                            <i class="bi bi-info-circle-fill me-2 text-info" aria-hidden="true"></i>
                             <strong>Regla importante:</strong> El sistema asume que las dos primeras palabras son los
                             apellidos.
                         </div>
@@ -762,14 +778,17 @@ onMounted(() => {
                             Títulos)</h6>
                         <div class="table-responsive border rounded-3 mb-3">
                             <table class="table table-sm table-bordered mb-0 text-center align-middle">
+                                <caption class="visually-hidden">Ejemplo de formato esperado del archivo a importar
+                                </caption>
                                 <thead class="table-light">
                                     <tr>
-                                        <th class="text-success">Columna A</th>
-                                        <th class="text-success">Columna B</th>
+                                        <th class="text-success" scope="col">Columna A</th>
+                                        <th class="text-success" scope="col">Columna B</th>
                                     </tr>
                                     <tr>
-                                        <th>NOMBRES</th>
-                                        <th>CELULAR <span class="text-muted fw-normal">(Opcional)</span></th>
+                                        <th scope="col">NOMBRES</th>
+                                        <th scope="col">CELULAR <span class="text-muted fw-normal">(Opcional)</span>
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -796,19 +815,19 @@ onMounted(() => {
                         </ul>
                     </div>
 
-                    <div class="modal-footer border-top-0 px-4 pb-4 d-flex justify-content-between">
+                    <footer class="modal-footer border-top-0 px-4 pb-4 d-flex justify-content-between">
                         <button type="button" class="btn btn-light text-secondary fw-medium"
                             data-bs-dismiss="modal">Cancelar</button>
                         <button @click="triggerImport" class="btn btn-success px-4 d-flex align-items-center">
-                            <Upload :size="18" class="me-2" />
+                            <Upload :size="18" class="me-2" aria-hidden="true" />
                             Seleccionar Archivo y Subir
                         </button>
-                    </div>
+                    </footer>
                 </div>
             </div>
         </div>
 
-    </div>
+    </main>
     <PerfilConfirmandoModal ref="perfilModalRef" />
 </template>
 
