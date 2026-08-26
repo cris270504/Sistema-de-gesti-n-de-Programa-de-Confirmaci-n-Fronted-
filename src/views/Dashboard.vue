@@ -1,6 +1,6 @@
 <script setup>
 import { storeToRefs } from 'pinia';
-import { onMounted, computed, ref } from 'vue';
+import { onMounted, computed, ref, watch } from 'vue';
 
 import { useAuthStore } from '@/stores/auth';
 import { useDashboardStore } from '../stores/dashboard';
@@ -68,6 +68,35 @@ const confirmandosAlerta = computed(() => {
     // El gestor ve todas las alertas. El catequista solo ve las de sus propios grupos.
     return esGestor || misNombresDeGrupo.value.has(alerta.grupo);
   });
+});
+
+// --- FILTRO POR GRUPO DENTRO DE "SEGUIMIENTO CRÍTICO" ---
+const grupoFiltro = ref('todos');
+
+// Solo listamos grupos que YA tienen alguna alerta visible para este usuario
+// (evita ofrecer opciones que siempre van a mostrar "sin resultados").
+const gruposConAlerta = computed(() => {
+  const conteo = new Map();
+  confirmandosAlerta.value.forEach(c => {
+    const nombre = c.grupo || 'Sin grupo';
+    conteo.set(nombre, (conteo.get(nombre) || 0) + 1);
+  });
+  return [...conteo.entries()]
+    .map(([nombre, total]) => ({ nombre, total }))
+    .sort((a, b) => a.nombre.localeCompare(b.nombre));
+});
+
+// Si el grupo seleccionado deja de tener alertas (se resolvieron, o recargó la data),
+// volvemos a "todos" en vez de dejar el select apuntando a una opción que ya no existe.
+watch(gruposConAlerta, (grupos) => {
+  if (grupoFiltro.value !== 'todos' && !grupos.some(g => g.nombre === grupoFiltro.value)) {
+    grupoFiltro.value = 'todos';
+  }
+});
+
+const alertasFiltradas = computed(() => {
+  if (grupoFiltro.value === 'todos') return confirmandosAlerta.value;
+  return confirmandosAlerta.value.filter(c => (c.grupo || 'Sin grupo') === grupoFiltro.value);
 });
 
 // 4. Métodos
@@ -145,9 +174,23 @@ const confirmarRetiroJoven = async (joven) => {
 
         <!-- TABLA DE ALERTAS -->
         <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
-          <div class="card-header bg-white py-3 border-0 d-flex align-items-center">
-            <ExclamationTriangleIcon class="h-5 w-5 text-danger me-2" />
-            <h6 class="mb-0 fw-bold">Seguimiento Crítico</h6>
+          <div class="card-header bg-white py-3 border-0 d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <div class="d-flex align-items-center">
+              <ExclamationTriangleIcon class="h-5 w-5 text-danger me-2" />
+              <h6 class="mb-0 fw-bold">Seguimiento Crítico</h6>
+              <span v-if="confirmandosAlerta.length > 0"
+                class="badge rounded-pill bg-danger-subtle text-danger border border-danger-subtle ms-2">
+                {{ alertasFiltradas.length }}
+              </span>
+            </div>
+
+            <select v-if="gruposConAlerta.length > 1" v-model="grupoFiltro"
+              class="form-select form-select-sm w-auto" aria-label="Filtrar seguimiento crítico por grupo">
+              <option value="todos">Todos los grupos ({{ confirmandosAlerta.length }})</option>
+              <option v-for="g in gruposConAlerta" :key="g.nombre" :value="g.nombre">
+                {{ g.nombre }} ({{ g.total }})
+              </option>
+            </select>
           </div>
           <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
@@ -157,12 +200,12 @@ const confirmarRetiroJoven = async (joven) => {
                   <th>Situación</th>
                   <th>Apoderado / WhatsApp</th>
                   <th
-                    v-if="confirmandosAlerta.some(c => c.injustificadas_seguidas >= 3 || c.total_faltas_injustificadas >= 5)">
+                    v-if="alertasFiltradas.some(c => c.injustificadas_seguidas >= 3 || c.total_faltas_injustificadas >= 5)">
                     RETIRO</th>
                 </tr>
               </thead>
               <tbody class="small">
-                <tr v-for="c in confirmandosAlerta" :key="c.id">
+                <tr v-for="c in alertasFiltradas" :key="c.id">
                   <td class="ps-4">
                     <!-- ➔ NUEVO: Contenedor flexible para alinear el botón y el nombre -->
                     <div class="d-flex align-items-start gap-2">
@@ -215,9 +258,14 @@ const confirmarRetiroJoven = async (joven) => {
                   </td>
                 </tr>
                 <!-- Mensaje si no hay alertas -->
-                <tr v-if="confirmandosAlerta.length === 0">
+                <tr v-if="alertasFiltradas.length === 0">
                   <td colspan="4" class="text-center py-4 text-muted">
-                    Todo en orden. No hay alertas críticas en este momento.
+                    <template v-if="grupoFiltro !== 'todos'">
+                      No hay alertas críticas en <strong>{{ grupoFiltro }}</strong> en este momento.
+                    </template>
+                    <template v-else>
+                      Todo en orden. No hay alertas críticas en este momento.
+                    </template>
                   </td>
                 </tr>
               </tbody>
