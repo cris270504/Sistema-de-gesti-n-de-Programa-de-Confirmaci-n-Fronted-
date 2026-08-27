@@ -255,104 +255,73 @@ const handleDelete = async (role) => {
 
     <!-- Modal Crear / Editar Rol -->
     <div class="modal fade" id="roleModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
-      <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
-        <div class="modal-content border-0 shadow-lg">
-          <div class="modal-header bg-primary text-white">
+      <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content role-modal">
+          <div class="modal-header">
             <h5 class="modal-title fw-bold">{{ modalTitle }}</h5>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" :disabled="saving"></button>
           </div>
 
-          <div class="modal-body p-4">
-            <form id="roleForm" @submit.prevent="handleSubmit">
-              <div class="mb-3">
-                <label for="roleName" class="form-label fw-bold text-secondary">
-                  Nombre del rol <span class="text-danger">*</span>
-                </label>
-                <input
-                  id="roleName"
-                  type="text"
-                  v-model="draft.name"
-                  class="form-control form-control-lg"
-                  placeholder="Ej: coordinador"
-                  autocomplete="off"
-                  required
-                  :disabled="saving"
-                >
+          <div class="modal-body">
+            <form id="roleForm" class="role-form" @submit.prevent="handleSubmit">
+              <div class="role-form__top">
+                <div class="role-field">
+                  <label for="roleName">Nombre del rol <span class="text-danger">*</span></label>
+                  <input id="roleName" type="text" v-model="draft.name" class="form-control"
+                    placeholder="Ej: coordinador" autocomplete="off" required :disabled="saving">
+                </div>
+
+                <div class="role-field role-field--search">
+                  <label for="permSearch">
+                    Permisos <span class="badge text-bg-primary">{{ draft.permissions.length }}</span>
+                  </label>
+                  <div class="input-group">
+                    <span class="input-group-text bg-white text-muted"><Search :size="15" /></span>
+                    <input id="permSearch" type="text" v-model="search" class="form-control"
+                      placeholder="Buscar permiso…" autocomplete="off" :disabled="saving">
+                  </div>
+                </div>
               </div>
 
-              <div class="d-flex justify-content-between align-items-center mb-2">
-                <label class="form-label fw-bold text-secondary mb-0">
-                  Permisos
-                  <span class="badge bg-primary ms-1">{{ draft.permissions.length }}</span>
-                </label>
+              <div v-if="loadingPermisos || loadingRole" class="perm-state">
+                <span class="spinner-border spinner-border-sm text-primary me-2"></span>
+                {{ loadingPermisos ? 'Cargando permisos…' : 'Cargando permisos del rol…' }}
               </div>
 
-              <div class="input-group mb-3">
-                <span class="input-group-text bg-white text-muted"><Search :size="16" /></span>
-                <input
-                  type="text"
-                  v-model="search"
-                  class="form-control"
-                  placeholder="Buscar permiso..."
-                  autocomplete="off"
-                  :disabled="saving"
-                >
-              </div>
-
-              <div v-if="loadingPermisos" class="text-center py-4 text-muted">
-                <div class="spinner-border spinner-border-sm text-primary me-2"></div> Cargando permisos...
-              </div>
-
-              <div v-else-if="loadingRole" class="text-center py-4 text-muted">
-                <div class="spinner-border spinner-border-sm text-primary me-2"></div> Cargando permisos del rol...
-              </div>
-
-              <div v-else-if="gruposFiltrados.length === 0" class="text-center py-4 text-muted fst-italic">
+              <div v-else-if="gruposFiltrados.length === 0" class="perm-state fst-italic">
                 No se encontraron permisos.
               </div>
 
-              <div v-else class="perm-scroll border rounded-3 p-2">
-                <div v-for="grupo in gruposFiltrados" :key="grupo.titulo" class="mb-3">
-                  <div class="d-flex align-items-center justify-content-between px-1 mb-1">
-                    <span class="text-uppercase small fw-bold text-muted d-flex align-items-center gap-1">
+              <div v-else class="perm-scroll">
+                <div v-for="grupo in gruposFiltrados" :key="grupo.titulo" class="perm-group">
+                  <div class="perm-group__head">
+                    <span class="perm-group__title">
                       <KeyRound :size="13" /> {{ grupo.titulo }}
+                      <span class="perm-group__count">{{ grupo.items.length }}</span>
                     </span>
-                    <button
-                      type="button"
-                      class="btn btn-link btn-sm p-0 text-decoration-none"
-                      :disabled="saving"
-                      @click="toggleGrupo(grupo.items)"
-                    >
+                    <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" :disabled="saving"
+                      @click="toggleGrupo(grupo.items)">
                       {{ grupoCompleto(grupo.items) ? 'Quitar todos' : 'Seleccionar todos' }}
                     </button>
                   </div>
-                  <div class="row g-1">
-                    <div v-for="permiso in grupo.items" :key="permiso.id" class="col-12 col-sm-6">
-                      <div class="form-check bg-light rounded px-2 py-1 m-0 d-flex align-items-center">
-                        <input
-                          class="form-check-input mt-0 me-2"
-                          type="checkbox"
-                          :id="'perm-' + permiso.id"
-                          :value="permiso.name"
-                          v-model="draft.permissions"
-                          :disabled="saving"
-                        >
-                        <label class="form-check-label small text-truncate w-100" :for="'perm-' + permiso.id">
-                          {{ permiso.name }}
-                        </label>
-                      </div>
-                    </div>
+                  <div class="perm-grid">
+                    <label v-for="permiso in grupo.items" :key="permiso.id" class="perm-item"
+                      :class="{ 'perm-item--on': draft.permissions.includes(permiso.name) }">
+                      <input class="form-check-input" type="checkbox" :value="permiso.name"
+                        v-model="draft.permissions" :disabled="saving">
+                      <span class="text-truncate">{{ permiso.name }}</span>
+                    </label>
                   </div>
                 </div>
               </div>
             </form>
           </div>
 
-          <div class="modal-footer bg-light">
+          <div class="modal-footer">
             <button type="button" class="btn btn-light" data-bs-dismiss="modal" :disabled="saving">Cancelar</button>
             <button type="submit" form="roleForm" class="btn btn-primary px-4" :disabled="saving">
               <span v-if="saving" class="spinner-border spinner-border-sm me-1"></span>
-              {{ saving ? 'Guardando...' : 'Guardar' }}
+              {{ saving ? 'Guardando…' : 'Guardar' }}
             </button>
           </div>
         </div>
@@ -363,13 +332,108 @@ const handleDelete = async (role) => {
 </template>
 
 <style scoped>
-.perm-scroll {
-  max-height: 42vh;
+/* Encuadre explícito: el preflight de Tailwind quita bordes/relleno por defecto,
+   así que la tarjeta del modal se define aquí sin depender de las clases de Bootstrap. */
+.role-modal {
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, .25);
+}
+.role-modal .modal-header {
+  background: #2563eb;
+  color: #fff;
+  padding: 1rem 1.25rem;
+  border: 0;
+}
+.role-modal .modal-body {
+  padding: 1.25rem;
+  max-height: min(70vh, 620px);
   overflow-y: auto;
-  background-color: #fbfcfe;
+}
+.role-modal .modal-footer {
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  padding: .75rem 1.25rem;
 }
 
-.bg-light {
-  background-color: #f8f9fa !important;
+.role-form__top {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
 }
+@media (max-width: 640px) {
+  .role-form__top { grid-template-columns: 1fr; }
+}
+.role-field label {
+  display: block;
+  font-size: .8rem;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: .35rem;
+}
+
+.perm-state { text-align: center; padding: 2rem 0; color: #94a3b8; }
+
+.perm-scroll {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fbfcfe;
+  padding: .5rem;
+}
+.perm-group + .perm-group { margin-top: .35rem; }
+.perm-group__head {
+  position: sticky;
+  top: -.5rem;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: .4rem .35rem;
+  background: #fbfcfe;
+}
+.perm-group__title {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  font-size: .72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  color: #64748b;
+}
+.perm-group__count {
+  background: #e2e8f0;
+  color: #475569;
+  border-radius: 999px;
+  padding: 0 .4rem;
+  font-size: .68rem;
+}
+.perm-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: .25rem;
+}
+.perm-item {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin: 0;
+  padding: .35rem .55rem;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  font-size: .82rem;
+  color: #475569;
+  cursor: pointer;
+  transition: background .12s, border-color .12s;
+}
+.perm-item:hover { background: #eef2ff; }
+.perm-item--on {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+  color: #3730a3;
+  font-weight: 500;
+}
+.perm-item .form-check-input { margin: 0; flex-shrink: 0; }
 </style>

@@ -1,15 +1,12 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { storeToRefs } from 'pinia'
 import { useParroquiaStore, CONFIG_DEFAULTS } from '@/stores/parroquia'
-import { Save, RotateCcw } from 'lucide-vue-next'
+import { Save, RotateCcw, Image as ImageIcon } from 'lucide-vue-next'
 
 const parroquiaStore = useParroquiaStore()
-const { loading } = storeToRefs(parroquiaStore)
 
 const TIPOS_REUNION = ['Confirmandos', 'Catequistas', 'Apoderados']
 const saving = ref(false)
-
 const form = reactive(estructuraVacia())
 
 function estructuraVacia() {
@@ -66,102 +63,131 @@ async function guardar() {
   saving.value = false
 }
 
-const UMBRAL_LABELS = {
-  alto_injustificadas: 'Faltas injustificadas acumuladas → riesgo ALTO',
-  alto_racha: 'Faltas injustificadas seguidas (racha activa) → ALTO',
-  alto_seguidas_historicas: 'Faltas seguidas alguna vez en el pasado → ALTO',
-  medio_justificadas: 'Faltas justificadas acumuladas → riesgo MEDIO',
-  bajo_tardanzas_seguidas: 'Tardanzas en las últimas N reuniones → riesgo BAJO',
+const UMBRALES = [
+  ['alto_injustificadas', 'Faltas injustificadas acumuladas', 'ALTO'],
+  ['alto_racha', 'Faltas injustificadas seguidas (racha activa)', 'ALTO'],
+  ['alto_seguidas_historicas', 'Faltas seguidas alguna vez en el pasado', 'ALTO'],
+  ['medio_justificadas', 'Faltas justificadas acumuladas', 'MEDIO'],
+  ['bajo_tardanzas_seguidas', 'Tardanzas en las últimas N reuniones', 'BAJO'],
+]
+const RIESGO_CLS = {
+  ALTO: 'bg-rose-100 text-rose-700',
+  MEDIO: 'bg-amber-100 text-amber-700',
+  BAJO: 'bg-sky-100 text-sky-700',
 }
 </script>
 
 <template>
-  <div class="max-w-3xl mx-auto p-4 space-y-6">
-    <div class="flex items-center justify-between">
-      <h1 class="text-2xl font-bold text-slate-800">Configuración de la parroquia</h1>
-      <button class="btn btn-sm btn-light border" :disabled="loading || saving" @click="cargarDesdeStore" title="Descartar cambios">
-        <RotateCcw class="h-4 w-4" />
+  <div class="mx-auto w-full max-w-2xl p-4 pb-16">
+    <div class="mb-5 flex items-center justify-between">
+      <div>
+        <h1 class="text-xl font-bold text-slate-800">Configuración de la parroquia</h1>
+        <p class="text-sm text-slate-500">Ajustes que aplican a todo el sistema.</p>
+      </div>
+      <button type="button" class="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-sm text-slate-600 hover:bg-slate-50"
+        :disabled="parroquiaStore.loading || saving" @click="cargarDesdeStore">
+        <RotateCcw class="h-3.5 w-3.5" /> Descartar
       </button>
     </div>
 
-    <form class="space-y-6" @submit.prevent="guardar">
-      <!-- Branding -->
-      <section class="bg-white rounded-xl border p-5 space-y-4">
-        <h2 class="font-semibold text-slate-700">Identidad</h2>
-        <div class="grid gap-4 sm:grid-cols-2">
-          <label class="block text-sm">
+    <form class="space-y-4" @submit.prevent="guardar">
+      <!-- Identidad -->
+      <section class="rounded-xl border bg-white p-5">
+        <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">Identidad</h2>
+
+        <div class="flex items-center gap-4">
+          <div class="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-lg border bg-slate-50">
+            <img v-if="form.branding.logo_url" :src="form.branding.logo_url" alt="" class="h-full w-full object-contain" />
+            <ImageIcon v-else class="h-5 w-5 text-slate-300" />
+          </div>
+          <label class="min-w-0 flex-1 text-sm">
             <span class="text-slate-600">Nombre visible</span>
             <input v-model="form.branding.nombre_publico" type="text" maxlength="120"
               placeholder="Parroquia Sagrado Corazón de Jesús"
-              class="mt-1 w-full rounded-md border-gray-300 shadow-sm text-sm" />
+              class="mt-1 w-full rounded-md border-slate-300 text-sm shadow-sm" />
           </label>
-          <label class="block text-sm">
-            <span class="text-slate-600">Color primario</span>
+          <label class="shrink-0 text-sm">
+            <span class="block text-slate-600">Color</span>
             <input v-model="form.branding.color_primario" type="color"
-              class="mt-1 h-9 w-full rounded-md border-gray-300" />
-          </label>
-          <label class="block text-sm sm:col-span-2">
-            <span class="text-slate-600">URL del logo</span>
-            <input v-model="form.branding.logo_url" type="url" maxlength="500"
-              placeholder="https://…/logo.png"
-              class="mt-1 w-full rounded-md border-gray-300 shadow-sm text-sm" />
-            <span class="text-xs text-slate-400">Súbelo a un hosting de imágenes y pega el enlace. (La subida directa llegará más adelante.)</span>
+              class="mt-1 h-9 w-14 cursor-pointer rounded-md border border-slate-300 p-0.5" />
           </label>
         </div>
+
+        <label class="mt-3 block text-sm">
+          <span class="text-slate-600">URL del logo</span>
+          <input v-model="form.branding.logo_url" type="url" maxlength="500" placeholder="https://…/logo.png"
+            class="mt-1 w-full rounded-md border-slate-300 text-sm shadow-sm" />
+          <span class="text-xs text-slate-400">Súbelo a un hosting de imágenes y pega el enlace.</span>
+        </label>
       </section>
 
       <!-- Programa -->
-      <section class="bg-white rounded-xl border p-5 space-y-4">
-        <h2 class="font-semibold text-slate-700">Programa</h2>
-        <div class="grid gap-4 sm:grid-cols-2">
-          <label class="block text-sm">
-            <span class="text-slate-600">Inicio</span>
+      <section class="rounded-xl border bg-white p-5">
+        <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">Programa</h2>
+        <div class="flex flex-wrap gap-x-8 gap-y-3">
+          <label class="text-sm">
+            <span class="block text-slate-600">Inicio</span>
             <input v-model="form.programa_inicio" type="date"
-              class="mt-1 w-full rounded-md border-gray-300 shadow-sm text-sm" />
+              class="mt-1 w-44 rounded-md border-slate-300 text-sm shadow-sm" />
           </label>
-          <label class="block text-sm">
-            <span class="text-slate-600">Cierre <span class="text-slate-400">(opcional)</span></span>
+          <label class="text-sm">
+            <span class="block text-slate-600">Cierre <span class="text-slate-400">(opcional)</span></span>
             <input v-model="form.programa_fin" type="date" :min="form.programa_inicio || undefined"
-              class="mt-1 w-full rounded-md border-gray-300 shadow-sm text-sm" />
+              class="mt-1 w-44 rounded-md border-slate-300 text-sm shadow-sm" />
           </label>
         </div>
       </section>
 
-      <!-- Tipos de reunión -->
-      <section class="bg-white rounded-xl border p-5 space-y-3">
-        <h2 class="font-semibold text-slate-700">Tipos de reunión activos</h2>
-        <label v-for="t in TIPOS_REUNION" :key="t" class="flex items-center gap-2 text-sm">
-          <input type="checkbox" :value="t" v-model="form.tipos_reunion" class="rounded" />
-          {{ t }}
-        </label>
-        <p v-if="form.tipos_reunion.length === 0" class="text-xs text-red-500">Debe quedar al menos uno.</p>
-      </section>
+      <!-- Reuniones y grupos -->
+      <section class="rounded-xl border bg-white p-5">
+        <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">Reuniones y grupos</h2>
 
-      <!-- Procedencias -->
-      <section class="bg-white rounded-xl border p-5 space-y-2">
-        <h2 class="font-semibold text-slate-700">Procedencias de grupo</h2>
-        <input v-model="form.procedencias" type="text"
-          class="w-full rounded-md border-gray-300 shadow-sm text-sm" />
-        <p class="text-xs text-slate-400">Separadas por coma. Ej: <code>sede, caserio</code></p>
+        <div class="mb-4">
+          <span class="text-sm text-slate-600">Tipos de reunión activos</span>
+          <div class="mt-1.5 flex flex-wrap gap-2">
+            <label v-for="t in TIPOS_REUNION" :key="t"
+              class="inline-flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition"
+              :class="form.tipos_reunion.includes(t) ? 'border-indigo-300 bg-indigo-50 text-indigo-700' : 'border-slate-200 text-slate-500'">
+              <input type="checkbox" :value="t" v-model="form.tipos_reunion" class="rounded" />
+              {{ t }}
+            </label>
+          </div>
+          <p v-if="form.tipos_reunion.length === 0" class="mt-1 text-xs text-rose-500">Debe quedar al menos uno.</p>
+        </div>
+
+        <label class="block text-sm">
+          <span class="text-slate-600">Procedencias de grupo</span>
+          <input v-model="form.procedencias" type="text"
+            class="mt-1 w-full max-w-sm rounded-md border-slate-300 text-sm shadow-sm" />
+          <span class="text-xs text-slate-400">Separadas por coma. Ej: <code>sede, caserio</code></span>
+        </label>
       </section>
 
       <!-- Alertas -->
-      <section class="bg-white rounded-xl border p-5 space-y-4">
-        <h2 class="font-semibold text-slate-700">Umbrales de alerta del dashboard</h2>
-        <label class="block text-sm">
+      <section class="rounded-xl border bg-white p-5">
+        <h2 class="mb-1 text-sm font-semibold uppercase tracking-wide text-slate-500">Alertas del dashboard</h2>
+        <p class="mb-3 text-xs text-slate-400">Un confirmando entra en la alerta al alcanzar estos valores.</p>
+
+        <label class="flex items-center justify-between gap-4 border-b py-2.5 text-sm">
           <span class="text-slate-600">Días para poder justificar una falta</span>
           <input v-model="form.dias_ventana_justificacion" type="number" min="1" max="365"
-            class="mt-1 w-32 rounded-md border-gray-300 shadow-sm text-sm" />
+            class="w-20 rounded-md border-slate-300 text-center text-sm shadow-sm" />
         </label>
-        <div v-for="(label, key) in UMBRAL_LABELS" :key="key" class="flex items-center justify-between gap-4 text-sm">
-          <span class="text-slate-600">{{ label }}</span>
+
+        <label v-for="[key, label, riesgo] in UMBRALES" :key="key"
+          class="flex items-center justify-between gap-4 border-b py-2.5 text-sm last:border-0">
+          <span class="flex items-center gap-2 text-slate-600">
+            <span class="rounded px-1.5 py-0.5 text-[10px] font-bold" :class="RIESGO_CLS[riesgo]">{{ riesgo }}</span>
+            {{ label }}
+          </span>
           <input v-model="form.umbrales_alerta[key]" type="number" min="1" max="99"
-            class="w-20 rounded-md border-gray-300 shadow-sm text-sm" />
-        </div>
+            class="w-16 rounded-md border-slate-300 text-center text-sm shadow-sm" />
+        </label>
       </section>
 
-      <div class="flex justify-end">
-        <button type="submit" class="btn btn-primary inline-flex items-center gap-2"
+      <div class="sticky bottom-0 -mx-4 flex justify-end border-t bg-slate-50/80 px-4 py-3 backdrop-blur">
+        <button type="submit"
+          class="inline-flex items-center gap-2 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50"
           :disabled="saving || form.tipos_reunion.length === 0">
           <Save class="h-4 w-4" />
           {{ saving ? 'Guardando…' : 'Guardar configuración' }}
