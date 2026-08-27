@@ -7,6 +7,7 @@ import { useGruposStore } from '../../stores/grupos';
 import GrupoModal from '../../components/Modals/grupoModal.vue';
 import { showAlerta } from '@/funciones'; // Importamos showAlerta
 import api from '@/lib/api';
+import AppPage from '@/components/AppPage.vue';
 
 const gruposStore = useGruposStore();
 const { items: grupos, loading, error } = storeToRefs(gruposStore);
@@ -73,36 +74,19 @@ onMounted(() => {
 </script>
 
 <template>
-    <div class="main-container">
+    <AppPage title="Grupos" subtitle="Grupos de catequesis" :loading="loading">
+        <template #actions>
+            <button @click="exportarDatos" :disabled="isExporting" class="btn-outline">
+                <span v-if="isExporting" class="spinner-border spinner-border-sm me-2"></span>
+                <Download v-else :size="16" class="mr-1.5" />
+                <span class="text-sm">{{ isExporting ? 'Exportando…' : 'Exportar' }}</span>
+            </button>
+            <button @click="abrirCrear" class="btn-primary">
+                <Plus :size="18" class="mr-1.5" /> <span class="text-sm">Nuevo grupo</span>
+            </button>
+        </template>
 
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <h2 class="page-title">Grupos Pastorales</h2>
-                <p class="page-subtitle">Gestión de catequesis</p>
-            </div>
-
-            <div class="d-flex gap-2">
-                <button @click="exportarDatos" :disabled="isExporting"
-                    class="btn btn-outline-success shadow-sm px-3 py-2 d-flex align-items-center">
-                    <span v-if="isExporting" class="spinner-border spinner-border-sm me-2"></span>
-                    <Download v-else :size="18" class="me-2" />
-                    <span class="fw-bold fs-7 text-uppercase">{{ isExporting ? 'Exportando...' : 'Exportar por Grupos'
-                        }}</span>
-                </button>
-
-                <button @click="abrirCrear" class="btn btn-primary shadow-sm px-3 py-2 d-flex align-items-center">
-                    <Plus :size="18" class="me-2" stroke-width="2.5" />
-                    <span class="fw-bold fs-7 text-uppercase">Nuevo Grupo</span>
-                </button>
-            </div>
-        </div>
-
-        <div v-if="loading" class="text-center py-5">
-            <div class="spinner-border text-secondary" role="status"></div>
-        </div>
-
-        <div v-else class="card border-0 shadow-sm rounded-3 overflow-hidden">
-            <div class="table-responsive">
+        <div class="surface table-wrap">
                 <table class="table align-middle mb-0">
                     <thead class="bg-light-gray">
                         <tr>
@@ -171,12 +155,10 @@ onMounted(() => {
                         </tr>
                     </tbody>
                 </table>
-            </div>
         </div>
 
         <GrupoModal ref="modalRef" @saved="recargarTabla" />
-
-    </div>
+    </AppPage>
 </template>
 
 <style scoped>

@@ -18,7 +18,8 @@ import esLocale from '@fullcalendar/core/locales/es';
 import { useConfirmandosStore } from '../../stores/confirmandos';
 import { useUsersStore } from '../../stores/users';
 import { useAuthStore } from '@/stores/auth';
-import { useGruposStore } from '../../stores/grupos'; // <--- Importamos store de grupos para mapeo
+import { useGruposStore } from '../../stores/grupos';
+import AppPage from '@/components/AppPage.vue';
 
 const router = useRouter();
 const confirmandosStore = useConfirmandosStore();
@@ -202,38 +203,24 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <div class="container-fluid p-4">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <h2 class="h3 text-gray-800 mb-1">Calendario de Cumpleaños</h2>
-                <p class="text-muted mb-0 small">
-                    {{ esCoordinadorOAdmin ? 'Seguimiento general de la comunidad' : 'Cumpleaños en mi Grupo Pastoral'
-                    }}
-                </p>
-            </div>
-
+    <AppPage title="Cumpleaños"
+        :subtitle="esCoordinadorOAdmin ? 'Seguimiento general de la comunidad' : 'Cumpleaños de mi grupo'"
+        :loading="loading">
+        <template #actions>
             <div class="d-flex gap-3">
                 <div class="d-flex align-items-center">
-                    <span class="d-inline-block rounded-circle me-2"
-                        style="width: 12px; height: 12px; background-color: #3b82f6;"></span>
+                    <span class="d-inline-block rounded-circle me-2" style="width: 12px; height: 12px; background-color: #3b82f6;"></span>
                     <small class="text-muted">Confirmandos</small>
                 </div>
                 <div class="d-flex align-items-center">
-                    <span class="d-inline-block rounded-circle me-2"
-                        style="width: 12px; height: 12px; background-color: #f59e0b;"></span>
+                    <span class="d-inline-block rounded-circle me-2" style="width: 12px; height: 12px; background-color: #f59e0b;"></span>
                     <small class="text-muted">Catequistas</small>
                 </div>
             </div>
-        </div>
+        </template>
 
-        <div class="card shadow border-0 rounded-4 mb-4">
-            <div class="card-body p-3">
-                <div v-if="loading" class="text-center py-5">
-                    <div class="spinner-border text-primary" role="status"></div>
-                    <p class="mt-2 text-muted">Cargando fechas...</p>
-                </div>
-                <FullCalendar v-else :options="calendarOptions" />
-            </div>
+        <div class="surface surface--pad mb-4">
+            <FullCalendar :options="calendarOptions" />
         </div>
 
         <div class="modal fade" id="detailsModal" tabindex="-1" aria-hidden="true">
@@ -291,8 +278,7 @@ onUnmounted(() => {
                 </div>
             </div>
         </div>
-
-    </div>
+    </AppPage>
 </template>
 
 <style scoped>

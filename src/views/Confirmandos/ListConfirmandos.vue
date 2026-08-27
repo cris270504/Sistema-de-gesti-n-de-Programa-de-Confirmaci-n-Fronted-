@@ -12,6 +12,7 @@ import { Modal } from 'bootstrap';
 import { showAlerta } from '@/funciones';
 import { attachModalFocusReturn } from '@/composables/useModalFocusReturn';
 import TableSkeleton from '@/components/TableSkeleton.vue';
+import AppPage from '@/components/AppPage.vue';
 
 // Lazy-loading: estos modales no son visibles en el primer renderizado (Above the fold)
 const ConfirmandoModal = defineAsyncComponent(() =>
@@ -381,42 +382,29 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <main class="main-container">
+    <AppPage title="Confirmandos" subtitle="Inscritos y ruta sacramental">
+        <template #actions>
+            <input type="file" ref="fileInputRef" class="d-none" accept=".xlsx, .xls, .csv"
+                aria-label="Seleccionar archivo Excel o CSV para importar" @change="handleFileUpload">
 
-        <header class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <h2 class="page-title">Confirmandos</h2>
-                <p class="page-subtitle">Gestión de inscritos y sacramentos</p>
-            </div>
+            <button v-if="authStore.can('crear confirmandos')" @click="abrirImportModal" :disabled="isImporting"
+                class="btn-outline">
+                <span v-if="isImporting" class="spinner-border spinner-border-sm me-2"></span>
+                <Upload v-else :size="16" class="mr-1.5" />
+                <span class="text-sm">{{ isImporting ? 'Importando…' : 'Importar' }}</span>
+            </button>
 
-            <div class="d-flex gap-2" role="toolbar" aria-label="Acciones de confirmandos">
-                <input type="file" ref="fileInputRef" class="d-none" accept=".xlsx, .xls, .csv"
-                    aria-label="Seleccionar archivo Excel o CSV para importar" @change="handleFileUpload">
+            <button v-if="authStore.can('crear grupos')" @click="abrirGenerador" class="btn-outline">
+                <Wand2 :size="16" class="mr-1.5" /> <span class="text-sm">Generar grupos</span>
+            </button>
 
-                <button v-if="authStore.can('crear confirmandos')" @click="abrirImportModal" :disabled="isImporting"
-                    class="btn btn-outline-success shadow-sm px-3 py-2 d-flex align-items-center">
-                    <span v-if="isImporting" class="spinner-border spinner-border-sm me-2"></span>
-                    <Upload v-else :size="18" class="me-2" />
-                    <span class="fw-bold fs-7 text-uppercase">{{ isImporting ? 'Importando...' : 'Importar Excel'
-                        }}</span>
-                </button>
-
-                <button v-if="authStore.can('crear grupos')" @click="abrirGenerador"
-                    class="btn btn-outline-primary shadow-sm px-3 py-2 d-flex align-items-center">
-                    <Wand2 :size="18" class="me-2" />
-                    <span class="fw-bold fs-7 text-uppercase">Generar Grupos</span>
-                </button>
-
-                <div v-if="authStore.can('crear confirmandos')">
-                    <button @click="abrirCrear" :disabled="isConfirmandoModalLoading"
-                        class="btn btn-primary shadow-sm px-3 py-2 d-flex align-items-center">
-                        <span v-if="isConfirmandoModalLoading" class="spinner-border spinner-border-sm me-2"></span>
-                        <Plus v-else :size="18" class="me-2" stroke-width="2.5" />
-                        <span class="fw-bold fs-7 text-uppercase">Nuevo Confirmando</span>
-                    </button>
-                </div>
-            </div>
-        </header>
+            <button v-if="authStore.can('crear confirmandos')" @click="abrirCrear" :disabled="isConfirmandoModalLoading"
+                class="btn-primary">
+                <span v-if="isConfirmandoModalLoading" class="spinner-border spinner-border-sm me-2"></span>
+                <Plus v-else :size="18" class="mr-1.5" />
+                <span class="text-sm">Nuevo confirmando</span>
+            </button>
+        </template>
 
         <!-- El contenedor principal (Los filtros NUNCA desaparecen) -->
         <section class="card border-0 shadow-sm rounded-3 overflow-hidden" aria-label="Listado de confirmandos">
@@ -850,8 +838,8 @@ onUnmounted(() => {
             </div>
         </div>
 
-    </main>
-    <PerfilConfirmandoModal ref="perfilModalRef" />
+        <PerfilConfirmandoModal ref="perfilModalRef" />
+    </AppPage>
 </template>
 
 <style scoped>
