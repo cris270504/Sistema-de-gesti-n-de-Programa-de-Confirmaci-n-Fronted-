@@ -207,7 +207,7 @@ router.beforeEach((to) => {
     return { name: 'login', query: { redirect: to.fullPath } };
   }
   if (onlyGuests && logged) {
-    return { name: 'home' };
+    return { name: 'dashboard' };
   }
 
   const requiredPerms = to.meta?.permission;
@@ -218,7 +218,7 @@ router.beforeEach((to) => {
 
     if (!hasAllPermissions) {
       showAlerta('No tiene permisos suficientes para esta sección', 'error');
-      return { name: 'home' }; // O una página 403
+      return { name: 'dashboard' }; // O una página 403
     }
   }
 })
