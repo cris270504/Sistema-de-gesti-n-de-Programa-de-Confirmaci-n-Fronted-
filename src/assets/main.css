@@ -41,16 +41,9 @@ body {
   @apply antialiased text-gray-800 bg-gray-50 transition-colors duration-300 ease-in-out;
 }
 
-.dark body {
-  @apply bg-neutral-900 text-gray-100;
-}
-
 /* ===== LINKS ===== */
 a {
   @apply text-indigo-600 hover:text-indigo-700 font-medium transition-colors duration-200;
-}
-.dark a {
-  @apply text-indigo-400 hover:text-indigo-300;
 }
 
 /* ===== TITULOS ===== */
@@ -60,7 +53,7 @@ h3,
 h4,
 h5,
 h6 {
-  @apply font-semibold text-gray-900 dark:text-gray-100;
+  @apply font-semibold text-gray-900;
 }
 h1 {
   @apply text-3xl;
@@ -79,12 +72,6 @@ textarea {
   @apply w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700
          focus:border-indigo-500 focus:ring-indigo-200/50 transition-all duration-200;
 }
-.dark input,
-.dark select,
-.dark textarea {
-  @apply bg-neutral-800 border-neutral-700 text-gray-100
-         focus:border-indigo-400 focus:ring-indigo-400/30;
-}
 
 /* ===== BOTONES ===== */
 button {
@@ -95,7 +82,7 @@ button {
   @apply bg-indigo-600 text-white hover:bg-indigo-700 focus-visible:ring-indigo-500;
 }
 .btn-secondary {
-  @apply bg-gray-200 text-gray-800 hover:bg-gray-300 dark:bg-neutral-700 dark:text-gray-100 dark:hover:bg-neutral-600;
+  @apply bg-gray-200 text-gray-800 hover:bg-gray-300;
 }
 .btn-danger {
   @apply bg-rose-600 text-white hover:bg-rose-700 focus-visible:ring-rose-500;
@@ -103,13 +90,13 @@ button {
 
 /* ===== TARJETAS ===== */
 .card {
-  @apply bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-xl shadow-sm p-4 transition-colors duration-300;
+  @apply bg-white border border-gray-200 rounded-xl shadow-sm p-4 transition-colors duration-300;
 }
 .card-header {
-  @apply font-semibold text-gray-800 dark:text-gray-100 mb-2;
+  @apply font-semibold text-gray-800 mb-2;
 }
 .card-body {
-  @apply text-sm text-gray-600 dark:text-gray-300;
+  @apply text-sm text-gray-600;
 }
 
 /* ===== TABLAS ===== */
@@ -117,14 +104,14 @@ table {
   @apply w-full border-collapse text-sm;
 }
 thead {
-  @apply bg-gray-100 dark:bg-neutral-800 text-gray-700 dark:text-gray-300;
+  @apply bg-gray-100 text-gray-700;
 }
 th,
 td {
-  @apply px-4 py-2 border-b border-gray-200 dark:border-neutral-700;
+  @apply px-4 py-2 border-b border-gray-200;
 }
 tbody tr:hover {
-  @apply bg-gray-50 dark:bg-neutral-800/50;
+  @apply bg-gray-50;
 }
 
 /* ===== SCROLLBAR ===== */
@@ -160,7 +147,7 @@ tbody tr:hover {
 
 /* ===== CONTENIDO PRINCIPAL ===== */
 .main-content {
-  @apply flex-1 overflow-y-auto p-6 bg-gray-50 dark:bg-neutral-900 transition-colors duration-300;
+  @apply flex-1 overflow-y-auto p-6 bg-gray-50 transition-colors duration-300;
 }
 
 /* ===== ALERTAS ===== */
@@ -168,21 +155,21 @@ tbody tr:hover {
   @apply flex items-center gap-3 rounded-md border px-4 py-3 text-sm shadow-sm;
 }
 .alert-info {
-  @apply border-indigo-300 bg-indigo-50 text-indigo-700 dark:border-indigo-700 dark:bg-indigo-950/30 dark:text-indigo-300;
+  @apply border-indigo-300 bg-indigo-50 text-indigo-700;
 }
 .alert-success {
-  @apply border-green-300 bg-green-50 text-green-700 dark:border-green-700 dark:bg-green-950/30 dark:text-green-300;
+  @apply border-green-300 bg-green-50 text-green-700;
 }
 .alert-warning {
-  @apply border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-300;
+  @apply border-amber-300 bg-amber-50 text-amber-700;
 }
 .alert-error {
-  @apply border-rose-300 bg-rose-50 text-rose-700 dark:border-rose-700 dark:bg-rose-950/30 dark:text-rose-300;
+  @apply border-rose-300 bg-rose-50 text-rose-700;
 }
 
 /* ===== TOOLTIP ===== */
 .tooltip {
-  @apply absolute z-50 rounded-md bg-gray-900 px-2 py-1 text-xs text-white shadow-lg opacity-0 transition-opacity duration-200 dark:bg-black;
+  @apply absolute z-50 rounded-md bg-gray-900 px-2 py-1 text-xs text-white shadow-lg opacity-0 transition-opacity duration-200;
 }
 .tooltip.show {
   @apply opacity-100;

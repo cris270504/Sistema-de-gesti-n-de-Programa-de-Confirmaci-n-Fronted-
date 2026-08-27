@@ -6,6 +6,10 @@ import { useAuthStore } from '../../stores/auth';
 import { storeToRefs } from 'pinia';
 import { showAlerta } from '@/funciones';
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router';
+import {
+    Save, Check, Clock, FileHeart, X, ChartPie, CalendarX,
+    CircleCheck, CircleX, Lock, TriangleAlert, MessageSquareText,
+} from 'lucide-vue-next';
 
 const modelTypeMap = {
     'Confirmandos': 'App\\Models\\Confirmando',
@@ -196,6 +200,11 @@ async function loadMatrix() {
             if (tipoActual.value === 'Apoderados') {
                 const groupedByChild = {};
                 data.personas.forEach(apo => {
+                    // Índice de las asistencias de este apoderado por reunion_id: evita hacer
+                    // un .find() (O(n)) por cada combinación hijo×reunión más abajo, que con
+                    // varios hijos/reuniones/apoderados se vuelve O(n⁴) en la práctica.
+                    apo._asistenciasPorReunion = new Map((apo.asistencias || []).map(a => [a.reunion_id, a]));
+
                     if (apo.confirmandos && apo.confirmandos.length > 0) {
                         apo.confirmandos.forEach(hijo => {
                             if (!groupedByChild[hijo.id]) {
@@ -240,7 +249,7 @@ async function loadMatrix() {
 
                     reuniones.value.forEach(reunion => {
                         const estadosEncontrados = hijo.mis_apoderados.map(apo => {
-                            const registro = apo.asistencias?.find(a => a.reunion_id === reunion.id);
+                            const registro = apo._asistenciasPorReunion?.get(reunion.id);
                             return registro ? registro.estado : null;
                         }).filter(e => e !== null); // Quitamos nulos
 
@@ -389,8 +398,8 @@ const checkStatusApoderado = (apoderado, reunionId) => {
     // 1. Buscamos en cambios locales
     if (changes.value[key]) return changes.value[key].estado;
 
-    // 2. Buscamos en BD
-    const registro = apoderado.asistencias?.find(a => a.reunion_id === reunionId);
+    // 2. Buscamos en BD (índice armado en loadMatrix, evita un .find() por cada click)
+    const registro = apoderado._asistenciasPorReunion?.get(reunionId);
     return registro ? registro.estado : null;
 };
 
@@ -535,7 +544,7 @@ const formatColDate = (dateStr) => {
             <button class="btn btn-primary shadow-sm px-4" @click="saveChanges"
                 :disabled="Object.keys(changes).length === 0 || saving">
                 <span v-if="saving" class="spinner-border spinner-border-sm me-2"></span>
-                <i v-else class="bi bi-save me-2"></i>
+                <Save v-else class="h-4 w-4 me-2 d-inline-block align-text-bottom" aria-hidden="true" />
                 Guardar Cambios <span v-if="Object.keys(changes).length > 0" class="badge bg-white text-primary ms-2">{{
                     Object.keys(changes).length }}</span>
             </button>
@@ -549,7 +558,7 @@ const formatColDate = (dateStr) => {
                             <div class="flex-shrink-0 me-3">
                                 <div class="bg-success-subtle text-success rounded-circle d-flex align-items-center justify-content-center"
                                     style="width: 48px; height: 48px;">
-                                    <i class="bi bi-check-lg fs-4"></i>
+                                    <Check :size="24" aria-hidden="true" />
                                 </div>
                             </div>
                             <div>
@@ -568,7 +577,7 @@ const formatColDate = (dateStr) => {
                             <div class="flex-shrink-0 me-3">
                                 <div class="bg-warning-subtle text-warning rounded-circle d-flex align-items-center justify-content-center"
                                     style="width: 48px; height: 48px;">
-                                    <i class="bi bi-clock fs-4"></i>
+                                    <Clock :size="24" aria-hidden="true" />
                                 </div>
                             </div>
                             <div>
@@ -587,7 +596,7 @@ const formatColDate = (dateStr) => {
                             <div class="flex-shrink-0 me-3">
                                 <div class="bg-danger-subtle text-danger rounded-circle d-flex align-items-center justify-content-center"
                                     style="width: 48px; height: 48px;">
-                                    <i class="bi bi-x-lg fs-4"></i>
+                                    <X :size="24" aria-hidden="true" />
                                 </div>
                             </div>
                             <div>
@@ -611,7 +620,7 @@ const formatColDate = (dateStr) => {
                             <div class="flex-shrink-0 me-3">
                                 <div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center"
                                     style="width: 48px; height: 48px;">
-                                    <i class="bi bi-pie-chart fs-4"></i>
+                                    <ChartPie :size="24" aria-hidden="true" />
                                 </div>
                             </div>
                             <div>
@@ -640,14 +649,14 @@ const formatColDate = (dateStr) => {
                     </div>
 
                     <div class="col-md-5 d-flex justify-content-end gap-2 align-self-end">
-                        <span class="badge bg-success-subtle text-success border border-success-subtle"><i
-                                class="bi bi-check-lg"></i> A</span>
-                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle"><i
-                                class="bi bi-clock"></i> T</span>
-                        <span class="badge bg-info-subtle text-info border border-info-subtle"><i
-                                class="bi bi-file-medical"></i> J</span>
-                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i
-                                class="bi bi-x-lg"></i> F</span>
+                        <span class="badge bg-success-subtle text-success border border-success-subtle d-inline-flex align-items-center gap-1">
+                            <Check :size="12" aria-hidden="true" /> A</span>
+                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle d-inline-flex align-items-center gap-1">
+                            <Clock :size="12" aria-hidden="true" /> T</span>
+                        <span class="badge bg-info-subtle text-info border border-info-subtle d-inline-flex align-items-center gap-1">
+                            <FileHeart :size="12" aria-hidden="true" /> J</span>
+                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle d-inline-flex align-items-center gap-1">
+                            <X :size="12" aria-hidden="true" /> F</span>
                     </div>
                 </div>
             </div>
@@ -660,7 +669,7 @@ const formatColDate = (dateStr) => {
                     <p class="mt-2 text-muted">Cargando matriz...</p>
                 </div>
                 <div v-else-if="reuniones.length === 0" class="text-center py-5 text-muted bg-light">
-                    <i class="bi bi-calendar-x fs-1 mb-3 d-block opacity-50"></i>
+                    <CalendarX :size="48" class="mb-3 d-block mx-auto opacity-50" aria-hidden="true" />
                     <p>No hay reuniones registradas en este mes.</p>
                 </div>
 
@@ -726,14 +735,14 @@ const formatColDate = (dateStr) => {
                                             'cell-empty': !attendanceMap[p.id]?.[r.id]?.estado && p.estado !== 'retirado'
                                         }" style="height: 40px; width: 100%;">
 
-                                        <i v-if="attendanceMap[p.id]?.[r.id]?.estado === 'asistio'"
-                                            class="bi bi-check-lg fs-5"></i>
-                                        <i v-else-if="attendanceMap[p.id]?.[r.id]?.estado === 'tardanza'"
-                                            class="bi bi-clock fs-5"></i>
-                                        <i v-else-if="attendanceMap[p.id]?.[r.id]?.estado === 'falta justificada'"
-                                            class="bi bi-file-medical fs-5"></i>
-                                        <i v-else-if="attendanceMap[p.id]?.[r.id]?.estado === 'falta injustificada'"
-                                            class="bi bi-x-lg fs-5"></i>
+                                        <Check v-if="attendanceMap[p.id]?.[r.id]?.estado === 'asistio'"
+                                            :size="20" aria-hidden="true" />
+                                        <Clock v-else-if="attendanceMap[p.id]?.[r.id]?.estado === 'tardanza'"
+                                            :size="20" aria-hidden="true" />
+                                        <FileHeart v-else-if="attendanceMap[p.id]?.[r.id]?.estado === 'falta justificada'"
+                                            :size="20" aria-hidden="true" />
+                                        <X v-else-if="attendanceMap[p.id]?.[r.id]?.estado === 'falta injustificada'"
+                                            :size="20" aria-hidden="true" />
 
                                         <span v-else-if="p.estado === 'retirado'" class="opacity-50">-</span>
                                         <span v-else class="opacity-25">&bull;</span>
@@ -765,7 +774,7 @@ const formatColDate = (dateStr) => {
                 <div v-if="!canEditAttendance(popover.personaId, popover.reunionId)"
                     class="alert alert-light border border-secondary-subtle text-center p-3 mb-3">
                     <div class="mb-2">
-                        <i class="bi bi-lock-fill text-muted fs-2"></i>
+                        <Lock class="text-muted" :size="32" aria-hidden="true" />
                     </div>
                     <h6 class="fw-bold text-secondary mb-1">Registro Cerrado</h6>
                     <p class="small text-muted mb-0 lh-sm">
@@ -789,27 +798,27 @@ const formatColDate = (dateStr) => {
                     <div v-if="tipoActual !== 'Apoderados'" class="status-grid mb-3">
                         <button class="btn-status btn-status-success" :class="{ active: popover.estado === 'asistio' }"
                             @click="setStatus('asistio')">
-                            <i class="bi bi-check-circle-fill icon-lg"></i>
+                            <CircleCheck class="icon-lg" :size="22" aria-hidden="true" />
                             <span>Asistió</span>
                         </button>
 
                         <button class="btn-status btn-status-warning" :class="{ active: popover.estado === 'tardanza' }"
                             @click="setStatus('tardanza')">
-                            <i class="bi bi-clock-fill icon-lg"></i>
+                            <Clock class="icon-lg" :size="22" aria-hidden="true" />
                             <span>Tardanza</span>
                         </button>
 
                         <button class="btn-status btn-status-info"
                             :class="{ active: popover.estado === 'falta justificada' }"
                             @click="setStatus('falta justificada')">
-                            <i class="bi bi-file-medical-fill icon-lg"></i>
+                            <FileHeart class="icon-lg" :size="22" aria-hidden="true" />
                             <span>Justificada</span>
                         </button>
 
                         <button class="btn-status btn-status-danger"
                             :class="{ active: popover.estado === 'falta injustificada' }"
                             @click="setStatus('falta injustificada')">
-                            <i class="bi bi-x-circle-fill icon-lg"></i>
+                            <CircleX class="icon-lg" :size="22" aria-hidden="true" />
                             <span>Injustificada</span>
                         </button>
                     </div>
@@ -831,35 +840,35 @@ const formatColDate = (dateStr) => {
                                 <button class="btn-status btn-status-success"
                                     :class="{ active: checkStatusApoderado(getApoderadosDeHijo(popover.personaId)[0], popover.reunionId) === 'asistio' }"
                                     @click="setApoderadoStatus(getApoderadosDeHijo(popover.personaId)[0], popover.reunionId, 'asistio')">
-                                    <i class="bi bi-check-circle-fill icon-lg"></i>
+                                    <CircleCheck class="icon-lg" :size="22" aria-hidden="true" />
                                     <span>Asistió</span>
                                 </button>
 
                                 <button class="btn-status btn-status-warning"
                                     :class="{ active: checkStatusApoderado(getApoderadosDeHijo(popover.personaId)[0], popover.reunionId) === 'tardanza' }"
                                     @click="setApoderadoStatus(getApoderadosDeHijo(popover.personaId)[0], popover.reunionId, 'tardanza')">
-                                    <i class="bi bi-clock-fill icon-lg"></i>
+                                    <Clock class="icon-lg" :size="22" aria-hidden="true" />
                                     <span>Tardanza</span>
                                 </button>
 
                                 <button class="btn-status btn-status-info"
                                     :class="{ active: checkStatusApoderado(getApoderadosDeHijo(popover.personaId)[0], popover.reunionId) === 'falta justificada' }"
                                     @click="setApoderadoStatus(getApoderadosDeHijo(popover.personaId)[0], popover.reunionId, 'falta justificada')">
-                                    <i class="bi bi-file-medical-fill icon-lg"></i>
+                                    <FileHeart class="icon-lg" :size="22" aria-hidden="true" />
                                     <span>Justificada</span>
                                 </button>
 
                                 <button class="btn-status btn-status-danger"
                                     :class="{ active: checkStatusApoderado(getApoderadosDeHijo(popover.personaId)[0], popover.reunionId) === 'falta injustificada' }"
                                     @click="setApoderadoStatus(getApoderadosDeHijo(popover.personaId)[0], popover.reunionId, 'falta injustificada')">
-                                    <i class="bi bi-x-circle-fill icon-lg"></i>
+                                    <CircleX class="icon-lg" :size="22" aria-hidden="true" />
                                     <span>Injustificada</span>
                                 </button>
                             </div>
                         </div>
 
                         <div v-else class="alert alert-warning text-center small mb-0 p-3 rounded-3">
-                            <i class="bi bi-exclamation-triangle-fill d-block fs-4 mb-1 text-warning"></i>
+                            <TriangleAlert :size="24" class="d-block mx-auto mb-1 text-warning" aria-hidden="true" />
                             No se encontró un apoderado registrado para este confirmando.
                         </div>
                     </div>
@@ -867,7 +876,7 @@ const formatColDate = (dateStr) => {
                 </div>
 
                 <div class="input-group">
-                    <span class="input-group-text bg-light border-end-0"><i class="bi bi-chat-text"></i></span>
+                    <span class="input-group-text bg-light border-end-0"><MessageSquareText class="h-4 w-4" aria-hidden="true" /></span>
                     <input id="popoverInput" v-model="popover.nota" class="form-control border-start-0"
                         placeholder="Nota..." autocomplete="off" @keydown.enter="closePopover"
                         :readonly="!canEditAttendance(popover.personaId, popover.reunionId)">

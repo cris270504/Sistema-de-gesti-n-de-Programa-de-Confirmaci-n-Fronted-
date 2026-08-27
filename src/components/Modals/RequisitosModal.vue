@@ -5,6 +5,7 @@ import { FileText, CheckCircle, Clock } from 'lucide-vue-next';
 import { useConfirmandosStore } from '@/stores/confirmandos';
 import { useAuthStore } from '@/stores/auth';
 import { showAlerta } from '@/funciones';
+import { attachModalFocusReturn } from '@/composables/useModalFocusReturn';
 
 const authStore = useAuthStore();
 const confirmandosStore = useConfirmandosStore();
@@ -12,6 +13,7 @@ const emit = defineEmits(['saved']);
 
 const modalElement = ref(null);
 let modalInstance = null;
+let detachFocusReturn = () => {};
 
 const savingDocs = ref(false);
 const docDraft = ref({
@@ -28,10 +30,12 @@ const canEditRequisitos = computed(() => {
 onMounted(() => {
     if (modalElement.value) {
         modalInstance = new Modal(modalElement.value);
+        detachFocusReturn = attachModalFocusReturn(modalElement.value);
     }
 });
 
 onUnmounted(() => {
+    detachFocusReturn();
     modalInstance?.dispose();
 });
 

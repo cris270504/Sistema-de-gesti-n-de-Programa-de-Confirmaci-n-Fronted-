@@ -4,7 +4,8 @@ import { useAuthStore } from '@/stores/auth';
 import { storeToRefs } from 'pinia';
 import { Modal } from 'bootstrap';
 import { showAlerta } from '@/funciones';
-import { Pencil, Trash } from 'lucide-vue-next';
+import { Pencil, Trash, CalendarDays, ClipboardCheck } from 'lucide-vue-next';
+import { attachModalFocusReturn } from '@/composables/useModalFocusReturn';
 
 // --- FullCalendar Imports ---
 import FullCalendar from '@fullcalendar/vue3';
@@ -260,6 +261,9 @@ const handleAttendance = () => {
   });
 };
 
+let detachDetailsFocusReturn = () => {};
+let detachFormFocusReturn = () => {};
+
 onMounted(async () => {
   if (authStore.can('ver cronograma')) {
     await fetchAll();
@@ -267,14 +271,22 @@ onMounted(async () => {
   nextTick(() => {
     // Inicializar ambos modales
     const detailsEl = document.getElementById('detailsModal');
-    if (detailsEl) detailsModalInstance.value = new Modal(detailsEl);
+    if (detailsEl) {
+      detailsModalInstance.value = new Modal(detailsEl);
+      detachDetailsFocusReturn = attachModalFocusReturn(detailsEl);
+    }
 
     const formEl = document.getElementById('formModal');
-    if (formEl) formModalInstance.value = new Modal(formEl);
+    if (formEl) {
+      formModalInstance.value = new Modal(formEl);
+      detachFormFocusReturn = attachModalFocusReturn(formEl);
+    }
   });
 });
 
 onUnmounted(() => {
+  detachDetailsFocusReturn();
+  detachFormFocusReturn();
   detailsModalInstance.value?.dispose();
   formModalInstance.value?.dispose();
 });
@@ -328,7 +340,7 @@ onUnmounted(() => {
             <div class="mb-3">
               <span class="badge bg-secondary mb-2">{{ selectedEvent.type }}</span>
               <h6 class="text-muted text-capitalize">
-                <i class="bi bi-calendar-event me-2"></i>
+                <CalendarDays class="h-4 w-4 me-2 d-inline-block align-text-bottom" aria-hidden="true" />
                 {{ formatDisplayDate(selectedEvent.start) }}
               </h6>
             </div>
@@ -349,7 +361,7 @@ onUnmounted(() => {
             <div class="d-flex gap-2">
               <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
               <button v-if="canRegisterAttendance" class="btn btn-success" @click="handleAttendance">
-                <i class="bi bi-check2-square me-1"></i>
+                <ClipboardCheck class="h-4 w-4 me-1" aria-hidden="true" />
                 Asistencia
               </button>
             </div>

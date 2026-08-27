@@ -5,6 +5,7 @@ import { onMounted, ref } from 'vue';
 import { useAuthStore } from '../../stores/auth';
 import { Pencil, Trash, Plus, User, Mail } from 'lucide-vue-next';
 import UserModal from '../../components/Modals/userModal.vue';
+import TableSkeleton from '@/components/TableSkeleton.vue';
 
 const usersStore = useUsersStore();
 const { items: users, loading, error } = storeToRefs(usersStore);
@@ -64,11 +65,7 @@ onMounted(() => {
       </button>
     </div>
 
-    <div v-if="loading" class="text-center py-5">
-      <div class="spinner-border text-secondary" role="status"></div>
-    </div>
-
-    <div v-else-if="error" class="alert alert-danger" role="alert">
+    <div v-if="error" class="alert alert-danger" role="alert">
       {{ error }}
     </div>
 
@@ -83,7 +80,8 @@ onMounted(() => {
               <th v-if="authStore.can('editar usuarios')" class="text-end pe-4 py-2 text-secondary text-uppercase fw-bold">Acciones</th>
             </tr>
           </thead>
-          <tbody>
+          <TableSkeleton v-if="loading" :columns="4" />
+          <tbody v-else>
             <tr v-if="!users || users.length === 0">
               <td colspan="4" class="text-center py-5 text-muted">No hay usuarios registrados.</td>
             </tr>

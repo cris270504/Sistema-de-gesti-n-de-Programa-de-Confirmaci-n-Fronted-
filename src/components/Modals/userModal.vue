@@ -6,6 +6,12 @@ import { useGruposStore } from '../../stores/grupos'; // ➔ NUEVO: Importamos e
 import { storeToRefs } from 'pinia';
 import { showAlerta } from '@/funciones';
 import { Modal } from 'bootstrap';
+import { attachModalFocusReturn } from '@/composables/useModalFocusReturn';
+import { useFieldValidation, validarDni, validarCelular, validarEmail } from '@/composables/useFieldValidation';
+import {
+  SquarePen, UserPlus, User, IdCard, Phone, Mail, CalendarDays,
+  Info, Check,
+} from 'lucide-vue-next';
 
 const usersStore = useUsersStore();
 const rolesStore = useRolesStore();
@@ -36,14 +42,23 @@ const saving = ref(false);
 const isEditing = computed(() => !!draft.value.id);
 const title = computed(() => (isEditing.value ? 'Editar Usuario' : 'Nuevo Usuario'));
 
+const { errores, marcarTocado } = useFieldValidation({
+  dni: () => validarDni(draft.value.dni),
+  celular: () => validarCelular(draft.value.celular),
+  email: () => validarEmail(draft.value.email),
+});
+
+let detachFocusReturn = () => {};
 onMounted(() => {
   modalInstance.value = new Modal(modalRef.value, {
     backdrop: 'static',
     keyboard: false
   });
+  detachFocusReturn = attachModalFocusReturn(modalRef.value);
 });
 
 onUnmounted(() => {
+  detachFocusReturn();
   modalInstance.value?.dispose();
 });
 
@@ -171,7 +186,7 @@ async function submitUpdate() {
         <div class="modal-header">
           <div>
             <h5 class="modal-title fw-bold text-white">
-              <i class="bi me-2 text-white-50" :class="isEditing ? 'bi-pencil-square' : 'bi-person-plus-fill'"></i>
+              <component :is="isEditing ? SquarePen : UserPlus" class="h-5 w-5 me-2 text-white-50 d-inline-block align-text-bottom" aria-hidden="true" />
               {{ title }}
             </h5>
             <p class="text-white-50 small mb-0">Complete los datos del formulario.</p>
@@ -192,7 +207,7 @@ async function submitUpdate() {
                 <label for="userName" class="form-label fw-bold text-secondary small text-uppercase">Nombre Completo</label>
                 <div class="input-group">
                   <span class="input-group-text bg-blue-soft text-primary border-end-0">
-                    <i class="bi bi-person-fill"></i>
+                    <User class="h-4 w-4" aria-hidden="true" />
                   </span>
                   <input id="userName" v-model="draft.name" type="text" class="form-control border-start-0"
                     placeholder="Ej. Christopher Carrillo" required :disabled="saving">
@@ -203,10 +218,12 @@ async function submitUpdate() {
                 <label for="userDni" class="form-label fw-bold text-secondary small text-uppercase">DNI</label>
                 <div class="input-group">
                   <span class="input-group-text bg-blue-soft text-primary border-end-0">
-                    <i class="bi bi-card-heading"></i>
+                    <IdCard class="h-4 w-4" aria-hidden="true" />
                   </span>
                   <input id="userDni" v-model="draft.dni" type="text" class="form-control border-start-0"
+                    :class="{ 'is-invalid': errores.dni }" @blur="marcarTocado('dni')"
                     placeholder="12345678" required :disabled="saving">
+                  <div v-if="errores.dni" class="invalid-feedback">{{ errores.dni }}</div>
                 </div>
               </div>
 
@@ -214,10 +231,12 @@ async function submitUpdate() {
                 <label for="userCelular" class="form-label fw-bold text-secondary small text-uppercase">Celular</label>
                 <div class="input-group">
                   <span class="input-group-text bg-blue-soft text-primary border-end-0">
-                    <i class="bi bi-telephone-fill"></i>
+                    <Phone class="h-4 w-4" aria-hidden="true" />
                   </span>
                   <input id="userCelular" v-model="draft.celular" type="text" class="form-control border-start-0"
+                    :class="{ 'is-invalid': errores.celular }" @blur="marcarTocado('celular')"
                     placeholder="987654321" :disabled="saving">
+                  <div v-if="errores.celular" class="invalid-feedback">{{ errores.celular }}</div>
                 </div>
               </div>
 
@@ -225,7 +244,7 @@ async function submitUpdate() {
                 <label for="userFechaNacimiento" class="form-label fw-bold text-secondary small text-uppercase">Fecha de nacimiento</label>
                 <div class="input-group">
                   <span class="input-group-text bg-blue-soft text-primary border-end-0">
-                    <i class="bi bi-calendar-event-fill"></i>
+                    <CalendarDays class="h-4 w-4" aria-hidden="true" />
                   </span>
                   <input id="userFechaNacimiento" v-model="draft.fechaNacimiento" type="date"
                     class="form-control border-start-0" required :disabled="saving">
@@ -236,10 +255,12 @@ async function submitUpdate() {
                 <label for="userEmail" class="form-label fw-bold text-secondary small text-uppercase">Correo Electrónico</label>
                 <div class="input-group">
                   <span class="input-group-text bg-blue-soft text-primary border-end-0">
-                    <i class="bi bi-envelope-fill"></i>
+                    <Mail class="h-4 w-4" aria-hidden="true" />
                   </span>
                   <input id="userEmail" v-model="draft.email" type="email" class="form-control border-start-0"
+                    :class="{ 'is-invalid': errores.email }" @blur="marcarTocado('email')"
                     placeholder="usuario@ejemplo.com" required :disabled="saving">
+                  <div v-if="errores.email" class="invalid-feedback">{{ errores.email }}</div>
                 </div>
               </div>
 
@@ -253,7 +274,7 @@ async function submitUpdate() {
                         v-model="draft.roles" :disabled="saving" />
                       <label class="role-card d-flex align-items-center gap-1 px-3 py-2 rounded-pill transition-all"
                         :for="'role-' + role.id">
-                        <i v-if="draft.roles.includes(role.id)" class="bi bi-check-lg"></i>
+                        <Check v-if="draft.roles.includes(role.id)" class="h-4 w-4" aria-hidden="true" />
                         <span>{{ role.name }}</span>
                       </label>
                     </template>
@@ -274,7 +295,7 @@ async function submitUpdate() {
                         v-model="draft.grupo_ids" :disabled="saving" />
                       <label class="role-card d-flex align-items-center gap-1 px-3 py-2 rounded-pill transition-all"
                         :for="'grupo-' + grupo.id">
-                        <i v-if="draft.grupo_ids.includes(grupo.id)" class="bi bi-check-lg"></i>
+                        <Check v-if="draft.grupo_ids.includes(grupo.id)" class="h-4 w-4 text-primary" aria-hidden="true" />
                         <span>{{ grupo.nombre }}</span>
                       </label>
                     </template>
@@ -283,7 +304,7 @@ async function submitUpdate() {
                     <div class="spinner-border spinner-border-sm text-primary me-2"></div> Cargando...
                   </div>
                   <div v-else class="text-muted fst-italic py-2">
-                    <i class="bi bi-info-circle me-1"></i> No hay grupos disponibles.
+                    <Info class="h-4 w-4 me-1" aria-hidden="true" /> No hay grupos disponibles.
                   </div>
                 </div>
               </div>
@@ -302,7 +323,7 @@ async function submitUpdate() {
               <span class="spinner-border spinner-border-sm me-2"></span>
             </template>
             <template v-else>
-              <i class="bi bi-check-lg me-1"></i> Guardar
+              <Check class="h-4 w-4 me-1" aria-hidden="true" /> Guardar
             </template>
           </button>
         </div>

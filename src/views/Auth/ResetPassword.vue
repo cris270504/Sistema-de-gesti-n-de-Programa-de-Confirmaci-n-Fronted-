@@ -1,32 +1,31 @@
 <script setup>
 import { ref } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 
-const router = useRouter()
 const route = useRoute()
+const router = useRouter()
 const auth = useAuthStore()
 
-const draft = ref({ dni: '', password: '' })
+const draft = ref({
+    email: typeof route.query.email === 'string' ? route.query.email : '',
+    password: '',
+    password_confirmation: '',
+})
 const saving = ref(false)
 
 const submit = async () => {
     saving.value = true
 
-    const ok = await auth.login(draft.value)
+    const ok = await auth.resetPassword({
+        token: route.params.token,
+        email: draft.value.email,
+        password: draft.value.password,
+        password_confirmation: draft.value.password_confirmation,
+    })
 
-    if (!ok) {
-        saving.value = false // Detiene la carga solo si falla
-        return
-    }
-
-    // Login exitoso
-    const redirect = typeof route.query.redirect === 'string'
-        ? route.query.redirect
-        : '/'; // Redirige a la raíz (ruta protegida) por defecto
-
-    await router.push(redirect)
-    // No es necesario limpiar saving o draft aquí, el componente se desmontará
+    saving.value = false
+    if (ok) router.push({ name: 'login' })
 }
 </script>
 
@@ -36,36 +35,41 @@ const submit = async () => {
             <div class="text-center mb-8">
                 <img src="@/assets/logo.png" alt="Logo App" class="mx-auto h-49 w-auto mb-4" />
                 <h2 class="text-2xl font-bold text-gray-900">
-                    Iniciar Sesión
+                    Nueva contraseña
                 </h2>
                 <p class="mt-2 text-sm text-gray-600">
-                    Ingresa tus credenciales para acceder
+                    Crea una nueva contraseña para tu cuenta.
                 </p>
-
             </div>
 
             <form class="space-y-6" @submit.prevent="submit">
                 <div>
-                    <label for="dni" class="block text-sm font-medium text-gray-700 mb-1">
-                        DNI
+                    <label for="email" class="block text-sm font-medium text-gray-700 mb-1">
+                        Correo electrónico
                     </label>
-                    <input id="dni" v-model="draft.dni" type="dni" required :disabled="saving"
+                    <input id="email" v-model="draft.email" type="email" required :disabled="saving"
                         class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm disabled:opacity-50"
-                        placeholder="Ingresa tu DNI">
+                        placeholder="tucorreo@ejemplo.com">
                 </div>
 
                 <div>
-                    <div class="flex items-center justify-between mb-1">
-                        <label for="password" class="block text-sm font-medium text-gray-700">
-                            Contraseña
-                        </label>
-                        <RouterLink :to="{ name: 'forgot-password' }" class="text-sm font-medium text-indigo-600 hover:text-indigo-700">
-                            ¿Olvidaste tu contraseña?
-                        </RouterLink>
-                    </div>
-                    <input id="password" v-model="draft.password" type="password" required :disabled="saving"
+                    <label for="password" class="block text-sm font-medium text-gray-700 mb-1">
+                        Nueva contraseña
+                    </label>
+                    <input id="password" v-model="draft.password" type="password" required minlength="8"
+                        :disabled="saving"
                         class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm disabled:opacity-50"
-                        placeholder="••••••••">
+                        placeholder="Mínimo 8 caracteres">
+                </div>
+
+                <div>
+                    <label for="password_confirmation" class="block text-sm font-medium text-gray-700 mb-1">
+                        Confirmar contraseña
+                    </label>
+                    <input id="password_confirmation" v-model="draft.password_confirmation" type="password" required
+                        minlength="8" :disabled="saving"
+                        class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm disabled:opacity-50"
+                        placeholder="Repite la contraseña">
                 </div>
 
                 <div>
@@ -79,11 +83,16 @@ const submit = async () => {
                                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
                             </path>
                         </svg>
-                        {{ saving ? 'Verificando...' : 'Ingresar' }}
+                        {{ saving ? 'Guardando...' : 'Restablecer contraseña' }}
                     </button>
                 </div>
-
             </form>
+
+            <p class="mt-6 text-center text-sm text-gray-600">
+                <RouterLink :to="{ name: 'login' }" class="font-medium text-indigo-600 hover:text-indigo-700">
+                    Volver a iniciar sesión
+                </RouterLink>
+            </p>
         </div>
     </div>
 </template>

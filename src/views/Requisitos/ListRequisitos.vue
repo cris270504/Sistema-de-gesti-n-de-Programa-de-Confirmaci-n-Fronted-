@@ -4,6 +4,7 @@ import { storeToRefs } from 'pinia';
 import { useRequisitosStore } from '../../stores/requisitos'; // Asegúrate de la ruta
 import { Modal } from 'bootstrap';
 import { showAlerta, confirmarEliminacion } from '@/funciones';
+import { attachModalFocusReturn } from '@/composables/useModalFocusReturn';
 import { Pencil, Trash, Plus, FileText } from 'lucide-vue-next';
 
 // --- Store ---
@@ -21,17 +22,23 @@ const isEditing = computed(() => !!draft.value.id);
 const modalTitle = computed(() => isEditing.value ? 'Editar Requisito' : 'Nuevo Requisito');
 
 // --- Ciclo de Vida ---
+let detachFocusReturn = () => {};
+
 onMounted(async () => {
   await fetchAll();
-  
+
   // Inicializar el modal de Bootstrap
   nextTick(() => {
     const el = document.getElementById('requisitoModal');
-    if (el) modalInstance.value = new Modal(el);
+    if (el) {
+      modalInstance.value = new Modal(el);
+      detachFocusReturn = attachModalFocusReturn(el);
+    }
   });
 });
 
 onUnmounted(() => {
+  detachFocusReturn();
   modalInstance.value?.dispose();
 });
 

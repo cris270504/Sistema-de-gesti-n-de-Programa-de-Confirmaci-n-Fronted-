@@ -5,6 +5,8 @@ import { useUsersStore } from '@/stores/users';
 import { storeToRefs } from 'pinia';
 import { Modal } from 'bootstrap';
 import { showAlerta } from '@/funciones';
+import { attachModalFocusReturn } from '@/composables/useModalFocusReturn';
+import { IdCard } from 'lucide-vue-next';
 
 const emit = defineEmits(['updated']);
 const modalRef = ref(null);
@@ -18,11 +20,14 @@ const grupoId = ref(null);
 const selectedCatechistIds = ref([]);
 const saving = ref(false);
 
+let detachFocusReturn = () => {};
 onMounted(() => {
     modalInstance.value = new Modal(modalRef.value);
+    detachFocusReturn = attachModalFocusReturn(modalRef.value);
 });
 
 onUnmounted(() => {
+    detachFocusReturn();
     modalInstance.value?.dispose();
 });
 
@@ -67,7 +72,7 @@ const save = async () => {
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content border-0">
                 <div class="modal-header-theme">
-                    <h5 class="modal-title fw-bold text-white"><i class="bi bi-person-badge me-2"></i>Asignar Catequistas</h5>
+                    <h5 class="modal-title fw-bold text-white d-flex align-items-center"><IdCard class="h-5 w-5 me-2" aria-hidden="true" />Asignar Catequistas</h5>
                 </div>
                 <div class="modal-body p-0">
                     <div v-if="loadingUsers" class="p-4 text-center"><div class="spinner-border text-theme"></div></div>

@@ -5,11 +5,13 @@ import { storeToRefs } from 'pinia';
 import { onMounted, onUnmounted, ref, computed, nextTick, watch, defineAsyncComponent } from 'vue';
 import {
     Pencil, Trash, Plus, User, Phone, Calendar, Users,
-    Wand2, Trash2, Save, Upload, Eye
+    Wand2, Trash2, Save, Upload, Eye, Search, X, ArrowRight, Info,
 } from 'lucide-vue-next';
 import { useAuthStore } from '@/stores/auth';
 import { Modal } from 'bootstrap';
 import { showAlerta } from '@/funciones';
+import { attachModalFocusReturn } from '@/composables/useModalFocusReturn';
+import TableSkeleton from '@/components/TableSkeleton.vue';
 
 // Lazy-loading: estos modales no son visibles en el primer renderizado (Above the fold)
 const ConfirmandoModal = defineAsyncComponent(() =>
@@ -167,10 +169,14 @@ watch(() => filtros.value.procedencia, () => {
 const fileInputRef = ref(null);
 const isImporting = ref(false);
 const importModalInstance = ref(null);
+let detachImportFocusReturn = () => {};
 
 const initImportModal = () => {
     const el = document.getElementById('importFormatModal');
-    if (el) importModalInstance.value = new Modal(el);
+    if (el) {
+        importModalInstance.value = new Modal(el);
+        detachImportFocusReturn = attachModalFocusReturn(el);
+    }
 };
 
 const abrirImportModal = () => importModalInstance.value?.show();
@@ -225,9 +231,14 @@ const groupNames = ref(['']);
 const stats = ref({ hombres: 0, mujeres: 0, total: 0 });
 const periodoActual = '2026';
 
+let detachGeneradorFocusReturn = () => {};
+
 const initGeneradorModal = () => {
     const el = document.getElementById('generadorGruposModal');
-    if (el) generadorModalInstance.value = new Modal(el);
+    if (el) {
+        generadorModalInstance.value = new Modal(el);
+        detachGeneradorFocusReturn = attachModalFocusReturn(el);
+    }
 };
 
 const abrirGenerador = async () => {
@@ -339,6 +350,8 @@ const openApoderadosModal = (confirmando) => {
 };
 
 // --- CICLO DE VIDA ---
+let detachApoderadosFocusReturn = () => {};
+
 onMounted(() => {
     fetchAllConfirmandos();
 
@@ -348,13 +361,19 @@ onMounted(() => {
 
     nextTick(() => {
         const elApo = document.getElementById('apoderadosModal');
-        if (elApo) apoderadosModalInstance.value = new Modal(elApo);
+        if (elApo) {
+            apoderadosModalInstance.value = new Modal(elApo);
+            detachApoderadosFocusReturn = attachModalFocusReturn(elApo);
+        }
         initGeneradorModal();
         initImportModal();
     });
 });
 
 onUnmounted(() => {
+    detachApoderadosFocusReturn();
+    detachGeneradorFocusReturn();
+    detachImportFocusReturn();
     apoderadosModalInstance.value?.dispose();
     generadorModalInstance.value?.dispose();
     importModalInstance.value?.dispose();
@@ -409,7 +428,7 @@ onUnmounted(() => {
                     <!-- Buscador -->
                     <div class="input-group shadow-sm">
                         <span class="input-group-text bg-white border-end-0 text-muted">
-                            <i class="bi bi-search" aria-hidden="true"></i>
+                            <Search class="h-4 w-4" aria-hidden="true" />
                         </span>
                         <input type="text" class="form-control border-start-0 ps-0" v-model="filtros.search"
                             placeholder="Buscar por apellido o nombre..." aria-label="Buscar confirmando por nombre o apellido"
@@ -417,7 +436,7 @@ onUnmounted(() => {
                         <button v-if="filtros.search" @click="filtros.search = ''"
                             aria-label="Limpiar búsqueda"
                             class="btn btn-white border border-start-0 text-muted">
-                            <i class="bi bi-x-lg" aria-hidden="true"></i>
+                            <X class="h-4 w-4" aria-hidden="true" />
                         </button>
                     </div>
 
@@ -470,13 +489,10 @@ onUnmounted(() => {
             <!-- Contenedor de la Tabla -->
             <div class="table-responsive">
 
-                <!-- Spinner SOLO de carga inicial. ¡No reaparece al buscar! -->
-                <div v-if="loading" class="text-center py-5">
-                    <div class="spinner-border text-primary" role="status"></div>
-                    <p class="text-muted mt-2 small">Cargando registros...</p>
-                </div>
-
-                <table v-else class="table align-middle mb-0">
+                <!-- El <thead> queda visible durante la carga (skeleton en el <tbody>) para que
+                     el usuario ubique la estructura de la tabla de inmediato, en vez de un
+                     spinner centrado que hace desaparecer toda la tabla. -->
+                <table class="table align-middle mb-0">
                     <thead class="bg-light-gray">
                         <tr>
                             <th class="ps-4 py-2 text-secondary text-uppercase fw-bold">#</th>
@@ -489,7 +505,8 @@ onUnmounted(() => {
                             <th class="text-end pe-4 py-2 text-secondary text-uppercase fw-bold">Acciones</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <TableSkeleton v-if="loading" :columns="8" />
+                    <tbody v-else>
                         <!-- ➔ ACTUALIZADO: Evalúa filteredConfirmandos -->
                         <tr v-if="!filteredConfirmandos || filteredConfirmandos.length === 0">
                             <td colspan="8" class="text-center py-5">
@@ -554,7 +571,7 @@ onUnmounted(() => {
                                         :style="{ backgroundColor: c.grupo.color || '#cbd5e1' }"></span>
                                     <span class="text-dark-subtle me-1">{{ c.grupo.nombre }} - {{ c.grupo.procedencia
                                         }}</span>
-                                    <i class="bi bi-arrow-right-short text-muted"></i>
+                                    <ArrowRight class="text-muted" :size="16" aria-hidden="true" />
                                 </router-link>
 
                                 <span v-else-if="c.grupo" class="badge-soft-group"
@@ -634,7 +651,7 @@ onUnmounted(() => {
                 <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
                     <header class="modal-header-blue p-4">
                         <h5 id="apoderadosModalLabel" class="modal-title fw-bold text-white mb-0">
-                            <i class="bi bi-people-fill me-2 text-white-50" aria-hidden="true"></i> Apoderados
+                            <Users class="h-5 w-5 me-2 text-white-50 d-inline-block align-text-bottom" aria-hidden="true" /> Apoderados
                         </h5>
                         <p class="text-white-50 small mb-0 mt-1">Familiares de {{ selectedConfirmandoName }}</p>
                         <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3"
@@ -775,7 +792,7 @@ onUnmounted(() => {
 
                     <div class="modal-body px-4 py-4">
                         <div class="alert alert-info border-0 bg-light-info small mb-4">
-                            <i class="bi bi-info-circle-fill me-2 text-info" aria-hidden="true"></i>
+                            <Info class="h-5 w-5 me-2 text-info d-inline-block align-text-bottom" aria-hidden="true" />
                             <strong>Regla importante:</strong> El sistema asume que las dos primeras palabras son los
                             apellidos.
                         </div>

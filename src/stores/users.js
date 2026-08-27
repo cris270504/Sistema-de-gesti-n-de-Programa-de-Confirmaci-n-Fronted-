@@ -66,10 +66,10 @@ export const useUsersStore = defineStore('users', {
 
         const name = created?.name
         const dni = created?.dni
-        const password = '123456789'
+        const password = response?.temp_password
 
         showAlerta(
-          `Usuario ${name} creado correctamente.\n\n DNI: ${dni}\n Contraseña: ${password}`,
+          `Usuario ${name} creado correctamente.\n\n DNI: ${dni}\n Contraseña temporal: ${password}`,
           'success'
         );
         return created

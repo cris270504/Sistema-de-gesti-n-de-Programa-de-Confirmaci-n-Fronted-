@@ -10,6 +10,12 @@ import { storeToRefs } from 'pinia';
 import { showAlerta } from '@/funciones';
 import { Modal } from 'bootstrap';
 import api from '@/lib/api';
+import { attachModalFocusReturn } from '@/composables/useModalFocusReturn';
+import { useFieldValidation, validarCelular } from '@/composables/useFieldValidation';
+import {
+  SquarePen, UserPlus, Contact, User, CalendarDays, Smartphone,
+  Plus, Users, CircleX, Check,
+} from 'lucide-vue-next';
 
 const emit = defineEmits(['saved']);
 
@@ -52,6 +58,10 @@ const saving = ref(false);
 const isEditing = computed(() => !!draft.value.id);
 const title = computed(() => (isEditing.value ? 'Editar Confirmando' : 'Nuevo Confirmando'));
 
+const { errores, marcarTocado } = useFieldValidation({
+  celular: () => validarCelular(draft.value.celular),
+});
+
 const maxDate = computed(() => {
   const today = new Date();
   return `${today.getFullYear() - 14}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -92,14 +102,17 @@ const limpiarSeleccion = (index) => {
 };
 
 // Inicializar Modal
+let detachFocusReturn = () => {};
 onMounted(() => {
   modalInstance.value = new Modal(modalRef.value, {
     backdrop: 'static',
     keyboard: false
   });
+  detachFocusReturn = attachModalFocusReturn(modalRef.value);
 });
 
 onUnmounted(() => {
+  detachFocusReturn();
   modalInstance.value?.dispose();
 });
 
@@ -246,8 +259,8 @@ async function submitUpdate() {
         <header class="modal-header">
           <div>
             <h5 id="confirmandoModalLabel" class="modal-title fw-bold text-white">
-              <i class="bi me-2 text-white-50" :class="isEditing ? 'bi-pencil-square' : 'bi-person-plus-fill'"
-                aria-hidden="true"></i>
+              <component :is="isEditing ? SquarePen : UserPlus" class="h-5 w-5 me-2 text-white-50 d-inline-block align-text-bottom"
+                aria-hidden="true" />
               {{ title }}
             </h5>
             <p class="text-white-50 small mb-0">Gestión de datos del confirmando y familia.</p>
@@ -273,8 +286,9 @@ async function submitUpdate() {
                 <label class="form-label fw-bold text-secondary small text-uppercase">Apellidos <span
                     class="text-danger">*</span></label>
                 <div class="input-group">
-                  <span class="input-group-text bg-blue-soft text-primary border-end-0"><i
-                      class="bi bi-person-lines-fill" aria-hidden="true"></i></span>
+                  <span class="input-group-text bg-blue-soft text-primary border-end-0">
+                    <Contact class="h-4 w-4" aria-hidden="true" />
+                  </span>
                   <input v-model="draft.apellidos" type="text" class="form-control border-start-0" required
                     aria-label="Apellidos del confirmando" :disabled="saving">
                 </div>
@@ -284,8 +298,9 @@ async function submitUpdate() {
                 <label class="form-label fw-bold text-secondary small text-uppercase">Nombres <span
                     class="text-danger">*</span></label>
                 <div class="input-group">
-                  <span class="input-group-text bg-blue-soft text-primary border-end-0"><i
-                      class="bi bi-person-fill" aria-hidden="true"></i></span>
+                  <span class="input-group-text bg-blue-soft text-primary border-end-0">
+                    <User class="h-4 w-4" aria-hidden="true" />
+                  </span>
                   <input v-model="draft.nombres" type="text" class="form-control border-start-0" required
                     aria-label="Nombres del confirmando" :disabled="saving">
                 </div>
@@ -294,8 +309,9 @@ async function submitUpdate() {
               <div class="col-md-5">
                 <label class="form-label fw-bold text-secondary small text-uppercase">Fecha Nacimiento </label>
                 <div class="input-group">
-                  <span class="input-group-text bg-blue-soft text-primary border-end-0"><i
-                      class="bi bi-calendar-event" aria-hidden="true"></i></span>
+                  <span class="input-group-text bg-blue-soft text-primary border-end-0">
+                    <CalendarDays class="h-4 w-4" aria-hidden="true" />
+                  </span>
                   <input v-model="draft.fecha_nacimiento" :max="maxDate" type="date" class="form-control border-start-0"
                     aria-label="Fecha de nacimiento" :disabled="saving">
                 </div>
@@ -304,10 +320,13 @@ async function submitUpdate() {
               <div class="col-md-3">
                 <label class="form-label fw-bold text-secondary small text-uppercase">Celular</label>
                 <div class="input-group">
-                  <span class="input-group-text bg-blue-soft text-primary border-end-0"><i
-                      class="bi bi-phone" aria-hidden="true"></i></span>
+                  <span class="input-group-text bg-blue-soft text-primary border-end-0">
+                    <Smartphone class="h-4 w-4" aria-hidden="true" />
+                  </span>
                   <input v-model="draft.celular" type="tel" class="form-control border-start-0" maxlength="9"
+                    :class="{ 'is-invalid': errores.celular }" @blur="marcarTocado('celular')"
                     aria-label="Celular del confirmando" :disabled="saving">
+                  <div v-if="errores.celular" class="invalid-feedback">{{ errores.celular }}</div>
                 </div>
               </div>
 
@@ -315,7 +334,7 @@ async function submitUpdate() {
                 <label class="form-label fw-bold text-secondary small text-uppercase">Género</label>
                 <div class="input-group">
                   <span class="input-group-text bg-blue-soft text-primary border-end-0">
-                    <i class="bi bi-person" aria-hidden="true"></i>
+                    <User class="h-4 w-4" aria-hidden="true" />
                   </span>
 
                   <select v-model="draft.genero" class="form-select border-start-0" aria-label="Género del confirmando"
@@ -369,13 +388,13 @@ async function submitUpdate() {
                   <h6 class="text-uppercase text-secondary fw-bold small mb-0">Apoderados</h6>
                   <button type="button" class="btn btn-sm btn-soft-primary fw-bold" @click="addApoderado"
                     :disabled="saving">
-                    <i class="bi bi-plus-lg me-1" aria-hidden="true"></i> Agregar
+                    <Plus class="h-4 w-4 me-1" aria-hidden="true" /> Agregar
                   </button>
                 </div>
 
                 <div v-if="draft.apoderados.length === 0"
                   class="text-center p-4 bg-light rounded-3 text-muted border border-dashed">
-                  <i class="bi bi-people display-6 opacity-25" aria-hidden="true"></i>
+                  <Users class="opacity-25" :size="48" aria-hidden="true" />
                   <p class="mb-0 mt-2 small">No hay apoderados registrados.</p>
                 </div>
 
@@ -433,7 +452,7 @@ async function submitUpdate() {
                             <button v-if="ap.es_existente" class="btn btn-outline-danger" type="button"
                               :aria-label="`Quitar selección de apoderado existente ${index + 1}`"
                               @click="limpiarSeleccion(index)">
-                              <i class="bi bi-x-circle" aria-hidden="true"></i>
+                              <CircleX class="h-4 w-4" aria-hidden="true" />
                             </button>
                           </div>
                         </div>
@@ -458,7 +477,7 @@ async function submitUpdate() {
               <span class="spinner-border spinner-border-sm me-2" role="status" aria-label="Guardando"></span>
             </template>
             <template v-else>
-              <i class="bi bi-check-lg me-1" aria-hidden="true"></i> Guardar
+              <Check class="h-4 w-4 me-1" aria-hidden="true" /> Guardar
             </template>
           </button>
         </footer>

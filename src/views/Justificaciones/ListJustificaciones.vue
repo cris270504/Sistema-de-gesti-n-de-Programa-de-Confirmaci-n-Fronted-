@@ -7,7 +7,7 @@ import Swal from 'sweetalert2';
 import { completeJustificacion } from '@/services/justificaciones';
 import {
     Pencil, Trash, Plus, User, Phone, Calendar, Users,
-    Wand2, Trash2, Save, Upload, Check, X
+    Wand2, Trash2, Save, Upload, Check, X, Search
 } from 'lucide-vue-next';
 import { confirmar } from '../../funciones';
 import PerfilConfirmandoModal from '../../components/Modals/PerfilConfirmandoModal.vue';
@@ -228,7 +228,7 @@ const rechazarCumplimientoSwal = async (item) => {
                     <div class="col-md-5">
                         <div class="input-group">
                             <span class="input-group-text bg-light border-end-0 text-muted px-3">
-                                <i class="bi bi-search"></i>
+                                <Search class="h-4 w-4" aria-hidden="true" />
                             </span>
                             <input type="text" class="form-control bg-light border-start-0 py-2 shadow-none" 
                                 v-model="filterQuery" placeholder="Buscar por apellidos, nombres o grupo...">

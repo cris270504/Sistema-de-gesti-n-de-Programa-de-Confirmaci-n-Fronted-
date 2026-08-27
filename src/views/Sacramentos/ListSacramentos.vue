@@ -4,7 +4,8 @@ import { storeToRefs } from 'pinia';
 import { useSacramentosStore } from '../../stores/sacramentos';
 import { useRequisitosStore } from '../../stores/requisitos';
 import { Modal } from 'bootstrap';
-import { Pencil, Trash, Plus, Check, FileCheck, FolderOpen } from 'lucide-vue-next';
+import { Pencil, Trash, Plus, Check, FileCheck, FolderOpen, BookMarked, Lock, Tag, Info } from 'lucide-vue-next';
+import { attachModalFocusReturn } from '@/composables/useModalFocusReturn';
 import { showAlerta } from '@/funciones';
 
 // --- Stores ---
@@ -22,17 +23,23 @@ const saving = ref(false);
 const isEditing = computed(() => !!draft.value.id);
 const modalTitle = computed(() => isEditing.value ? 'Editar Sacramento' : 'Nuevo Sacramento');
 
+let detachFocusReturn = () => {};
+
 onMounted(async () => {
     await fetchAll();
     await requisitosStore.fetchAll();
 
     nextTick(() => {
         const el = document.getElementById('sacramentoModal');
-        if (el) modalInstance.value = new Modal(el);
+        if (el) {
+            modalInstance.value = new Modal(el);
+            detachFocusReturn = attachModalFocusReturn(el);
+        }
     });
 });
 
 onUnmounted(() => {
+    detachFocusReturn();
     modalInstance.value?.dispose();
 });
 
@@ -137,7 +144,7 @@ const handleSubmit = async () => {
                                 <div v-if="sacramento.requisitos && sacramento.requisitos.length > 0" class="d-flex flex-wrap gap-2">
                                     <span v-for="req in sacramento.requisitos" :key="req.id" 
                                           class="badge-req">
-                                        <i class="bi bi-check2 text-success me-1"></i> {{ req.nombre }}
+                                        <Check class="h-4 w-4 text-success me-1 d-inline-block align-text-bottom" aria-hidden="true" /> {{ req.nombre }}
                                     </span>
                                 </div>
                                 <span v-else class="text-muted fst-italic small px-2">Sin requisitos</span>
@@ -166,7 +173,7 @@ const handleSubmit = async () => {
                     <div class="modal-header">
                         <div>
                             <h5 class="modal-title fw-bold text-white">
-                                <i class="bi bi-journal-bookmark-fill me-2 text-white-50"></i> 
+                                <BookMarked class="h-5 w-5 me-2 text-white-50 d-inline-block align-text-bottom" aria-hidden="true" />
                                 {{ modalTitle }}
                             </h5>
                             <p class="text-white-50 small mb-0">Define los documentos necesarios.</p>
@@ -183,7 +190,7 @@ const handleSubmit = async () => {
                                 </label>
                                 <div class="input-group">
                                     <span class="input-group-text bg-blue-soft text-primary border-end-0">
-                                        <i class="bi" :class="isEditing ? 'bi-lock-fill' : 'bi-tag-fill'"></i>
+                                        <component :is="isEditing ? Lock : Tag" class="h-4 w-4" aria-hidden="true" />
                                     </span>
                                     <input type="text" v-model="draft.nombre" 
                                            class="form-control border-start-0" 
@@ -220,7 +227,7 @@ const handleSubmit = async () => {
                                         </label>
                                     </div>
                                 </div>
-                                <div class="form-text mt-2 small text-muted"><i class="bi bi-info-circle me-1"></i>Marca los documentos obligatorios.</div>
+                                <div class="form-text mt-2 small text-muted d-flex align-items-center gap-1"><Info class="h-4 w-4" aria-hidden="true" />Marca los documentos obligatorios.</div>
                             </div>
 
                             <div class="d-flex justify-content-end gap-2 mt-4 pt-2 border-top">
