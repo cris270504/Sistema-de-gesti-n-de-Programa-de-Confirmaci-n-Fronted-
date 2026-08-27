@@ -18,6 +18,18 @@ export const CONFIG_DEFAULTS = {
   },
   procedencias: ['sede', 'caserio'],
   branding: { nombre_publico: null, logo_url: null, color_primario: '#2563eb' },
+  roles_labels: {},
+}
+
+// Etiqueta por defecto de un rol interno cuando la parroquia no definió una.
+const ROLES_DEFAULT = {
+  'proveedor': 'Proveedor',
+  'super-admin': 'Administrador',
+  'coordinador': 'Coordinador',
+  'catequista': 'Catequista',
+}
+function prettify(rol) {
+  return ROLES_DEFAULT[rol] || rol.replace(/(^|[-_\s])(\p{L})/gu, (_, s, c) => (s ? ' ' : '') + c.toUpperCase())
 }
 
 function safeParse(json) {
@@ -46,6 +58,7 @@ export const useParroquiaStore = defineStore('parroquia', {
     tiposReunion: (s) => s.configuracion?.tipos_reunion ?? CONFIG_DEFAULTS.tipos_reunion,
     procedencias: (s) => s.configuracion?.procedencias ?? CONFIG_DEFAULTS.procedencias,
     nombreApp: (s) => s.configuracion?.branding?.nombre_publico || s.parroquia?.nombre || 'SGPC',
+    roleLabel: (s) => (rol) => (s.configuracion?.roles_labels?.[rol]) || prettify(rol),
   },
 
   actions: {

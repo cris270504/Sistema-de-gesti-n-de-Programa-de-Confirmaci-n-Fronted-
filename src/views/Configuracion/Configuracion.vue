@@ -9,6 +9,12 @@ const TIPOS_REUNION = ['Confirmandos', 'Catequistas', 'Apoderados']
 const saving = ref(false)
 const form = reactive(estructuraVacia())
 
+const ROLES_INTERNOS = [
+  ['super-admin', 'Administrador'],
+  ['coordinador', 'Coordinador'],
+  ['catequista', 'Catequista'],
+]
+
 function estructuraVacia() {
   return {
     programa_inicio: '',
@@ -18,6 +24,7 @@ function estructuraVacia() {
     umbrales_alerta: { ...CONFIG_DEFAULTS.umbrales_alerta },
     procedencias: '',
     branding: { nombre_publico: '', logo_url: '', color_primario: '#2563eb' },
+    roles_labels: {},
   }
 }
 
@@ -29,6 +36,7 @@ function cargarDesdeStore() {
   form.tipos_reunion = [...(c.tipos_reunion ?? CONFIG_DEFAULTS.tipos_reunion)]
   form.umbrales_alerta = { ...CONFIG_DEFAULTS.umbrales_alerta, ...(c.umbrales_alerta ?? {}) }
   form.procedencias = (c.procedencias ?? CONFIG_DEFAULTS.procedencias).join(', ')
+  form.roles_labels = { ...(c.roles_labels ?? {}) }
   form.branding = {
     nombre_publico: c.branding?.nombre_publico ?? '',
     logo_url: c.branding?.logo_url ?? '',
@@ -52,6 +60,9 @@ async function guardar() {
       Object.entries(form.umbrales_alerta).map(([k, v]) => [k, Number(v)]),
     ),
     procedencias: form.procedencias.split(',').map(s => s.trim()).filter(Boolean),
+    roles_labels: Object.fromEntries(
+      Object.entries(form.roles_labels).filter(([, v]) => (v || '').trim()),
+    ),
     branding: {
       nombre_publico: form.branding.nombre_publico || null,
       logo_url: form.branding.logo_url || null,
@@ -145,6 +156,18 @@ const UMBRALES = [
             <label>Procedencias de grupo</label>
             <input v-model="form.procedencias" type="text" class="inp inp--md" />
             <small>Separadas por coma. Ej: <code>sede, caserio</code></small>
+          </div>
+        </div>
+      </section>
+
+      <!-- Roles -->
+      <section class="card">
+        <h3 class="card__title">Nombres de los roles</h3>
+        <p class="card__hint">Cómo se muestran en la interfaz (no cambia los permisos).</p>
+        <div class="card__body">
+          <div v-for="[rol, ph] in ROLES_INTERNOS" :key="rol" class="field">
+            <label>{{ ph }}</label>
+            <input v-model="form.roles_labels[rol]" type="text" maxlength="60" :placeholder="ph" class="inp" />
           </div>
         </div>
       </section>

@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useUsersStore } from '../../stores/users';
 import { useRolesStore } from '../../stores/roles';
 import { useGruposStore } from '../../stores/grupos'; // ➔ NUEVO: Importamos el store de grupos
+import { useParroquiaStore } from '@/stores/parroquia';
 import { storeToRefs } from 'pinia';
 import { showAlerta } from '@/funciones';
 import { Modal } from 'bootstrap';
@@ -18,6 +19,9 @@ const rolesStore = useRolesStore();
 const gruposStore = useGruposStore(); // ➔ NUEVO: Instanciamos el store
 
 const { items: availableRoles } = storeToRefs(rolesStore);
+const parroquiaStore = useParroquiaStore();
+// El proveedor no se asigna desde la UI de una parroquia.
+const rolesVisibles = computed(() => (availableRoles.value || []).filter(r => r.name !== 'proveedor'));
 const { items: availableGrupos } = storeToRefs(gruposStore); // ➔ NUEVO: Extraemos los grupos disponibles
 
 const emit = defineEmits(['saved']);
@@ -268,14 +272,14 @@ async function submitUpdate() {
               <div class="col-12">
                 <label class="form-label fw-bold text-secondary small text-uppercase mb-2">Asignar Roles</label>
                 <div class="chip-container p-3 rounded-3 bg-white border">
-                  <div v-if="availableRoles && availableRoles.length" class="d-flex flex-wrap gap-2">
-                    <template v-for="role in availableRoles" :key="role.id">
+                  <div v-if="rolesVisibles.length" class="d-flex flex-wrap gap-2">
+                    <template v-for="role in rolesVisibles" :key="role.id">
                       <input class="btn-check" type="checkbox" :id="'role-' + role.id" :value="role.id"
                         v-model="draft.roles" :disabled="saving" />
                       <label class="role-card d-flex align-items-center gap-1 px-3 py-2 rounded-pill transition-all"
                         :for="'role-' + role.id">
                         <Check v-if="draft.roles.includes(role.id)" class="h-4 w-4" aria-hidden="true" />
-                        <span>{{ role.name }}</span>
+                        <span>{{ parroquiaStore.roleLabel(role.name) }}</span>
                       </label>
                     </template>
                   </div>

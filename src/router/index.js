@@ -24,6 +24,7 @@ const ListRequisitos = () => import('../views/Requisitos/ListRequisitos.vue')
 const Listcumpleanos = () => import('../views/Cumpleanos/listCumpleanos.vue')
 const ListJustificaciones = () => import('../views/Justificaciones/ListJustificaciones.vue')
 const Configuracion = () => import('../views/Configuracion/Configuracion.vue')
+const ProveedorParroquias = () => import('../views/Proveedor/ListParroquias.vue')
 
 function hasSession() {
   const token = localStorage.getItem(LS_TOKEN_KEY)
@@ -166,7 +167,7 @@ const router = createRouter({
           path: '/auth/roles',
           name: 'roles',
           component: Roles,
-          meta: { title: 'Lista de roles', permission: ['ver roles', 'ver permisos'] }
+          meta: { title: 'Lista de roles', permission: 'ver roles' }
         },
 
         //CONFIGURACIÓN DE LA PARROQUIA
@@ -175,6 +176,14 @@ const router = createRouter({
           name: 'configuracion',
           component: Configuracion,
           meta: { title: 'Configuración', permission: 'administrar parroquia' }
+        },
+
+        //PROVEEDOR (plataforma)
+        {
+          path: '/parroquias',
+          name: 'parroquias',
+          component: ProveedorParroquias,
+          meta: { title: 'Parroquias', permission: 'administrar plataforma' }
         },
 
         {

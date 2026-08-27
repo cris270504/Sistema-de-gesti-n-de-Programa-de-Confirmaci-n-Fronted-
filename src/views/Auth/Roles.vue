@@ -4,6 +4,8 @@ import { storeToRefs } from 'pinia';
 import { Modal } from 'bootstrap';
 import { useRolesStore } from '@/stores/roles';
 import { usePermissionsStore } from '@/stores/permissions';
+import { useAuthStore } from '@/stores/auth';
+import { useParroquiaStore } from '@/stores/parroquia';
 import { getRoles } from '@/services/roles';
 import { showAlerta } from '@/funciones';
 import { Pencil, Trash, Plus, ShieldCheck, Search, KeyRound, Users } from 'lucide-vue-next';
@@ -11,9 +13,14 @@ import { Pencil, Trash, Plus, ShieldCheck, Search, KeyRound, Users } from 'lucid
 // --- Stores ---
 const rolesStore = useRolesStore();
 const permissionsStore = usePermissionsStore();
+const authStore = useAuthStore();
+const parroquiaStore = useParroquiaStore();
 const { items: roles, loading, error } = storeToRefs(rolesStore);
 const { items: permissions, loading: loadingPermisos } = storeToRefs(permissionsStore);
 const { fetchAll, add, save, remove } = rolesStore;
+
+// Solo el proveedor de la plataforma gestiona el catálogo global de roles/permisos.
+const puedeGestionar = computed(() => authStore.can('administrar plataforma'));
 
 // Roles que no se pueden eliminar desde la UI para evitar dejar el sistema sin administración.
 const ROLES_PROTEGIDOS = ['admin', 'administrador', 'coordinador'];
@@ -88,7 +95,8 @@ const toggleGrupo = (items) => {
 
 // --- Ciclo de vida ---
 onMounted(async () => {
-  await Promise.all([fetchAll(), permissionsStore.fetchAll()]);
+  await fetchAll();
+  if (puedeGestionar.value) await permissionsStore.fetchAll();
   nextTick(() => {
     const el = document.getElementById('roleModal');
     if (el) modalInstance.value = new Modal(el, { backdrop: 'static' });
@@ -169,7 +177,7 @@ const handleDelete = async (role) => {
         <h2 class="h3 text-gray-800 mb-1">Gestión de Roles y Permisos</h2>
         <p class="text-muted mb-0 small">Define qué puede hacer cada tipo de usuario en el sistema</p>
       </div>
-      <button class="btn btn-success shadow-sm px-3 py-2 d-flex align-items-center" @click="openModal(null)">
+      <button v-if="puedeGestionar" class="btn btn-success shadow-sm px-3 py-2 d-flex align-items-center" @click="openModal(null)">
         <Plus :size="20" class="me-1" />
         <span class="fw-bold text-uppercase small">Nuevo Rol</span>
       </button>
@@ -194,7 +202,7 @@ const handleDelete = async (role) => {
                 <th class="ps-4" style="width: 5%;">#</th>
                 <th style="width: 22%;">Rol</th>
                 <th>Permisos</th>
-                <th class="text-center" style="width: 12%;">Acciones</th>
+                <th v-if="puedeGestionar" class="text-center" style="width: 12%;">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -212,10 +220,8 @@ const handleDelete = async (role) => {
                       <ShieldCheck :size="20" />
                     </div>
                     <div>
-                      <span class="fw-semibold text-capitalize d-block">{{ role.name }}</span>
-                      <span v-if="role.users_count != null" class="text-muted small d-flex align-items-center gap-1">
-                        <Users :size="13" /> {{ role.users_count }} usuario(s)
-                      </span>
+                      <span class="fw-semibold d-block">{{ parroquiaStore.roleLabel(role.name) }}</span>
+                      <span class="text-muted small font-monospace">{{ role.name }}</span>
                     </div>
                   </div>
                 </td>
@@ -233,7 +239,7 @@ const handleDelete = async (role) => {
                   </div>
                   <span v-else class="text-muted fst-italic small">Sin permisos asignados</span>
                 </td>
-                <td class="text-center">
+                <td v-if="puedeGestionar" class="text-center">
                   <button class="btn btn-sm btn-outline-warning me-2" @click="openModal(role)" title="Editar">
                     <Pencil :size="16" />
                   </button>

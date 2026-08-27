@@ -3,6 +3,7 @@ import { useUsersStore } from '@/stores/users';
 import { storeToRefs } from 'pinia';
 import { onMounted, ref } from 'vue';
 import { useAuthStore } from '../../stores/auth';
+import { useParroquiaStore } from '@/stores/parroquia';
 import { Pencil, Trash, Plus, User, Mail } from 'lucide-vue-next';
 import UserModal from '../../components/Modals/userModal.vue';
 import TableSkeleton from '@/components/TableSkeleton.vue';
@@ -12,6 +13,7 @@ const { items: users, loading, error } = storeToRefs(usersStore);
 const { fetchAll: fetchAllUsers, remove: removeUser } = usersStore;
 
 const authStore = useAuthStore();
+const parroquiaStore = useParroquiaStore();
 
 const modalRef = ref(null);
 
@@ -118,7 +120,7 @@ onMounted(() => {
                               color: getRoleStyle(role.name).text,
                               borderColor: getRoleStyle(role.name).border 
                           }">
-                      {{ role.name }}
+                      {{ parroquiaStore.roleLabel(role.name) }}
                     </span>
                   </template>
                   <span v-else class="text-muted fst-italic px-2 small">Sin rol</span>

@@ -23,6 +23,7 @@ import {
   Calendar,
   KeyRound,
   Settings,
+  Building2,
 } from 'lucide-vue-next';
 
 const route = useRoute();
@@ -101,6 +102,16 @@ const misGruposDetalle = computed(() => {
 // Estructuramos la navegación por secciones
 const menuSections = computed(() => {
   const sections = [];
+
+  // --- 0. PLATAFORMA (proveedor) ---
+  if (authStore.can('administrar plataforma')) {
+    sections.push({
+      title: 'Plataforma',
+      items: [
+        { name: 'Parroquias', to: { name: 'parroquias' }, icon: Building2, permission: 'administrar plataforma' },
+      ],
+    });
+  }
 
   // --- 1. SECCIÓN PRINCIPAL ---
   sections.push({
