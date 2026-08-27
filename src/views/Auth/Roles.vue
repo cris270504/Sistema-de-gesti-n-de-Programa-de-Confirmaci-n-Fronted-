@@ -182,7 +182,7 @@ const handleDelete = async (role) => {
 
     <div class="surface">
       <div>
-        <div class="table-wrap">
+        <div class="table-wrap cards-sm cards-sm--hide-first">
           <table class="mb-0">
             <thead class="table-light">
               <tr>

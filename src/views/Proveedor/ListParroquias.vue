@@ -195,7 +195,7 @@ function copiar(txt) {
       </div>
     </div>
 
-    <div class="surface table-wrap">
+    <div class="surface table-wrap cards-sm">
       <table class="mb-0">
         <thead>
           <tr>

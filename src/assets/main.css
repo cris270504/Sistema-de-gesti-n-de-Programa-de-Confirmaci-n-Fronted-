@@ -326,6 +326,38 @@ textarea {
 table {
   @apply w-full border-collapse text-sm;
 }
+
+/* Tabla → tarjetas apiladas en celular. Se activa poniendo `.cards-sm` en el
+   contenedor de la tabla (envoltura .table-wrap / .surface). Cada fila pasa a
+   ser un bloque con borde; la cabecera se oculta (cada celda ya se explica
+   sola). Mobile-only, por eso el uso liberal de !important. */
+@media (max-width: 767px) {
+  .cards-sm table,
+  .cards-sm tbody,
+  .cards-sm tr,
+  .cards-sm td {
+    display: block !important;
+    width: auto !important;
+  }
+  .cards-sm thead { display: none !important; }
+  .cards-sm tr {
+    border: 1px solid #e5e7eb !important;
+    border-radius: 10px !important;
+    margin: 0.6rem !important;
+    padding: 0.4rem 0.75rem !important;
+    background: #fff !important;
+  }
+  .cards-sm tr:hover { background: #fff !important; }
+  .cards-sm td {
+    border: 0 !important;
+    padding: 0.3rem 0 !important;
+    text-align: left !important;
+    white-space: normal !important;
+  }
+  .cards-sm td:empty { display: none !important; }
+  /* Oculta la primera celda cuando es solo un número de fila (#/N°). */
+  .cards-sm--hide-first td:first-child { display: none !important; }
+}
 thead {
   @apply bg-gray-100 text-gray-700;
 }

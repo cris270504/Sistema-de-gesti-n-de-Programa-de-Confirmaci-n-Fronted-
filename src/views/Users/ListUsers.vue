@@ -91,7 +91,7 @@ onMounted(() => {
       <span class="users-count">{{ usuariosVisibles.length }} usuario(s)</span>
     </div>
 
-    <div class="surface table-wrap">
+    <div class="surface table-wrap cards-sm">
       <table class="mb-0">
         <thead>
           <tr>

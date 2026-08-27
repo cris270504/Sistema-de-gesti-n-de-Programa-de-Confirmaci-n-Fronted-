@@ -93,7 +93,7 @@ const handleDelete = async (id, nombre) => {
 
     <div v-if="error" class="alert-error !mb-4">{{ error }}</div>
 
-    <div class="surface table-wrap">
+    <div class="surface table-wrap cards-sm">
       <table class="mb-0">
         <thead>
           <tr>

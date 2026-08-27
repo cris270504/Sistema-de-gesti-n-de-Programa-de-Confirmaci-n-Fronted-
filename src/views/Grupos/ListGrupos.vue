@@ -86,7 +86,7 @@ onMounted(() => {
             </button>
         </template>
 
-        <div class="surface table-wrap">
+        <div class="surface table-wrap cards-sm">
                 <table class="table align-middle mb-0">
                     <thead class="bg-light-gray">
                         <tr>

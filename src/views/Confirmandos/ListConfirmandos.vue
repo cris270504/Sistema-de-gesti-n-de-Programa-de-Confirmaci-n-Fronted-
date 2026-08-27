@@ -474,8 +474,8 @@ onUnmounted(() => {
             <!-- Gestión de Errores Visuales -->
             <div v-if="error" class="alert alert-danger m-3" role="alert">{{ error }}</div>
 
-            <!-- Contenedor de la Tabla -->
-            <div class="table-responsive">
+            <!-- Contenedor de la Tabla (tarjetas en celular) -->
+            <div class="table-responsive cards-sm cards-sm--hide-first">
 
                 <!-- El <thead> queda visible durante la carga (skeleton en el <tbody>) para que
                      el usuario ubique la estructura de la tabla de inmediato, en vez de un
