@@ -131,13 +131,13 @@ async function submitUpdate() {
 
         <div class="modal-header">
           <div>
-            <h5 class="modal-title fw-bold text-white">
-              <component :is="isEditing ? SquarePen : Layers" class="h-5 w-5 me-2 text-white-50 d-inline-block align-text-bottom" aria-hidden="true" />
+            <h5 class="modal-title fw-bold">
+              <component :is="isEditing ? SquarePen : Layers" class="h-5 w-5 me-2 d-inline-block align-text-bottom" aria-hidden="true" />
               {{ title }}
             </h5>
-            <p class="text-white-50 small mb-0">Gestión de grupos pastorales.</p>
+            <p class="small mb-0">Gestión de grupos pastorales.</p>
           </div>
-          <button type="button" class="btn-close btn-close-white" @click="close" aria-label="Close"></button>
+          <button type="button" class="btn-close" @click="close" aria-label="Close"></button>
         </div>
 
         <div class="modal-body">
@@ -239,31 +239,11 @@ async function submitUpdate() {
    ESTÉTICA "BLUE HEADER" (MODELO ESTÁNDAR)
 ========================================= */
 
-/* 1. ESTRUCTURA */
-.modal-content {
-  border: none;
-  border-radius: 1rem;
-  background-color: #f8fafc;
-  overflow: hidden;
-  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
-}
+/* El marco del modal (contenido, cabecera, cuerpo) usa el estilo global
+   unificado de src/assets/main.css. Aquí solo quedan los estilos propios
+   del formulario de grupos. */
 
-/* 2. HEADER */
-.modal-header {
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-  color: white;
-  padding: 1.5rem 2rem;
-  border-bottom: none;
-}
-
-.text-white-50 {
-  color: rgba(255, 255, 255, 0.75) !important;
-}
-
-/* 3. BODY & INPUTS */
-.modal-body {
-  padding: 2rem;
-}
+/* INPUTS */
 
 .form-control {
   background-color: #ffffff;

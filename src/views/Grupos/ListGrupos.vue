@@ -156,9 +156,10 @@ onMounted(() => {
                     </tbody>
                 </table>
         </div>
-
-        <GrupoModal ref="modalRef" @saved="recargarTabla" />
     </AppPage>
+
+    <!-- Fuera de <AppPage> para que el estado de carga no lo desmonte -->
+    <GrupoModal ref="modalRef" @saved="recargarTabla" />
 </template>
 
 <style scoped>

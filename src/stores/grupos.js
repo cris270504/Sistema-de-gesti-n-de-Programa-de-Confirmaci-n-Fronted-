@@ -28,6 +28,13 @@ export const useGruposStore = defineStore('grupos', {
             }
         },
         async fetchById(id) {
+            // Si ya lo tenemos (viene completo del listado), lo devolvemos sin tocar
+            // `loading`: el modal de edición vive dentro de <AppPage :loading>, y
+            // encender el loading global lo desmontaría a mitad de la animación de
+            // Bootstrap (TypeError en _showElement). Igual que en los demás stores.
+            const existente = this.byId(id);
+            if (existente) return existente;
+
             this.loading = true
             this.error = null
             try {
