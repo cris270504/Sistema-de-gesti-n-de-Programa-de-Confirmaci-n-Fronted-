@@ -96,66 +96,71 @@ const handleSubmit = async () => {
 </script>
 
 <template>
-    <div class="main-container">
-        
-        <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="!p-4 md:p-6">
+
+        <div class="flex justify-between items-center mb-6">
             <div>
-                <h2 class="page-title">Sacramentos</h2>
-                <p class="page-subtitle">Configuración de rutas sacramentales</p>
+                <h2 class="text-xl font-semibold text-gray-800 !mb-1">Sacramentos</h2>
+                <p class="text-gray-500 text-sm mb-0">Configuración de rutas sacramentales</p>
             </div>
+            <button class="btn-primary !shadow-sm" @click="openModal(null)">
+                <Plus :size="18" class="mr-1.5" />
+                <span class="text-sm">Nuevo Sacramento</span>
+            </button>
         </div>
 
-        <div v-if="loading" class="text-center py-5">
-            <div class="spinner-border text-secondary" role="status"></div>
+        <div v-if="loading" class="!text-center py-16">
+            <div class="inline-block h-8 w-8 animate-spin rounded-full border-4 border-indigo-200 border-t-indigo-600"></div>
+            <p class="!mt-3 text-gray-500 text-sm">Cargando sacramentos...</p>
         </div>
 
-        <div v-else class="card border-0 shadow-sm rounded-3 overflow-hidden">
-            <div class="table-responsive">
-                <table class="table align-middle mb-0">
-                    <thead class="bg-light-gray">
+        <div v-else class="!bg-white rounded-xl !shadow-sm !border border-gray-200 !overflow-hidden">
+            <div class="!overflow-x-auto">
+                <table class="mb-0">
+                    <thead>
                         <tr>
-                            <th class="ps-4 py-2 text-secondary text-uppercase fw-bold" style="width: 5%;">#</th>
-                            <th class="py-2 text-secondary text-uppercase fw-bold" style="width: 25%;">Sacramento</th>
-                            <th class="py-2 text-secondary text-uppercase fw-bold">Requisitos Solicitados</th>
-                            <th class="text-end pe-4 py-2 text-secondary text-uppercase fw-bold" style="width: 15%;">Acciones</th>
+                            <th class="pl-6 w-[5%]">#</th>
+                            <th class="w-[25%]">Sacramento</th>
+                            <th>Requisitos Solicitados</th>
+                            <th class="text-right pr-6 w-[15%]">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr v-if="sacramentos.length === 0">
-                            <td colspan="4" class="text-center p-5 text-muted fs-5">
-                                <FolderOpen :size="48" class="mb-2 opacity-25 d-block mx-auto"/>
+                            <td colspan="4" class="!text-center py-16 text-gray-500">
+                                <FolderOpen :size="48" class="!mb-2 opacity-25 block mx-auto"/>
                                 No hay sacramentos registrados.
                             </td>
                         </tr>
 
-                        <tr v-for="(sacramento, i) in sacramentos" :key="sacramento.id" class="hover-row">
-                            <td class="ps-4 py-3 text-muted fw-bold">{{ i + 1 }}</td>
-                            
-                            <td class="py-3">
-                                <div class="d-flex align-items-center">
-                                    <div class="icon-box me-3">
-                                        <FileCheck :size="18" class="text-primary" />
+                        <tr v-for="(sacramento, i) in sacramentos" :key="sacramento.id">
+                            <td class="pl-6 font-semibold text-gray-500">{{ i + 1 }}</td>
+
+                            <td>
+                                <div class="flex items-center">
+                                    <div class="bg-gray-100 rounded-md !p-2 mr-3 text-indigo-600 shrink-0">
+                                        <FileCheck :size="18" />
                                     </div>
-                                    <span class="fw-bold text-dark fs-6">{{ sacramento.nombre }}</span>
+                                    <span class="font-bold text-gray-900">{{ sacramento.nombre }}</span>
                                 </div>
                             </td>
 
-                            <td class="py-3">
-                                <div v-if="sacramento.requisitos && sacramento.requisitos.length > 0" class="d-flex flex-wrap gap-2">
-                                    <span v-for="req in sacramento.requisitos" :key="req.id" 
-                                          class="badge-req">
-                                        <Check class="h-4 w-4 text-success me-1 d-inline-block align-text-bottom" aria-hidden="true" /> {{ req.nombre }}
+                            <td>
+                                <div v-if="sacramento.requisitos && sacramento.requisitos.length > 0" class="flex !flex-wrap !gap-2">
+                                    <span v-for="req in sacramento.requisitos" :key="req.id"
+                                          class="inline-flex items-center !bg-white !border border-gray-200 text-gray-600 text-xs font-medium px-2.5 !py-1 rounded-md">
+                                        <Check class="h-4 w-4 text-green-600 mr-1 inline-block align-text-bottom" aria-hidden="true" /> {{ req.nombre }}
                                     </span>
                                 </div>
-                                <span v-else class="text-muted fst-italic small px-2">Sin requisitos</span>
+                                <span v-else class="text-gray-400 italic text-sm !px-2">Sin requisitos</span>
                             </td>
 
-                            <td class="text-end pe-4 py-3">
-                                <div class="d-inline-flex gap-2">
-                                    <button class="btn btn-action btn-soft-primary" title="Editar" @click="openModal(sacramento)">
+                            <td class="text-right pr-6">
+                                <div class="inline-flex !gap-2">
+                                    <button class="btn-icon-edit" title="Editar" @click="openModal(sacramento)">
                                         <Pencil :size="18" />
                                     </button>
-                                    <button class="btn btn-action btn-soft-danger" title="Eliminar" @click="remove(sacramento.id)">
+                                    <button class="btn-icon-delete" title="Eliminar" @click="remove(sacramento.id)">
                                         <Trash :size="18" />
                                     </button>
                                 </div>
@@ -247,37 +252,16 @@ const handleSubmit = async () => {
 </template>
 
 <style scoped>
-/* GENERAL STYLES (Vibrant Compact) */
-.page-title { font-size: 1.5rem; font-weight: 700; color: #111827; margin: 0; }
-.page-subtitle { font-size: 0.875rem; color: #6b7280; }
-
-/* TABLE */
-.bg-light-gray { background-color: #f8fafc; border-bottom: 1px solid #e5e7eb; }
-.hover-row:hover td { background-color: #f9fafb; }
-.icon-box { width: 36px; height: 36px; background-color: #f3f4f6; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
-
-/* BADGES */
-.badge-req {
-    background-color: #ffffff;
-    border: 1px solid #e5e7eb;
-    color: #4b5563;
-    padding: 0.35em 0.65em;
-    font-size: 0.8rem;
-    font-weight: 500;
-    border-radius: 6px;
-    display: inline-flex;
-    align-items: center;
-}
-
-/* BUTTONS */
-.btn-action { width: 36px; height: 36px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 8px; border: none; transition: all 0.2s; }
-.btn-soft-primary { background-color: #eff6ff; color: #2563eb; }
-.btn-soft-primary:hover { background-color: #2563eb; color: white; }
-.btn-soft-danger { background-color: #fef2f2; color: #ef4444; }
-.btn-soft-danger:hover { background-color: #ef4444; color: white; }
-
-.btn-primary { background-color: #2563eb; border-color: #2563eb; font-size: 0.9rem; }
-.btn-primary:hover { background-color: #1d4ed8; }
+/* Todo lo que sigue pertenece únicamente al modal de Bootstrap JS (creación/edición),
+   que se deja intacto a propósito hasta el sub-bloque final de la Fase 8. El resto de
+   la vista (header, tabla, badges, botones de acción) ya usa Tailwind directamente en
+   el template, sin necesidad de estilos con scope aquí.
+   OJO: el selector va prefijado con .modal-content para no chocar con la clase Tailwind
+   global ".btn-primary" que ahora también usa el botón "Nuevo Sacramento" del header —
+   como el scope de Vue solo agrega un atributo data-v-*, un selector ".btn-primary" a
+   secas seguiría matcheando ese botón por nombre de clase igual. */
+.modal-content .btn-primary { background-color: #2563eb; border-color: #2563eb; font-size: 0.9rem; }
+.modal-content .btn-primary:hover { background-color: #1d4ed8; }
 
 /* MODAL & CHECKLIST */
 .modal-content { border: none; border-radius: 1rem; overflow: hidden; box-shadow: 0 15px 40px rgba(0,0,0,0.15); }

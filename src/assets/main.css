@@ -1,6 +1,62 @@
 @import "tailwindcss";
 @reference "tailwindcss";
 
+/* ===== INTEGRACIÓN CON BOOTSTRAP (mientras dure la migración de la Fase 8) =====
+   Se probó envolver Bootstrap en su propio cascade layer para que las utilidades de
+   Tailwind le ganaran a los resets de Bootstrap sobre elementos sin clase (ej.
+   `button { border-radius: 0 }` de su Reboot). Se revirtió: Bootstrap marca CASI TODAS
+   sus clases de utilidad (.p-4, .mt-3, .gap-2, .m-4, etc., escala 0–5) como
+   `!important`, y en cascade layers el orden se INVIERTE para declaraciones
+   `!important` (la capa declarada MÁS TEMPRANO gana) — lo opuesto a las declaraciones
+   normales (donde gana la MÁS TARDÍA). Eso hace imposible una sola posición de capa
+   para Bootstrap que pierda contra Tailwind en ambos casos a la vez: perder contra el
+   reset de Tailwind (normal) Y perder contra las utilidades de Tailwind con nombre
+   igual a las de Bootstrap (importante). Se optó por la solución ya probada y sin este
+   conflicto: Bootstrap sigue sin layer (como siempre), y cada caso de colisión se
+   resuelve puntualmente:
+   1. Propiedades de un reset de elemento sin clase (button, input, table...): se
+      agrupan en una clase propia con nombre específico en vez de depender de un
+      selector de elemento — ver ".btn-*"/".alert-*" más abajo (una clase con nombre
+      siempre le gana a un selector de elemento sin clase, con o sin Bootstrap).
+   2. Clases de espaciado (p-*, m-*, gap-* y sus variantes direccionales) cuyo NOMBRE
+      coincide con la escala de Bootstrap (0 a 5): Bootstrap las marca `!important`, así
+      que sin más le ganan a la utilidad de Tailwind del mismo nombre sin importar
+      especificidad. Solución verificada en vivo: anteponer "!" a la clase de Tailwind
+      (ej. "!p-4", "!mt-3", "!gap-2") — las utilidades de Tailwind ya viven dentro de
+      su propio cascade layer (interno, automático, "utilities") aunque Bootstrap no
+      tenga ninguno; para declaraciones `!important` las reglas DENTRO de un layer le
+      ganan a las que están fuera de cualquier layer (es el caso de Bootstrap), al
+      revés que con declaraciones normales. Confirmado con p-4 (Tailwind 16px vs
+      Bootstrap 24px): con "!p-4" el resultado medido fue 16px.
+
+      IMPORTANTE: esto NO es solo un problema de espaciado — es CUALQUIER clase de
+      utilidad de Tailwind cuyo nombre literal coincida con una clase de utilidad que
+      Bootstrap también define (Bootstrap marca prácticamente TODAS sus utilidades
+      `!important`, no solo las de espaciado). Se confirmaron en vivo, entre otras:
+        - Espaciado: p-*/px-*/py-*/pt-*/pb-*/ps-*/pe-*/m-*/mx-*/my-*/mt-*/mb-*/ms-*/
+          me-*/gap-* con número 0–5 (ej. p-4, mt-3, gap-2). Fuera de ese rango (p-6,
+          mb-8, valores arbitrarios `p-[1rem]`) Bootstrap no define la clase, no hace
+          falta el prefijo. mr-*/ml-* son siempre seguros (Bootstrap 5 no los usa).
+        - Bordes: "border" a secas (border-width) y "border-0". OJO: "border-gray-200",
+          "border-4", "border-t-indigo-600" etc. NO chocan (Bootstrap no define esos
+          nombres compuestos) — solo la palabra sola "border" necesita "!".
+        - "rounded" a secas (Bootstrap también la define). "rounded-md/lg/xl/full/pill"
+          etc. NO chocan, son nombres que Bootstrap no usa.
+        - "shadow", "shadow-sm", "shadow-lg" (las tres existen en Bootstrap también).
+        - "text-center" (Bootstrap la define; "text-left"/"text-right" NO, Bootstrap
+          usa "text-start"/"text-end").
+        - "overflow-hidden", "overflow-auto", "overflow-x-auto", "overflow-y-auto".
+        - "flex-wrap", "flex-nowrap".
+        - "bg-white", "bg-primary", "bg-transparent", "text-white", "text-primary"
+          (esta última choca porque además definimos nuestro propio token de marca
+          --color-primary más abajo, generando una utilidad Tailwind real con ese
+          nombre).
+      Si aparece una duda con una clase nueva no listada acá: revisar en el navegador
+      con getComputedStyle si el valor coincide con el de Tailwind o con el de
+      Bootstrap antes de dar un archivo por terminado — no asumir que "se ve bien" es
+      suficiente, varios de estos casos dan colores/tamaños parecidos por coincidencia
+      incluso cuando gana el framework equivocado. */
+
 /* Token de marca: alinea las utilidades Tailwind (text-primary, bg-primary/5, etc.)
    con el azul ya usado en Sidebar/Dashboard, evitando clases "primary" sin efecto. */
 @theme {
@@ -73,8 +129,19 @@ textarea {
          focus:border-indigo-500 focus:ring-indigo-200/50 transition-all duration-200;
 }
 
-/* ===== BOTONES ===== */
-button {
+/* ===== BOTONES =====
+   OJO: mientras Bootstrap siga cargado globalmente (main.js lo importa después de
+   este archivo), un selector de elemento sin clase como `button { ... }` pierde el
+   empate de cascada contra el reset de Bootstrap para <button> (mismo peso de
+   especificidad, Bootstrap gana por orden de carga) — se comprobó en vivo que el
+   border-radius quedaba en 0. Por eso cada .btn-* clase de acá incluye TODAS sus
+   propiedades compartidas (no depende de un selector `button` base) y así no
+   compite con Bootstrap por especificidad. */
+.btn-primary,
+.btn-secondary,
+.btn-danger,
+.btn-success,
+.btn-outline {
   @apply inline-flex items-center justify-center rounded-md px-4 py-2 font-medium transition-colors duration-200
          focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2;
 }
@@ -86,6 +153,26 @@ button {
 }
 .btn-danger {
   @apply bg-rose-600 text-white hover:bg-rose-700 focus-visible:ring-rose-500;
+}
+.btn-success {
+  @apply bg-green-600 text-white hover:bg-green-700 focus-visible:ring-green-500;
+}
+.btn-outline {
+  @apply border border-gray-300 text-gray-700 bg-white hover:bg-gray-50;
+}
+
+/* Botones de acción tipo ícono (editar/eliminar en filas de tabla) — mismo motivo que
+   los .btn-* de arriba: agrupados en clases con nombre para no depender de un
+   selector de elemento `button` que perdería contra el reset de Bootstrap. */
+.btn-icon-edit,
+.btn-icon-delete {
+  @apply inline-flex items-center justify-center h-9 w-9 rounded-lg transition-colors;
+}
+.btn-icon-edit {
+  @apply bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white;
+}
+.btn-icon-delete {
+  @apply bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white;
 }
 
 /* ===== TARJETAS ===== */
@@ -150,8 +237,17 @@ tbody tr:hover {
   @apply flex-1 overflow-y-auto p-6 bg-gray-50 transition-colors duration-300;
 }
 
-/* ===== ALERTAS ===== */
-.alert {
+/* ===== ALERTAS =====
+   Igual que con los .btn-*: no usamos una clase base ".alert" compartida porque
+   Bootstrap YA define su propia ".alert" con propiedades reales (no solo variables
+   CSS) — al cargar después, le ganaría a la nuestra. Bootstrap no usa "-error" (usa
+   "-danger"), así que .alert-error/-info/-success/-warning sí son nombres libres,
+   pero cada uno lleva sus propiedades compartidas repetidas para no depender de
+   ".alert" sola. */
+.alert-info,
+.alert-success,
+.alert-warning,
+.alert-error {
   @apply flex items-center gap-3 rounded-md border px-4 py-3 text-sm shadow-sm;
 }
 .alert-info {
