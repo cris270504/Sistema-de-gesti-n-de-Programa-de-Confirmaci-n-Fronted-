@@ -137,16 +137,16 @@ onMounted(() => {
                             <td class="text-end pe-4 py-2">
                                 <div class="d-inline-flex gap-2">
                                     <RouterLink :to="{ path: 'grupos/' + g.id + '/asignacion' }"
-                                        class="btn btn-action btn-soft-success" title="Asignar Personas">
+                                        class="btn-action btn-soft-success" title="Asignar Personas">
                                         <UserPlus :size="18" />
                                     </RouterLink>
 
-                                    <button class="btn btn-action btn-soft-primary" title="Editar"
+                                    <button class="btn-action btn-soft-primary" title="Editar"
                                         @click="abrirEditar(g.id)">
                                         <Pencil :size="18" />
                                     </button>
 
-                                    <button class="btn btn-action btn-soft-danger" title="Eliminar"
+                                    <button class="btn-action btn-soft-danger" title="Eliminar"
                                         @click="remove(g.id, g.nombre)">
                                         <Trash :size="18" />
                                     </button>

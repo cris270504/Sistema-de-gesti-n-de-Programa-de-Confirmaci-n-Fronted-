@@ -183,11 +183,15 @@ textarea {
 .btn-action,
 .btn-icon-edit,
 .btn-icon-delete {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
+  /* !important en la caja y el centrado: si algún botón lleva además la clase
+     `.btn` de Bootstrap (cargada después), su `display:inline-block` ganaría el
+     empate de cascada y el ícono quedaría sobre la línea base, no centrado. */
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 36px !important;
+  height: 36px !important;
+  padding: 0 !important;
   border-radius: 8px;
   border: 1px solid transparent;
   background: transparent;
