@@ -206,7 +206,7 @@ const UMBRALES = [
 /* Grilla que aprovecha todo el ancho: 3 tarjetas por fila en desktop, 2, luego 1. */
 .cfg__form {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
   gap: 1rem;
   align-items: start;
 }
@@ -256,7 +256,7 @@ const UMBRALES = [
 /* En pantallas anchas los umbrales van en 2-3 columnas para no dejar espacio muerto. */
 .umbral-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
   gap: 0 2rem;
 }
 .umbral {

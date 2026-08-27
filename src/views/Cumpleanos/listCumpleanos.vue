@@ -3,8 +3,12 @@ import { storeToRefs } from 'pinia';
 import { Modal } from 'bootstrap';
 import { attachModalFocusReturn } from '@/composables/useModalFocusReturn';
 import { Cake, ArrowRight } from 'lucide-vue-next';
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
 import { useRouter } from 'vue-router';
+import { useMediaQuery } from '@/composables/useMediaQuery';
+
+const esMovil = useMediaQuery('(max-width: 767px)');
+const calendarRef = ref(null);
 
 // --- FullCalendar Imports ---
 import FullCalendar from '@fullcalendar/vue3';
@@ -139,12 +143,15 @@ const calendarEvents = computed(() => {
 
 const calendarOptions = computed(() => ({
     plugins: [dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin],
-    initialView: 'dayGridMonth',
+    initialView: esMovil.value ? 'listMonth' : 'dayGridMonth',
     timeZone: 'local',
     locale: esLocale,
-    aspectRatio: 2.3,
+    aspectRatio: esMovil.value ? 1 : 2.3,
+    height: esMovil.value ? 'auto' : undefined,
     eventDisplay: 'block',
-    headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,listMonth' },
+    headerToolbar: esMovil.value
+        ? { left: 'prev,next', center: 'title', right: 'today' }
+        : { left: 'prev,next today', center: 'title', right: 'dayGridMonth,listMonth' },
     buttonText: { today: 'Hoy', month: 'Mes', list: 'Lista' },
     displayEventTime: false,
     events: calendarEvents.value,
@@ -164,6 +171,11 @@ const calendarOptions = computed(() => ({
         detailsModalInstance.value?.show();
     }
 }));
+
+watch(esMovil, (movil) => {
+    const api = calendarRef.value?.getApi?.();
+    if (api) api.changeView(movil ? 'listMonth' : 'dayGridMonth');
+});
 
 const irAlGrupo = (grupoId) => {
     if (grupoId) {
@@ -220,7 +232,7 @@ onUnmounted(() => {
         </template>
 
         <div class="surface surface--pad mb-4">
-            <FullCalendar :options="calendarOptions" />
+            <FullCalendar ref="calendarRef" :options="calendarOptions" />
         </div>
 
         <div class="modal fade" id="detailsModal" tabindex="-1" aria-hidden="true">

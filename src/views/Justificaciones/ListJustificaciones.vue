@@ -12,6 +12,9 @@ import {
 import { confirmar } from '../../funciones';
 import PerfilConfirmandoModal from '../../components/Modals/PerfilConfirmandoModal.vue';
 import AppPage from '@/components/AppPage.vue';
+import { useMediaQuery } from '@/composables/useMediaQuery';
+
+const esMovil = useMediaQuery('(max-width: 767px)');
 
 const perfilModalRef = ref(null);
 const justificacionesStore = useJustificacionesStore();
@@ -281,8 +284,8 @@ const rechazarCumplimientoSwal = async (item) => {
                     <p class="mb-0 small">No se registran faltas en esta categoría.</p>
                 </div>
 
-                <!-- Datos -->
-                <div v-else class="table-responsive">
+                <!-- Datos: tabla en escritorio -->
+                <div v-else-if="!esMovil" class="table-responsive">
                     <table class="table table-hover align-middle mb-0 text-nowrap">
                         <thead class="bg-light text-uppercase text-secondary" style="font-size: 0.75rem; letter-spacing: 0.5px;">
                             <tr>
@@ -406,6 +409,74 @@ const rechazarCumplimientoSwal = async (item) => {
                         </tbody>
                     </table>
                 </div>
+
+                <!-- Datos: tarjetas en móvil -->
+                <div v-else class="just-cards">
+                    <div v-if="justificacionesFiltradas.length === 0" class="text-center py-5 text-muted fst-italic">
+                        No hay resultados en "{{ filtroActual }}".
+                    </div>
+                    <article v-for="item in justificacionesFiltradas" :key="item.asistencia_id" class="just-card"
+                        :class="getClaseAlertaFecha(item.fecha_falta)">
+                        <div class="just-card__top">
+                            <div>
+                                <div class="fw-bold text-dark">{{ item.confirmando }}</div>
+                                <span class="badge bg-light text-secondary border mt-1">{{ item.grupo }}</span>
+                            </div>
+                            <span class="badge text-uppercase border rounded-pill px-2 py-1" :class="{
+                                'bg-danger-subtle text-danger border-danger': item.estado_justificacion === 'injustificado',
+                                'bg-warning-subtle text-warning-emphasis border-warning': item.estado_justificacion === 'pendiente',
+                                'bg-success-subtle text-success border-success': item.estado_justificacion === 'justificado'
+                            }">{{ item.estado_justificacion }}</span>
+                        </div>
+
+                        <dl class="just-card__data">
+                            <div>
+                                <dt>Falta</dt>
+                                <dd>{{ formatFechaFalta(item.fecha_falta) }} · <span class="text-muted">{{ item.tema_reunion }}</span></dd>
+                            </div>
+                            <div v-if="item.estado_justificacion !== 'injustificado'">
+                                <dt>Acción reparadora</dt>
+                                <dd>{{ item.motivo }} <span v-if="item.descripcion" class="text-muted fst-italic">— "{{ item.descripcion }}"</span></dd>
+                            </div>
+                            <div v-if="item.fecha_acuerdo">
+                                <dt>Fecha acuerdo</dt>
+                                <dd>{{ formatFechaFalta(item.fecha_acuerdo) }}</dd>
+                            </div>
+                            <div>
+                                <dt>Apoderado</dt>
+                                <dd>{{ item.apoderado_nombre }} · {{ item.apoderado_celular }}</dd>
+                            </div>
+                        </dl>
+
+                        <div class="just-card__acciones">
+                            <button @click="perfilModalRef.abrir(item.confirmando_id)" class="btn-action btn-soft-secondary"
+                                title="Ver ficha">
+                                <User :size="15" />
+                            </button>
+                            <template v-if="item.estado_justificacion === 'injustificado'">
+                                <button @click="abrirModalAcuerdo(item)" class="btn just-btn btn-primary">
+                                    <Plus :size="15" /> Registrar acuerdo
+                                </button>
+                            </template>
+                            <template v-else-if="item.estado_justificacion === 'pendiente'">
+                                <button @click="abrirModalAcuerdo(item)" class="btn-action btn-soft-warning" title="Editar acuerdo">
+                                    <Pencil :size="14" />
+                                </button>
+                                <button @click="confirmarCumplimientoSwal(item)" class="btn just-btn btn-success">
+                                    <Check :size="15" /> Cumplió
+                                </button>
+                                <button @click="rechazarCumplimientoSwal(item)" class="btn-action btn-soft-danger" title="No cumplió">
+                                    <X :size="16" />
+                                </button>
+                            </template>
+                            <template v-else-if="item.estado_justificacion !== 'justificado'">
+                                <button @click="abrirModalAcuerdo(item)" class="btn-action btn-soft-secondary" title="Ver detalles">
+                                    <Pencil :size="14" />
+                                </button>
+                            </template>
+                        </div>
+                    </article>
+                </div>
             </div>
         </div>
 
@@ -472,6 +543,58 @@ const rechazarCumplimientoSwal = async (item) => {
 </template>
 
 <style scoped>
+/* ===== Tarjetas (móvil) ===== */
+.just-cards {
+    display: flex;
+    flex-direction: column;
+}
+.just-card {
+    padding: 0.85rem;
+    border-top: 1px solid #f1f5f9;
+}
+.just-card:first-child { border-top: 0; }
+.just-card__top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+.just-card__data {
+    margin: 0.6rem 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+.just-card__data dt {
+    font-size: 0.64rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #94a3b8;
+}
+.just-card__data dd {
+    margin: 0;
+    font-size: 0.83rem;
+    color: #334155;
+}
+.just-card__acciones {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.7rem;
+}
+.just-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: 36px;
+    padding: 0 0.9rem;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
 .rounded-4 {
     border-radius: 1rem !important;
 }

@@ -291,6 +291,22 @@ textarea {
   gap: .5rem;
 }
 
+/* En celular todos los modales ocupan el ancho disponible (modal-lg/xl incluidos)
+   con el cuerpo desplazable, en vez de desbordar la pantalla. */
+@media (max-width: 575.98px) {
+  .modal-dialog {
+    margin: .5rem;
+    max-width: none;
+  }
+  .modal-header { padding: .9rem 1rem !important; }
+  .modal-body {
+    padding: 1rem !important;
+    max-height: 74vh;
+    overflow-y: auto;
+  }
+  .modal-footer { padding: .75rem 1rem !important; }
+}
+
 /* ===== SUPERFICIE ESTÁNDAR (contenedor blanco de listas/tablas) ===== */
 .surface {
   @apply bg-white rounded-xl shadow-sm overflow-hidden;

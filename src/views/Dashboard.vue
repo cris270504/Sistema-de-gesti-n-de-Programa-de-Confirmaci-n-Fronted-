@@ -12,6 +12,9 @@ import { confirmar } from '@/funciones';
 import PerfilConfirmandoModal from '@/components/Modals/PerfilConfirmandoModal.vue';
 import AppPage from '@/components/AppPage.vue';
 import AppSkeleton from '@/components/AppSkeleton.vue';
+import { useMediaQuery } from '@/composables/useMediaQuery';
+
+const esMovil = useMediaQuery('(max-width: 767px)');
 
 // 1. Instancias
 const authStore = useAuthStore();
@@ -176,7 +179,7 @@ const confirmarRetiroJoven = async (joven) => {
           <div v-if="loadingDashboard" class="p-3">
             <AppSkeleton skeleton="table" />
           </div>
-          <div v-else class="table-responsive">
+          <div v-else-if="!esMovil" class="table-responsive">
             <table class="table table-hover align-middle mb-0">
               <thead class="bg-light text-muted small text-uppercase">
                 <tr>
@@ -256,6 +259,48 @@ const confirmarRetiroJoven = async (joven) => {
                 </tr>
               </tbody>
             </table>
+          </div>
+
+          <!-- Tarjetas en móvil -->
+          <div v-else class="dash-cards">
+            <div v-if="alertasFiltradas.length === 0" class="text-center py-4 text-muted">
+              Todo en orden. No hay alertas críticas.
+            </div>
+            <article v-for="c in alertasFiltradas" :key="c.id" class="dash-card">
+              <div class="dash-card__top">
+                <button @click="perfilModalRef.abrir(c.id)"
+                  class="btn btn-sm btn-light text-secondary rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                  style="width: 30px; height: 30px;" title="Ver ficha">
+                  <User :size="14" />
+                </button>
+                <div class="flex-grow-1">
+                  <div class="fw-bold">{{ c.nombre_completo }}</div>
+                  <div v-if="esGestor" class="small text-muted">{{ c.grupo || 'Sin grupo' }}</div>
+                  <div class="small mt-1" :class="{
+                    'text-danger fw-semibold': c.nivel_riesgo === 'ALTO',
+                    'text-warning-custom': c.nivel_riesgo === 'MEDIO',
+                    'text-muted': c.nivel_riesgo === 'BAJO'
+                  }">{{ c.motivo_alerta }}</div>
+                </div>
+                <button v-if="c.injustificadas_seguidas >= 3 || c.total_faltas_injustificadas >= 5" type="button"
+                  @click="confirmarRetiroJoven(c)"
+                  class="btn btn-sm btn-link p-1 rounded-circle hover-danger-btn d-inline-flex align-items-center justify-content-center flex-shrink-0"
+                  style="width: 32px; height: 32px;" title="Retirar del programa">
+                  <CircleAlert class="h-5 w-5 text-danger" />
+                </button>
+              </div>
+
+              <div class="dash-card__chips">
+                <span class="badge bg-warning-subtle text-warning border border-warning-subtle">{{ c.total_faltas_justificadas }} justif.</span>
+                <span class="badge bg-info-subtle text-info border border-info-subtle">{{ c.total_tardanzas }} tardanzas</span>
+              </div>
+
+              <a :href="'https://wa.me/51' + c.celular_apoderado" target="_blank"
+                class="dash-card__wa text-success text-decoration-none">
+                <MessageCircle class="h-4 w-4 me-1 d-inline-block align-text-bottom" aria-hidden="true" />
+                {{ c.nombre_apoderado }} · {{ c.celular_apoderado }}
+              </a>
+            </article>
           </div>
         </div>
 
@@ -354,6 +399,32 @@ const confirmarRetiroJoven = async (joven) => {
 </template>
 
 <style scoped>
+/* ===== Tarjetas de alertas (móvil) ===== */
+.dash-cards { display: flex; flex-direction: column; }
+.dash-card {
+  padding: 0.85rem;
+  border-top: 1px solid #f1f5f9;
+}
+.dash-card:first-child { border-top: 0; }
+.dash-card__top {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+.dash-card__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.55rem 0 0;
+}
+.dash-card__wa {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 0.5rem;
+  font-size: 0.83rem;
+  font-weight: 600;
+}
+
 .rounded-4 {
   border-radius: 1rem !important;
 }

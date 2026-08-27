@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue';
+import { ref, onMounted, onUnmounted, computed, nextTick, watch } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { storeToRefs } from 'pinia';
 import { Modal } from 'bootstrap';
@@ -18,6 +18,10 @@ import { useReunionesStore } from '../../stores/reunions';
 import { useParroquiaStore } from '@/stores/parroquia';
 import { useRoute, useRouter } from 'vue-router';
 import AppPage from '@/components/AppPage.vue';
+import { useMediaQuery } from '@/composables/useMediaQuery';
+
+const esMovil = useMediaQuery('(max-width: 767px)');
+const calendarRef = ref(null);
 
 // --- Stores ---
 const reunionesStore = useReunionesStore();
@@ -69,12 +73,16 @@ const formattedEvents = computed(() => {
 
 const calendarOptions = computed(() => ({
   plugins: [dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin],
-  initialView: 'dayGridMonth',
+  // En celular el calendario mensual es ilegible: arranca en vista de lista.
+  initialView: esMovil.value ? 'listMonth' : 'dayGridMonth',
   timeZone: 'local',
   locale: esLocale,
-  aspectRatio: 2.3,
+  aspectRatio: esMovil.value ? 1 : 2.3,
+  height: esMovil.value ? 'auto' : undefined,
   eventDisplay: 'block',
-  headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,listMonth' },
+  headerToolbar: esMovil.value
+    ? { left: 'prev,next', center: 'title', right: 'today' }
+    : { left: 'prev,next today', center: 'title', right: 'dayGridMonth,listMonth' },
   buttonText: { today: 'Hoy', month: 'Mes', list: 'Lista' },
   events: formattedEvents.value,
   displayEventTime: false,
@@ -83,6 +91,12 @@ const calendarOptions = computed(() => ({
   eventClick: handleEventClick,
   dateClick: handleDateClick,
 }));
+
+// Al cruzar el breakpoint, cambiar la vista del calendario ya montado.
+watch(esMovil, (movil) => {
+  const api = calendarRef.value?.getApi?.();
+  if (api) api.changeView(movil ? 'listMonth' : 'dayGridMonth');
+});
 
 const extractDateTime = (isoString) => {
   if (!isoString) return { date: '', time: '09:00' };
@@ -308,7 +322,7 @@ onUnmounted(() => {
     </div>
 
     <div class="surface surface--pad mb-4">
-      <FullCalendar :options="calendarOptions" />
+      <FullCalendar ref="calendarRef" :options="calendarOptions" />
     </div>
 
     <div class="modal fade" id="detailsModal" tabindex="-1" aria-hidden="true">

@@ -154,7 +154,7 @@ async function submitPassword() {
 <style scoped>
 .prof-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
     gap: 1.25rem;
     align-items: start;
 }

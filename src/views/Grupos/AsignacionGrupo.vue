@@ -19,6 +19,9 @@ import AsignarConfirmandosModal from '@/components/Modals/AsignarConfirmandosMod
 import PerfilConfirmandoModal from '../../components/Modals/PerfilConfirmandoModal.vue';
 import ApoderadosModal from '@/components/Modals/ApoderadosModal.vue'; // NUEVO MODAL
 import AppSkeleton from '@/components/AppSkeleton.vue';
+import { useMediaQuery } from '@/composables/useMediaQuery';
+
+const esMovil = useMediaQuery('(max-width: 767px)');
 
 const props = defineProps({ id: { type: [Number, String], required: true } });
 
@@ -151,7 +154,7 @@ const countEntregados = (requisitos) => requisitos?.filter(r => r.pivot.estado =
                                 Gestionar Inscripción
                             </button>
                         </div>
-                        <div class="table-responsive">
+                        <div v-if="!esMovil" class="table-responsive">
                             <table class="table align-middle mb-0">
                                 <thead class="bg-light text-muted small text-uppercase">
                                     <tr>
@@ -227,6 +230,52 @@ const countEntregados = (requisitos) => requisitos?.filter(r => r.pivot.estado =
                                 </tbody>
                             </table>
                         </div>
+
+                        <!-- Tarjetas en móvil -->
+                        <div v-else class="mg-cards">
+                            <div v-if="!confirmandosProcesados.length" class="text-center py-5 text-muted">
+                                <User :size="32" class="mb-2 opacity-50" />
+                                <p class="mb-0">No hay confirmandos en este grupo.</p>
+                            </div>
+                            <article v-for="(conf, i) in confirmandosProcesados" :key="conf.id" class="mg-card"
+                                :class="conf.alerta?.claseFila">
+                                <div class="mg-card__top">
+                                    <div>
+                                        <div class="fw-bold text-dark">{{ i + 1 }}. {{ conf.apellidos }}, {{ conf.nombres }}</div>
+                                        <div class="small text-secondary d-flex align-items-center gap-1">
+                                            <Phone :size="12" /> {{ conf.celular || 'Sin celular' }}
+                                        </div>
+                                    </div>
+                                    <span v-if="conf.alerta" :class="['badge-alert-glow', conf.alerta.nivel_riesgo]">
+                                        <AlertOctagon v-if="conf.alerta.nivel_riesgo === 'ALTO'" :size="12" />
+                                        <AlertTriangle v-else :size="12" /> RIESGO
+                                    </span>
+                                </div>
+
+                                <div class="mg-card__chips">
+                                    <span class="badge bg-warning-subtle text-warning">{{ conf.total_faltas_justificadas || 0 }} Justif.</span>
+                                    <span class="badge bg-info-subtle text-info">{{ conf.total_tardanzas || 0 }} Tardanzas</span>
+                                    <span class="badge bg-light text-dark border">Progreso {{ countEntregados(conf.requisitos) }}/{{ conf.requisitos?.length || 0 }}</span>
+                                </div>
+
+                                <div class="mg-card__acciones">
+                                    <button class="btn btn-sm btn-light border text-primary d-inline-flex align-items-center gap-1"
+                                        @click="apoderadosModalRef.open(conf)">
+                                        <ShieldCheck :size="15" /> {{ conf.apoderados?.length || 0 }} apod.
+                                    </button>
+                                    <span class="mg-card__spacer"></span>
+                                    <button class="btn btn-sm btn-theme mg-iconbtn" title="Editar" @click="modalRef.open(conf.id)">
+                                        <Pencil :size="15" />
+                                    </button>
+                                    <button class="btn btn-sm btn-theme mg-iconbtn" title="Requisitos" @click="requisitosModalRef.open(conf)">
+                                        <FileText :size="15" />
+                                    </button>
+                                    <button class="btn btn-sm btn-theme mg-iconbtn" title="Ficha" @click="perfilModalRef.abrir(conf.id)">
+                                        <User :size="15" />
+                                    </button>
+                                </div>
+                            </article>
+                        </div>
                     </div>
                 </div>
 
@@ -278,10 +327,49 @@ const countEntregados = (requisitos) => requisitos?.filter(r => r.pivot.estado =
 }
 
 .page-title {
-    font-size: 1.4rem;
+    font-size: 1.15rem;
     font-weight: 800;
     color: #1e293b;
     margin: 0;
+}
+@media (min-width: 768px) {
+    .page-title { font-size: 1.4rem; }
+}
+
+/* ===== Tarjetas (móvil) ===== */
+.mg-cards { display: flex; flex-direction: column; }
+.mg-card {
+    padding: 0.85rem;
+    border-top: 1px solid #f1f5f9;
+}
+.mg-card:first-child { border-top: 0; }
+.mg-card__top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+.mg-card__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0.55rem;
+}
+.mg-card__acciones {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.7rem;
+}
+.mg-card__spacer { flex: 1; }
+.mg-iconbtn {
+    width: 38px;
+    height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9px;
+    padding: 0;
 }
 
 .page-subtitle {
