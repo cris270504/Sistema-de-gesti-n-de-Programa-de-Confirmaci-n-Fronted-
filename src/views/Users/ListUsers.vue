@@ -18,6 +18,14 @@ const usuariosOrdenados = computed(() => [...(users.value || [])].sort((a, b) =>
   return act !== 0 ? act : (a.name || '').localeCompare(b.name || '', 'es');
 }));
 
+// Filtro por estado. Por defecto solo los activos.
+const filtroEstado = ref('activos');
+const usuariosVisibles = computed(() => {
+  if (filtroEstado.value === 'activos') return usuariosOrdenados.value.filter(u => u.activo !== false);
+  if (filtroEstado.value === 'inactivos') return usuariosOrdenados.value.filter(u => u.activo === false);
+  return usuariosOrdenados.value;
+});
+
 const gruposDe = (u) => (u.grupos?.length ?? u.grupo_ids?.length ?? 0);
 
 const authStore = useAuthStore();
@@ -71,6 +79,18 @@ onMounted(() => {
 
     <div v-if="error" class="alert-error !mb-4">{{ error }}</div>
 
+    <div class="users-bar">
+      <label class="users-filter">
+        <span>Mostrar</span>
+        <select v-model="filtroEstado">
+          <option value="activos">Activos</option>
+          <option value="inactivos">Deshabilitados</option>
+          <option value="todos">Todos</option>
+        </select>
+      </label>
+      <span class="users-count">{{ usuariosVisibles.length }} usuario(s)</span>
+    </div>
+
     <div class="surface table-wrap">
       <table class="mb-0">
         <thead>
@@ -82,11 +102,13 @@ onMounted(() => {
           </tr>
         </thead>
           <tbody>
-            <tr v-if="!users || users.length === 0">
-              <td colspan="4" class="text-center py-5 text-muted">No hay usuarios registrados.</td>
+            <tr v-if="usuariosVisibles.length === 0">
+              <td colspan="4" class="text-center py-5 text-muted">
+                {{ (users && users.length) ? 'No hay usuarios con este filtro.' : 'No hay usuarios registrados.' }}
+              </td>
             </tr>
 
-            <tr v-for="u in usuariosOrdenados" :key="u.id" class="hover-row"
+            <tr v-for="u in usuariosVisibles" :key="u.id" class="hover-row"
                 :class="{ 'user-row--off': u.activo === false }">
               <td class="ps-4 py-2">
                 <div class="d-flex align-items-center">
@@ -159,6 +181,32 @@ onMounted(() => {
 </template>
 
 <style scoped>
+/* Barra de filtro */
+.users-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+.users-filter {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #475569;
+}
+.users-filter select {
+    width: auto;
+    min-width: 150px;
+}
+.users-count {
+    font-size: 0.8rem;
+    color: #94a3b8;
+}
+
 /* Usuarios inactivos: fila atenuada + etiqueta fija */
 .user-row--off td:not(:last-child) {
     opacity: 0.55;
