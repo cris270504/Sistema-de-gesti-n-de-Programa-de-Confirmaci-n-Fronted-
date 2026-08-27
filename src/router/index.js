@@ -218,6 +218,14 @@ router.beforeEach((to) => {
   if (needsAuth && !logged) {
     return { name: 'login', query: { redirect: to.fullPath } };
   }
+
+  // El proveedor de la plataforma opera el panel de parroquias, no el Dashboard
+  // de una parroquia. (Cuentas separadas: super-admin de parroquia vs proveedor.)
+  const esProveedor = auth.user?.roles?.includes('proveedor');
+  if (logged && esProveedor && (to.name === 'dashboard' || onlyGuests)) {
+    return { name: 'parroquias' };
+  }
+
   if (onlyGuests && logged) {
     return { name: 'dashboard' };
   }

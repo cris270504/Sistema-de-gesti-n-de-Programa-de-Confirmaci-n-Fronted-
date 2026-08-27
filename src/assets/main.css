@@ -198,6 +198,50 @@ textarea {
   @apply text-sm text-gray-600;
 }
 
+/* ===== MODAL UNIFICADO =====
+   Un solo marco para TODOS los modales del sistema, sin importar las clases que
+   traiga cada uno (bg-primary, bg-light, gradientes, etc.). Se usa !important
+   porque Bootstrap marca sus utilidades de color/spacing como !important. */
+.modal-content {
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 14px !important;
+  overflow: hidden !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, .25) !important;
+}
+.modal-header {
+  background: #ffffff !important;
+  color: #1e293b !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  padding: 1.1rem 1.5rem !important;
+  align-items: center;
+}
+.modal-header .modal-title,
+.modal-header h5,
+.modal-header h4 {
+  color: #1e293b !important;
+  font-weight: 700 !important;
+  font-size: 1.05rem !important;
+}
+.modal-header p,
+.modal-header small,
+.modal-header .text-white-50 {
+  color: #64748b !important;
+}
+.modal-header .btn-close {
+  filter: none !important;
+  opacity: .6;
+}
+.modal-header .btn-close:hover { opacity: 1; }
+/* Íconos de marca dentro de la cabecera: al color de acento */
+.modal-header svg { color: var(--parroquia-color, #2563eb) !important; }
+.modal-body { padding: 1.5rem !important; }
+.modal-footer {
+  background: #f8fafc !important;
+  border-top: 1px solid #e2e8f0 !important;
+  padding: .9rem 1.5rem !important;
+  gap: .5rem;
+}
+
 /* ===== SUPERFICIE ESTÁNDAR (contenedor blanco de listas/tablas) ===== */
 .surface {
   @apply bg-white rounded-xl shadow-sm overflow-hidden;

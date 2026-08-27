@@ -113,6 +113,11 @@ const menuSections = computed(() => {
     });
   }
 
+  // El proveedor (cuenta de plataforma, sin parroquia) solo opera el panel de parroquias.
+  if (authStore.hasRole('proveedor')) {
+    return sections;
+  }
+
   // --- 1. SECCIÓN PRINCIPAL ---
   sections.push({
     title: 'General',
