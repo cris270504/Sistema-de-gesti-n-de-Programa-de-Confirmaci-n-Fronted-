@@ -1,5 +1,4 @@
 import { defineStore } from 'pinia'
-import { useAuthStore } from './auth';
 import {
     createConfirmando,
     deleteConfirmandoById,
@@ -26,80 +25,10 @@ export const useConfirmandosStore = defineStore('confirmandos', {
     }),
 
     getters: {
-        confirmandosAlerta(state) {
-            const authStore = useAuthStore();
-            const esGestor = authStore.can('ver todas las alertas') || authStore.user?.rol === 'coordinador';
-
-            const data = state.items || [];
-
-            return data.map(c => {
-                const asistencias = c.asistencias || [];
-
-                // Ordenar asistencias por fecha
-                const asistenciasOrdenadas = [...asistencias].sort((a, b) => {
-                    return new Date(a.reunion?.fecha || a.created_at) - new Date(b.reunion?.fecha || b.created_at);
-                });
-
-                // Contadores dinámicos y consecutivas
-                let maxInjustificadasSeguidas = 0;
-                let contadorSeguidasActual = 0;
-
-                const conteo = asistenciasOrdenadas.reduce((acc, curr) => {
-                    if (curr.estado === 'falta injustificada') {
-                        acc.faltas_injustificadas++;
-                        contadorSeguidasActual++;
-                        if (contadorSeguidasActual > maxInjustificadasSeguidas) {
-                            maxInjustificadasSeguidas = contadorSeguidasActual;
-                        }
-                    } else if (curr.estado === 'asistio' || curr.estado === 'tardanza') {
-                        contadorSeguidasActual = 0;
-                    }
-
-                    if (curr.estado === 'falta justificada') acc.faltas_justificadas++;
-                    if (curr.estado === 'tardanza') acc.tardanzas++;
-
-                    return acc;
-                }, { faltas_injustificadas: 0, faltas_justificadas: 0, tardanzas: 0 });
-
-                // Determinar semáforo de riesgo
-                let nivelRiesgo = 'NINGUNO';
-                let motivoAlerta = '';
-
-                if (maxInjustificadasSeguidas >= 3 || conteo.faltas_injustificadas >= 5) {
-                    nivelRiesgo = 'ALTO';
-                    motivoAlerta = maxInjustificadasSeguidas >= 3
-                        ? `Alerta Crítica: ${maxInjustificadasSeguidas} faltas injustificadas SEGUIDAS.`
-                        : `Alerta Crítica: ${conteo.faltas_injustificadas} faltas injustificadas acumuladas.`;
-                } else if (conteo.faltas_justificadas >= 4) {
-                    nivelRiesgo = 'MEDIO';
-                    motivoAlerta = `Alerta de Desconexión: Tiene ${conteo.faltas_justificadas} faltas justificadas.`;
-                } else if (conteo.tardanzas >= 4) {
-                    nivelRiesgo = 'BAJO';
-                    motivoAlerta = `Alerta de Impuntualidad: Acumula ${conteo.tardanzas} tardanzas.`;
-                }
-
-                const apoderado = c.apoderados && c.apoderados.length > 0 ? c.apoderados[0] : null;
-
-                return {
-                    ...c,
-                    nombre_completo: `${c.apellidos}, ${c.nombres}`,
-                    total_faltas_injustificadas: conteo.faltas_injustificadas,
-                    total_faltas_justificadas: conteo.faltas_justificadas,
-                    total_tardanzas: conteo.tardanzas,
-                    injustificadas_seguidas: maxInjustificadasSeguidas,
-                    nivel_riesgo: nivelRiesgo,
-                    motivo_alerta: motivoAlerta,
-                    nombre_apoderado: apoderado ? `${apoderado.apellidos}, ${apoderado.nombres}` : 'No asignado',
-                    celular_apoderado: apoderado ? apoderado.celular : c.celular
-                };
-            }).filter(c => {
-                const misGrupos = (authStore.user?.grupo_ids || []).map(Number);
-                const cumpleRol = esGestor || misGrupos.includes(Number(c.grupo_id));
-                const estaActivo = c.estado !== 'retirado';
-                const tieneAlerta = c.nivel_riesgo !== 'NINGUNO';
-                return cumpleRol && estaActivo && tieneAlerta;
-            });
-        },
+        // NOTA: el cálculo de alertas de riesgo vive en el backend (GET /dashboard/metricas,
+        // stores/dashboard.js). Antes había aquí un getter `confirmandosAlerta` que lo
+        // recalculaba en el cliente con umbrales distintos; se eliminó para tener una sola
+        // fuente de verdad (los umbrales serán configurables por parroquia en el backend).
 
         byId: (state) => (id) => state.items.find(c => c.id === Number(id)),
         count: (state) => state.items.length,

@@ -5,6 +5,7 @@ import { showAlerta } from '@/funciones';
 import { useGruposStore } from '../../stores/grupos';
 import { useUsersStore } from '../../stores/users';
 import { useConfirmandosStore } from '../../stores/confirmandos';
+import { useDashboardStore } from '../../stores/dashboard';
 import { useAuthStore } from '@/stores/auth';
 
 // Íconos
@@ -24,8 +25,13 @@ const props = defineProps({ id: { type: [Number, String], required: true } });
 const gruposStore = useGruposStore();
 const usersStore = useUsersStore();
 const confirmandosStore = useConfirmandosStore();
+const dashboardStore = useDashboardStore();
 const authStore = useAuthStore();
-const { confirmandosAlerta, items: allConfirmandos } = storeToRefs(confirmandosStore);
+const { items: allConfirmandos } = storeToRefs(confirmandosStore);
+// Las alertas de riesgo las calcula el backend (GET /dashboard/metricas) y ya vienen
+// filtradas por los grupos del catequista. Antes se recalculaban en el front con
+// umbrales que divergían del backend; ahora hay una sola fuente de verdad.
+const { alertas: dashboardAlertas } = storeToRefs(dashboardStore);
 
 // Estado Local
 const grupo = ref(null);
@@ -55,7 +61,8 @@ const loadData = async () => {
     try {
         const promises = [
             gruposStore.fetchById(Number(props.id)).then(g => { grupo.value = g; }),
-            confirmandosStore.fetchAll()
+            confirmandosStore.fetchAll(),
+            dashboardStore.fetchMetricas()
         ];
         
         if (authStore.can('ver usuarios') || canManageCatequistas.value) {
@@ -74,7 +81,7 @@ const loadData = async () => {
 watch(() => props.id, loadData, { immediate: true });
 
 const recargarTabla = async () => {
-    await confirmandosStore.fetchAll();
+    await Promise.all([confirmandosStore.fetchAll(), dashboardStore.fetchMetricas()]);
     grupo.value = await gruposStore.fetchById(Number(props.id));
 };
 
@@ -83,7 +90,7 @@ const recargarTabla = async () => {
 // ==========================================
 // Creamos índices para búsqueda instantánea
 const confirmandosMap = computed(() => new Map(allConfirmandos.value.map(c => [c.id, c])));
-const alertasMap = computed(() => new Map(confirmandosAlerta.value?.map(a => [a.id, a]) || []));
+const alertasMap = computed(() => new Map((dashboardAlertas.value || []).map(a => [a.id, a])));
 
 // Procesamos toda la data en un solo ciclo para el template
 const confirmandosProcesados = computed(() => {
@@ -96,6 +103,10 @@ const confirmandosProcesados = computed(() => {
             const alerta = alertasMap.value.get(c.id);
             return {
                 ...c,
+                // Totales de asistencia calculados por el backend (0 si el joven no tiene alerta)
+                total_faltas_justificadas: alerta?.total_faltas_justificadas ?? 0,
+                total_tardanzas: alerta?.total_tardanzas ?? 0,
+                total_faltas_injustificadas: alerta?.total_faltas_injustificadas ?? 0,
                 // Inyectamos la alerta precalculada para no llamar funciones en el v-for
                 alerta: alerta ? {
                     nivel_riesgo: alerta.nivel_riesgo,

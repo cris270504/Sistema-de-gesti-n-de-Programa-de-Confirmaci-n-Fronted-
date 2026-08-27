@@ -54,44 +54,6 @@ export const useAuthStore = defineStore('auth', {
     },
 
 
-    async register(credentials) {
-      this.loading = true
-      this.error = null
-      try {
-        const body = {
-          name: credentials.name,
-          email: credentials.email,
-          password: credentials.password,
-          password_confirmation: credentials.password_confirmation ?? credentials.passwordConfirmed
-        }
-
-        const { data, status } = await api.post('/register', body)
-
-        if (data?.token) {
-          this.token = data.token
-          localStorage.setItem(LS_TOKEN_KEY, data.token)
-
-          this.user = data.user ?? (await api.get('/get-user')).data
-          localStorage.setItem(LS_USER_KEY, JSON.stringify(this.user))
-
-          showAlerta('Registro exitoso', 'success')
-          return { ok: true, loggedIn: true }
-        }
-
-        this.error = data?.message || 'No se pudo registrar'
-        showAlerta(this.error, 'error')
-        return { ok: false, loggedIn: false }
-
-      } catch (e) {
-        this.error = e?.response?.data?.message || 'No se pudo registrar'
-        const errors = e?.response?.data?.errors || null
-        if (!errors) showAlerta(this.error, 'error')
-        return { ok: false, loggedIn: false, errors }
-      } finally {
-        this.loading = false
-      }
-    },
-
     async updateProfile(payload) {
       if (!this.user || !this.user.id) {
         showAlerta('No estás autenticado', 'error');

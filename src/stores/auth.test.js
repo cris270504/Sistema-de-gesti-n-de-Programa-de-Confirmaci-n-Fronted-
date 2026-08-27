@@ -35,7 +35,7 @@ describe('stores/auth', () => {
     })
 
     const auth = useAuthStore()
-    const ok = await auth.login({ dni: '12345678', password: 'secreta' })
+    const ok = await auth.login({ login: '12345678', password: 'secreta' })
 
     expect(ok).toBe(true)
     expect(auth.token).toBe('token-123')
@@ -49,7 +49,7 @@ describe('stores/auth', () => {
     api.post.mockRejectedValueOnce({ response: { status: 401, data: { message: 'Unauthenticated' } } })
 
     const auth = useAuthStore()
-    const ok = await auth.login({ dni: '00000000', password: 'mala' })
+    const ok = await auth.login({ login: 'noexiste@correo.com', password: 'mala' })
 
     expect(ok).toBe(false)
     expect(auth.token).toBeNull()
@@ -82,7 +82,7 @@ describe('stores/auth', () => {
     })
 
     const auth = useAuthStore()
-    await auth.login({ dni: '1', password: '1' })
+    await auth.login({ login: '1', password: '1' })
 
     expect(auth.can('ver dashboard')).toBe(true)
     expect(auth.can('ver usuarios')).toBe(false)

@@ -7,7 +7,7 @@ const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
 
-const draft = ref({ dni: '', password: '' })
+const draft = ref({ login: '', password: '' })
 const saving = ref(false)
 
 const submit = async () => {
@@ -46,12 +46,12 @@ const submit = async () => {
 
             <form class="space-y-6" @submit.prevent="submit">
                 <div>
-                    <label for="dni" class="block text-sm font-medium text-gray-700 mb-1">
-                        DNI
+                    <label for="login" class="block text-sm font-medium text-gray-700 mb-1">
+                        Correo o DNI
                     </label>
-                    <input id="dni" v-model="draft.dni" type="dni" required :disabled="saving"
+                    <input id="login" v-model="draft.login" type="text" autocomplete="username" required :disabled="saving"
                         class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm disabled:opacity-50"
-                        placeholder="Ingresa tu DNI">
+                        placeholder="correo@ejemplo.com o tu DNI">
                 </div>
 
                 <div>
