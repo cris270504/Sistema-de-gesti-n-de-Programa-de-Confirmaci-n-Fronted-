@@ -28,12 +28,27 @@ import {
 
 const route = useRoute();
 
+const props = defineProps({
+  // true cuando la barra actúa como cajón deslizante (móvil/tablet): se muestra
+  // siempre expandida y el botón de la cabecera cierra el cajón.
+  drawerMode: { type: Boolean, default: false },
+});
+const emit = defineEmits(['close']);
+
 const authStore = useAuthStore();
 const gruposStore = useGruposStore();
 const parroquiaStore = useParroquiaStore();
 
 const isSidebarOpen = ref(true);
 const openMenus = ref({});
+
+// Estado visual efectivo: en modo cajón siempre expandida.
+const expanded = computed(() => props.drawerMode || isSidebarOpen.value);
+
+const onHeaderButton = () => {
+  if (props.drawerMode) emit('close');
+  else toggleSidebar();
+};
 
 // Un catequista no tiene "ver todos los grupos" (permiso que exige /grupos, el listado
 // completo), así que nadie más carga este store por él. Igual que en AsignacionGrupo.vue,
@@ -250,13 +265,14 @@ defineExpose({ toggleSidebar });
 
 <template>
   <div :class="[
-    'relative flex h-screen flex-col border-r bg-white/80 backdrop-blur-md transition-all duration-300 ease-in-out',
-    isSidebarOpen ? 'w-72 p-4' : 'w-20 p-2'
+    'relative flex flex-col border-r backdrop-blur-md transition-all duration-300 ease-in-out',
+    drawerMode ? 'h-full w-full bg-white p-4' : 'h-screen bg-white/80',
+    !drawerMode && (isSidebarOpen ? 'w-72 p-4' : 'w-20 p-2')
   ]">
     <!-- Header del Sidebar -->
     <div
-      :class="['mb-2 flex items-center justify-between border-b pb-4', isSidebarOpen ? 'px-2' : 'px-0 justify-center']">
-      <div v-if="isSidebarOpen" class="inline-flex items-center gap-2">
+      :class="['mb-2 flex items-center justify-between border-b pb-4', expanded ? 'px-2' : 'px-0 justify-center']">
+      <div v-if="expanded" class="inline-flex items-center gap-2">
         <img :src="parroquiaStore.branding.logo_url || defaultLogo" alt="Logo" class="h-10 w-auto object-contain"
           @error="e => (e.target.src = defaultLogo)" />
         <h5 class="block text-xl font-bold tracking-tight text-slate-800 truncate max-w-[160px]"
@@ -264,9 +280,9 @@ defineExpose({ toggleSidebar });
           {{ parroquiaStore.nombreApp }}
         </h5>
       </div>
-      <button @click="toggleSidebar"
+      <button @click="onHeaderButton"
         class="rounded p-2 text-slate-500 hover:bg-slate-100 hover:text-primary transition-colors focus:outline-none">
-        <X v-if="isSidebarOpen" class="h-6 w-6" aria-hidden="true" />
+        <X v-if="expanded" class="h-6 w-6" aria-hidden="true" />
         <Menu v-else class="h-6 w-6" aria-hidden="true" />
       </button>
     </div>
@@ -277,7 +293,7 @@ defineExpose({ toggleSidebar });
       <div v-for="(section, idx) in filteredSections" :key="section.title" class="mb-4">
 
         <!-- Título de Sección -->
-        <div v-if="isSidebarOpen" class="px-3 mb-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+        <div v-if="expanded" class="px-3 mb-2 text-xs font-bold uppercase tracking-wider text-slate-400">
           {{ section.title }}
         </div>
         <!-- Divisor visual cuando está colapsado -->
@@ -288,32 +304,32 @@ defineExpose({ toggleSidebar });
 
             <!-- Enlace Simple -->
             <RouterLink v-if="!item.children" :to="item.to" custom v-slot="{ navigate, href, isActive, isExactActive }">
-              <a :href="href" @click="navigate" :title="!isSidebarOpen ? item.name : undefined" class="nav-link group"
+              <a :href="href" @click="navigate" :title="!expanded ? item.name : undefined" class="nav-link group"
                 :class="[
                   (item.to.name === 'dashboard' ? isExactActive : isActive) ? 'nav-link--active' : 'nav-link--idle',
-                  !isSidebarOpen ? 'justify-center' : ''
+                  !expanded ? 'justify-center' : ''
                 ]">
                 <span class="active-indicator"
                   :class="(item.to.name === 'dashboard' ? isExactActive : isActive) ? 'opacity-100 scale-y-100' : 'opacity-0 scale-y-0'"
                   aria-hidden="true"></span>
 
-                <div class="grid place-items-center shrink-0" :class="isSidebarOpen ? 'mr-3' : 'mx-auto'">
+                <div class="grid place-items-center shrink-0" :class="expanded ? 'mr-3' : 'mx-auto'">
                   <component :is="item.icon" class="h-5 w-5 transition-colors" aria-hidden="true" />
                 </div>
 
-                <span v-if="isSidebarOpen" class="truncate font-medium text-sm">{{ item.name }}</span>
+                <span v-if="expanded" class="truncate font-medium text-sm">{{ item.name }}</span>
               </a>
             </RouterLink>
 
             <!-- Menú Desplegable (Sub-items) -->
             <div v-else class="flex flex-col">
-              <button @click="toggleMenu(item.name)" :title="!isSidebarOpen ? item.name : undefined"
-                class="nav-link group w-full nav-link--idle" :class="!isSidebarOpen ? 'justify-center' : ''">
-                <div class="grid place-items-center shrink-0" :class="isSidebarOpen ? 'mr-3' : 'mx-auto'">
+              <button @click="toggleMenu(item.name)" :title="!expanded ? item.name : undefined"
+                class="nav-link group w-full nav-link--idle" :class="!expanded ? 'justify-center' : ''">
+                <div class="grid place-items-center shrink-0" :class="expanded ? 'mr-3' : 'mx-auto'">
                   <component :is="item.icon" class="h-5 w-5 transition-colors" aria-hidden="true" />
                 </div>
 
-                <div v-if="isSidebarOpen" class="flex flex-1 items-center justify-between overflow-hidden">
+                <div v-if="expanded" class="flex flex-1 items-center justify-between overflow-hidden">
                   <span class="truncate font-medium text-sm">{{ item.name }}</span>
                   <ChevronDown class="h-4 w-4 text-slate-400 transition-transform duration-200"
                     :class="openMenus[item.name] ? 'rotate-180' : ''" />
@@ -321,7 +337,7 @@ defineExpose({ toggleSidebar });
               </button>
 
               <!-- Hijos del Menú Desplegable -->
-              <div v-show="isSidebarOpen && openMenus[item.name]"
+              <div v-show="expanded && openMenus[item.name]"
                 class="flex flex-col gap-1 mt-1 transition-all duration-300 pl-8">
                 <RouterLink v-for="child in item.children" :key="child.name" :to="child.to" custom
                   v-slot="{ navigate, href }">
@@ -344,9 +360,9 @@ defineExpose({ toggleSidebar });
     <!-- Footer Logout -->
     <div class="mt-auto border-t pt-3">
       <button @click="handleLogout" class="nav-link w-full text-red-600 hover:bg-red-50 hover:text-red-700 font-medium"
-        :class="!isSidebarOpen ? 'justify-center' : ''">
-        <LogOut class="h-5 w-5 shrink-0" :class="isSidebarOpen ? 'mr-3' : 'mx-auto'" aria-hidden="true" />
-        <span v-if="isSidebarOpen" class="text-sm">Cerrar sesión</span>
+        :class="!expanded ? 'justify-center' : ''">
+        <LogOut class="h-5 w-5 shrink-0" :class="expanded ? 'mr-3' : 'mx-auto'" aria-hidden="true" />
+        <span v-if="expanded" class="text-sm">Cerrar sesión</span>
       </button>
     </div>
   </div>

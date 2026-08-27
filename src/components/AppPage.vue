@@ -36,8 +36,11 @@ defineProps({
 
 <style scoped>
 .app-page {
-  padding: 1rem;
+  padding: 0.75rem;
   width: 100%;
+}
+@media (min-width: 640px) {
+  .app-page { padding: 1rem; }
 }
 @media (min-width: 768px) {
   .app-page { padding: 1.5rem; }
@@ -48,15 +51,21 @@ defineProps({
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 1rem;
+  gap: 0.75rem;
   flex-wrap: wrap;
-  margin-bottom: 1.25rem;
+  margin-bottom: 1rem;
+}
+@media (min-width: 768px) {
+  .app-page__head { gap: 1rem; margin-bottom: 1.25rem; }
 }
 .app-page__title {
-  font-size: 1.25rem;
+  font-size: 1.15rem;
   font-weight: 700;
   color: #1e293b;
   margin: 0;
+}
+@media (min-width: 768px) {
+  .app-page__title { font-size: 1.25rem; }
 }
 .app-page__subtitle {
   font-size: .85rem;
