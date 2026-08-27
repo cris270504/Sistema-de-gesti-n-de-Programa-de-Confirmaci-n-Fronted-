@@ -150,10 +150,10 @@ const UMBRALES = [
       </section>
 
       <!-- Alertas -->
-      <section class="card">
+      <section class="card card--wide">
         <h3 class="card__title">Alertas del dashboard</h3>
         <p class="card__hint">Un confirmando entra en la alerta al alcanzar estos valores.</p>
-        <div class="card__body">
+        <div class="umbral-grid">
           <div class="umbral">
             <span>Días para poder justificar una falta</span>
             <input v-model="form.dias_ventana_justificacion" type="number" min="1" max="365" class="inp-num" />
@@ -175,7 +175,6 @@ const UMBRALES = [
 </template>
 
 <style scoped>
-.cfg { max-width: 780px; }
 .cfg__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; }
 .cfg__reset {
   display: inline-flex; align-items: center; gap: .4rem;
@@ -183,7 +182,16 @@ const UMBRALES = [
   font-size: .8rem; color: #475569; background: #fff;
 }
 .cfg__reset:hover { background: #f8fafc; }
-.cfg__form { display: flex; flex-direction: column; gap: .9rem; }
+
+/* Grilla que aprovecha todo el ancho: 3 tarjetas por fila en desktop, 2, luego 1. */
+.cfg__form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+.card--wide { grid-column: 1 / -1; }
+.cfg__bar { grid-column: 1 / -1; }
 
 .card { border: 1px solid #e2e8f0; border-radius: 12px; background: #fff; padding: 1.1rem 1.25rem; }
 .card__title { font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: #64748b; margin: 0 0 .85rem; }
@@ -225,11 +233,16 @@ const UMBRALES = [
 }
 .chip--on { border-color: #c7d2fe; background: #eef2ff; color: #3730a3; }
 
+/* En pantallas anchas los umbrales van en 2-3 columnas para no dejar espacio muerto. */
+.umbral-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 0 2rem;
+}
 .umbral {
   display: flex; align-items: center; justify-content: space-between; gap: 1rem;
   padding: .55rem 0; border-bottom: 1px solid #f1f5f9; font-size: .86rem; color: #475569;
 }
-.umbral:last-child { border-bottom: 0; }
 .umbral > span { display: inline-flex; align-items: center; gap: .5rem; }
 .tag { font-style: normal; font-size: .62rem; font-weight: 700; border-radius: 4px; padding: .1rem .35rem; }
 .tag--alto { background: #ffe4e6; color: #be123c; }
