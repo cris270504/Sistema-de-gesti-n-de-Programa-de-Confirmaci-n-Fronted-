@@ -87,7 +87,9 @@ export const useAuthStore = defineStore('auth', {
       this.loading = true
       this.error = null
       try {
-        const { data } = await api.post('/forgot-password', { email })
+        // silent: el 503 "correo no configurado" lo mostramos acá con su mensaje,
+        // sin que el interceptor de api.js dispare su toast genérico de error 5xx.
+        const { data } = await api.post('/forgot-password', { email }, { silent: true })
         showAlerta(data?.status || 'Te enviamos un enlace para recuperar tu contraseña.', 'success')
         return true
       } catch (e) {
