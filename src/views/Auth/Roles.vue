@@ -20,8 +20,8 @@ const { items: roles, loading, error } = storeToRefs(rolesStore);
 const { items: permissions, loading: loadingPermisos } = storeToRefs(permissionsStore);
 const { fetchAll, add, save, remove } = rolesStore;
 
-// Solo el proveedor de la plataforma gestiona el catálogo global de roles/permisos.
-const puedeGestionar = computed(() => authStore.can('administrar plataforma'));
+// El admin de parroquia (o el proveedor) gestiona los roles.
+const puedeGestionar = computed(() => authStore.canAny(['crear roles', 'editar roles', 'administrar plataforma']));
 
 // Roles que no se pueden eliminar desde la UI para evitar dejar el sistema sin administración.
 const ROLES_PROTEGIDOS = ['admin', 'administrador', 'coordinador'];

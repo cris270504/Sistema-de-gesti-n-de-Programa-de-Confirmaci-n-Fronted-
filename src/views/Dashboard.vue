@@ -11,6 +11,7 @@ import { Calendar, MessagesSquare, TriangleAlert, Clock, MapPin, CircleAlert, Us
 import { confirmar } from '@/funciones';
 import PerfilConfirmandoModal from '@/components/Modals/PerfilConfirmandoModal.vue';
 import AppPage from '@/components/AppPage.vue';
+import AppSkeleton from '@/components/AppSkeleton.vue';
 
 // 1. Instancias
 const authStore = useAuthStore();
@@ -172,7 +173,10 @@ const confirmarRetiroJoven = async (joven) => {
               </option>
             </select>
           </div>
-          <div class="table-responsive">
+          <div v-if="loadingDashboard" class="p-3">
+            <AppSkeleton skeleton="table" />
+          </div>
+          <div v-else class="table-responsive">
             <table class="table table-hover align-middle mb-0">
               <thead class="bg-light text-muted small text-uppercase">
                 <tr>
@@ -266,8 +270,8 @@ const confirmarRetiroJoven = async (joven) => {
             </router-link>
           </div>
           <div class="card-body p-0">
-            <div v-if="loadingReuniones" class="p-5 text-center">
-              <div class="spinner-border spinner-border-sm text-primary"></div>
+            <div v-if="loadingReuniones" class="p-3">
+              <AppSkeleton skeleton="cards" />
             </div>
             <div v-else class="list-group list-group-flush">
               <div v-for="actividad in upcomingItems" :key="actividad.id"
