@@ -15,6 +15,7 @@ import listPlugin from '@fullcalendar/list';
 import interactionPlugin from '@fullcalendar/interaction';
 import esLocale from '@fullcalendar/core/locales/es';
 import { useReunionesStore } from '../../stores/reunions';
+import { useParroquiaStore } from '@/stores/parroquia';
 import { useRoute, useRouter } from 'vue-router';
 
 // --- Stores ---
@@ -37,8 +38,9 @@ const draft = ref({ id: null, nombre_tema: '', fecha: '', descripcion: '', tipo:
 const isEditing = ref(false);
 const saving = ref(false);
 
-// Tipos de reunión disponibles (puedes ajustarlo)
-const tiposReunion = ['Catequistas', 'Confirmandos', 'Apoderados'];
+// Tipos de reunión activos para esta parroquia (configurable).
+const parroquiaStore = useParroquiaStore();
+const tiposReunion = computed(() => parroquiaStore.tiposReunion);
 
 const draftDate = ref('');
 const draftTime = ref('');

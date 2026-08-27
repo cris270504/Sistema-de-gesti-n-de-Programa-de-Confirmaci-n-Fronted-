@@ -282,3 +282,18 @@ tbody tr:hover {
 .tooltip.show {
   @apply opacity-100;
 }
+
+/* ===== BRANDING POR PARROQUIA =====
+   --parroquia-color lo fija DefaultLayout.vue desde la configuración de la parroquia.
+   Fallback al azul por defecto para las vistas públicas (login) que no lo setean. */
+:root {
+  --parroquia-color: #2563eb;
+}
+.btn-primary {
+  --bs-btn-bg: var(--parroquia-color);
+  --bs-btn-border-color: var(--parroquia-color);
+  --bs-btn-hover-bg: color-mix(in srgb, var(--parroquia-color), black 12%);
+  --bs-btn-hover-border-color: color-mix(in srgb, var(--parroquia-color), black 12%);
+  --bs-btn-active-bg: color-mix(in srgb, var(--parroquia-color), black 18%);
+  --bs-btn-active-border-color: color-mix(in srgb, var(--parroquia-color), black 18%);
+}

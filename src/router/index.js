@@ -23,6 +23,7 @@ const ListSacramentos = () => import('../views/Sacramentos/ListSacramentos.vue')
 const ListRequisitos = () => import('../views/Requisitos/ListRequisitos.vue')
 const Listcumpleanos = () => import('../views/Cumpleanos/listCumpleanos.vue')
 const ListJustificaciones = () => import('../views/Justificaciones/ListJustificaciones.vue')
+const Configuracion = () => import('../views/Configuracion/Configuracion.vue')
 
 function hasSession() {
   const token = localStorage.getItem(LS_TOKEN_KEY)
@@ -168,6 +169,14 @@ const router = createRouter({
           meta: { title: 'Lista de roles', permission: ['ver roles', 'ver permisos'] }
         },
 
+        //CONFIGURACIÓN DE LA PARROQUIA
+        {
+          path: '/configuracion',
+          name: 'configuracion',
+          component: Configuracion,
+          meta: { title: 'Configuración', permission: 'administrar parroquia' }
+        },
+
         {
           path: '/403',
           name: 'forbidden',
@@ -232,7 +241,16 @@ router.beforeEach((to) => {
 
 router.afterEach((to) => {
   const nearestWithTitle = [...to.matched].reverse().find(r => r.meta?.title)
-  document.title = nearestWithTitle?.meta?.title || 'Cristopher´s App'
+  const pagina = nearestWithTitle?.meta?.title
+  // Nombre público de la parroquia (branding). Import perezoso para no crear un
+  // ciclo store<->router al cargar el módulo.
+  let app = 'SGPC'
+  try {
+    app = JSON.parse(localStorage.getItem('parroquia'))?.configuracion?.branding?.nombre_publico
+      || JSON.parse(localStorage.getItem('parroquia'))?.parroquia?.nombre
+      || 'SGPC'
+  } catch { /* noop */ }
+  document.title = pagina ? `${pagina} · ${app}` : app
 })
 
 export default router

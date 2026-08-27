@@ -2,7 +2,9 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { useGruposStore } from '@/stores/grupos';
+import { useParroquiaStore } from '@/stores/parroquia';
 import { useRoute } from 'vue-router';
+import defaultLogo from '@/assets/logo.png';
 import {
   Home,
   Users,
@@ -20,12 +22,14 @@ import {
   Clipboard,
   Calendar,
   KeyRound,
+  Settings,
 } from 'lucide-vue-next';
 
 const route = useRoute();
 
 const authStore = useAuthStore();
 const gruposStore = useGruposStore();
+const parroquiaStore = useParroquiaStore();
 
 const isSidebarOpen = ref(true);
 const openMenus = ref({});
@@ -191,7 +195,8 @@ const menuSections = computed(() => {
       { name: 'Requisitos', to: { name: 'requisitos' }, icon: Wallet, permission: 'ver todos los requisitos' },
       { name: 'Usuarios', to: { name: 'users' }, icon: Users, permission: 'ver usuarios' },
       { name: 'Justificaciones', to: { name: 'justificaciones' }, icon: Clipboard, permission: 'ver todas las asistencias' },
-      { name: 'Roles y Permisos', to: { name: 'roles' }, icon: KeyRound, permission: ['ver roles', 'ver permisos'] }
+      { name: 'Roles y Permisos', to: { name: 'roles' }, icon: KeyRound, permission: ['ver roles', 'ver permisos'] },
+      { name: 'Configuración', to: { name: 'configuracion' }, icon: Settings, permission: 'administrar parroquia' }
     ]
   });
 
@@ -227,9 +232,11 @@ defineExpose({ toggleSidebar });
     <div
       :class="['mb-2 flex items-center justify-between border-b pb-4', isSidebarOpen ? 'px-2' : 'px-0 justify-center']">
       <div v-if="isSidebarOpen" class="inline-flex items-center gap-2">
-        <img src="@/assets/logo.png" alt="Logo" class="h-10 w-auto" />
-        <h5 class="block text-xl font-bold tracking-tight text-slate-800">
-          SGPC
+        <img :src="parroquiaStore.branding.logo_url || defaultLogo" alt="Logo" class="h-10 w-auto object-contain"
+          @error="e => (e.target.src = defaultLogo)" />
+        <h5 class="block text-xl font-bold tracking-tight text-slate-800 truncate max-w-[160px]"
+          :title="parroquiaStore.nombreApp">
+          {{ parroquiaStore.nombreApp }}
         </h5>
       </div>
       <button @click="toggleSidebar"

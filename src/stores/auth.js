@@ -3,6 +3,7 @@ import api from '@/lib/api'
 import router from '@/router'
 import { LS_TOKEN_KEY, LS_USER_KEY } from '../constants/auth'
 import { updateUser } from '@/services/users'
+import { useParroquiaStore } from './parroquia'
 import { showAlerta, showErroresDeValidacion } from '@/funciones'
 
 function safeParse(json) {
@@ -41,6 +42,11 @@ export const useAuthStore = defineStore('auth', {
 
         localStorage.setItem(LS_TOKEN_KEY, data.token)
         localStorage.setItem(LS_USER_KEY, JSON.stringify(data.user))
+
+        useParroquiaStore().hydrateFromLogin({
+          parroquia: data.user?.parroquia,
+          configuracion: data.configuracion,
+        })
 
         return true
       } catch (e) {
@@ -126,6 +132,7 @@ export const useAuthStore = defineStore('auth', {
       this.user = null
       localStorage.removeItem(LS_TOKEN_KEY)
       localStorage.removeItem(LS_USER_KEY)
+      useParroquiaStore().clear()
     },
   },
 })

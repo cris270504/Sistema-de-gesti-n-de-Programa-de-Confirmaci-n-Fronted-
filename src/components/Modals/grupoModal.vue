@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted, onUnmounted, ref, computed } from 'vue';
 import { useGruposStore } from '../../stores/grupos';
+import { useParroquiaStore } from '@/stores/parroquia';
 import { showAlerta } from '@/funciones';
 import { Modal } from 'bootstrap';
 import { attachModalFocusReturn } from '@/composables/useModalFocusReturn';
@@ -9,6 +10,8 @@ import { SquarePen, Layers, Tag, MapPin, CalendarRange, Check } from 'lucide-vue
 const emit = defineEmits(['saved']);
 
 const gruposStore = useGruposStore();
+const parroquiaStore = useParroquiaStore();
+const procedencias = computed(() => parroquiaStore.procedencias);
 
 // Modal Refs
 const modalRef = ref(null);
@@ -167,8 +170,9 @@ async function submitUpdate() {
                   </span>
                   <select v-model="draft.procedencia" class="form-select border-start-0" :disabled="saving">
                     <option :value="null">-- Sin asignar --</option>
-                    <option value="sede">Sede</option>
-                    <option value="caserio">Caserío</option>
+                    <option v-for="p in procedencias" :key="p" :value="p">
+                      {{ p.charAt(0).toUpperCase() + p.slice(1) }}
+                    </option>
                   </select>
                 </div>
               </div>

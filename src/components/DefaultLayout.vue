@@ -16,8 +16,18 @@
 </template>
 
 <script setup>
+    import { watchEffect } from 'vue'
     import Sidebar from '../components/Sidebar.vue'
     import Navbar from '../components/Navbar.vue'
+    import { useParroquiaStore } from '@/stores/parroquia'
+
+    const parroquiaStore = useParroquiaStore()
+
+    // Color primario de la parroquia como variable CSS global (--parroquia-color).
+    watchEffect(() => {
+      const color = parroquiaStore.branding.color_primario
+      if (color) document.documentElement.style.setProperty('--parroquia-color', color)
+    })
 </script>
 
 <style scoped>
