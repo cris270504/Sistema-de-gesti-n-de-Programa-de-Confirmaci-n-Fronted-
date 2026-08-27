@@ -1,14 +1,16 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { LS_TOKEN_KEY, LS_USER_KEY } from '@/constants/auth'
 import { useAuthStore } from '@/stores/auth'
-import { showAlerta } from '@/funciones'
 
 import DefaultLayout from '../components/DefaultLayout.vue'
 import { isTokenExpired } from '@/funciones'
 
 // Lazy loading: cada vista se descarga en su propio chunk solo cuando se visita la ruta
 const NotFound = () => import('../views/NotFound.vue')
+const Forbidden = () => import('../views/Forbidden.vue')
 const Login = () => import('../views/Auth/Login.vue')
+const ForgotPassword = () => import('../views/Auth/ForgotPassword.vue')
+const ResetPassword = () => import('../views/Auth/ResetPassword.vue')
 const ListarUsuarios = () => import('../views/Users/ListUsers.vue')
 const Roles = () => import('../views/Auth/Roles.vue')
 const Profile = () => import('../views/Profile/profile.vue')
@@ -180,6 +182,13 @@ const router = createRouter({
         },
 
         {
+          path: '/403',
+          name: 'forbidden',
+          component: Forbidden,
+          meta: { title: 'Acceso denegado' }
+        },
+
+        {
           path: '/:pathMatch(.*)*',
           name: 'NotFound',
           component: NotFound,
@@ -194,6 +203,18 @@ const router = createRouter({
       component: Login,
       meta: { guest: true, title: 'Login' }
     },
+    {
+      path: '/forgot-password',
+      name: 'forgot-password',
+      component: ForgotPassword,
+      meta: { guest: true, title: 'Recuperar contraseña' }
+    },
+    {
+      path: '/reset-password/:token',
+      name: 'reset-password',
+      component: ResetPassword,
+      meta: { guest: true, title: 'Nueva contraseña' }
+    },
   ],
 })
 
@@ -207,7 +228,7 @@ router.beforeEach((to) => {
     return { name: 'login', query: { redirect: to.fullPath } };
   }
   if (onlyGuests && logged) {
-    return { name: 'home' };
+    return { name: 'dashboard' };
   }
 
   const requiredPerms = to.meta?.permission;
@@ -217,8 +238,7 @@ router.beforeEach((to) => {
     const hasAllPermissions = permsArray.every(p => auth.user?.permissions?.includes(p));
 
     if (!hasAllPermissions) {
-      showAlerta('No tiene permisos suficientes para esta sección', 'error');
-      return { name: 'home' }; // O una página 403
+      return { name: 'forbidden' };
     }
   }
 })

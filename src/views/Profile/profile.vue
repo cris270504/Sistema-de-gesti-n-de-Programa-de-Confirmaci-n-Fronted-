@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue';
 import { useAuthStore } from '@/stores/auth'; // Asegúrate que la ruta al store sea correcta
 import { showAlerta, showErroresDeValidacion } from '@/funciones'; // Importa tus funciones de alerta
+import { Save, ShieldCheck } from 'lucide-vue-next';
 
 const authStore = useAuthStore();
 
@@ -146,7 +147,7 @@ async function submitPassword() {
                                 <button type="submit" class="btn btn-primary" :disabled="savingProfile">
                                     <span v-if="savingProfile" class="spinner-border spinner-border-sm me-1"
                                         role="status" aria-hidden="true"></span>
-                                    <i v-else class="bi bi-save me-1"></i>
+                                    <Save v-else class="h-4 w-4 me-1" aria-hidden="true" />
                                     {{ savingProfile ? 'Guardando...' : 'Guardar Cambios' }}
                                 </button>
                             </div>
@@ -163,8 +164,8 @@ async function submitPassword() {
                     <div class="card-body">
                         <form @submit.prevent="submitPassword">
                             <div class="form-text mb-3">
-                                Si es tu primer ingreso, la contraseña por defecto es '123456789'. Se recomienda
-                                cambiarla.
+                                Si es tu primer ingreso, usa la contraseña temporal que te dio el administrador al
+                                crear tu cuenta. Se recomienda cambiarla.
                             </div>
 
                             <div class="mb-3">
@@ -187,7 +188,7 @@ async function submitPassword() {
                                 <button type="submit" class="btn btn-success" :disabled="savingPassword">
                                     <span v-if="savingPassword" class="spinner-border spinner-border-sm me-1"
                                         role="status" aria-hidden="true"></span>
-                                    <i v-else class="bi bi-shield-lock me-1"></i>
+                                    <ShieldCheck v-else class="h-4 w-4 me-1" aria-hidden="true" />
                                     {{ savingPassword ? 'Actualizando...' : 'Actualizar Contraseña' }}
                                 </button>
                             </div>

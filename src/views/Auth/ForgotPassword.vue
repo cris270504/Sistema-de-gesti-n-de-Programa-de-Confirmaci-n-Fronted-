@@ -1,32 +1,19 @@
 <script setup>
 import { ref } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { RouterLink } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 
-const router = useRouter()
-const route = useRoute()
 const auth = useAuthStore()
 
-const draft = ref({ dni: '', password: '' })
+const email = ref('')
 const saving = ref(false)
+const enviado = ref(false)
 
 const submit = async () => {
     saving.value = true
-
-    const ok = await auth.login(draft.value)
-
-    if (!ok) {
-        saving.value = false // Detiene la carga solo si falla
-        return
-    }
-
-    // Login exitoso
-    const redirect = typeof route.query.redirect === 'string'
-        ? route.query.redirect
-        : '/'; // Redirige a la raíz (ruta protegida) por defecto
-
-    await router.push(redirect)
-    // No es necesario limpiar saving o draft aquí, el componente se desmontará
+    const ok = await auth.forgotPassword(email.value)
+    saving.value = false
+    if (ok) enviado.value = true
 }
 </script>
 
@@ -36,36 +23,22 @@ const submit = async () => {
             <div class="text-center mb-8">
                 <img src="@/assets/logo.png" alt="Logo App" class="mx-auto h-49 w-auto mb-4" />
                 <h2 class="text-2xl font-bold text-gray-900">
-                    Iniciar Sesión
+                    Recuperar contraseña
                 </h2>
                 <p class="mt-2 text-sm text-gray-600">
-                    Ingresa tus credenciales para acceder
+                    Ingresa el correo con el que te registraron y te enviaremos un enlace para
+                    crear una nueva contraseña.
                 </p>
-
             </div>
 
-            <form class="space-y-6" @submit.prevent="submit">
+            <form v-if="!enviado" class="space-y-6" @submit.prevent="submit">
                 <div>
-                    <label for="dni" class="block text-sm font-medium text-gray-700 mb-1">
-                        DNI
+                    <label for="email" class="block text-sm font-medium text-gray-700 mb-1">
+                        Correo electrónico
                     </label>
-                    <input id="dni" v-model="draft.dni" type="dni" required :disabled="saving"
+                    <input id="email" v-model="email" type="email" required :disabled="saving"
                         class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm disabled:opacity-50"
-                        placeholder="Ingresa tu DNI">
-                </div>
-
-                <div>
-                    <div class="flex items-center justify-between mb-1">
-                        <label for="password" class="block text-sm font-medium text-gray-700">
-                            Contraseña
-                        </label>
-                        <RouterLink :to="{ name: 'forgot-password' }" class="text-sm font-medium text-indigo-600 hover:text-indigo-700">
-                            ¿Olvidaste tu contraseña?
-                        </RouterLink>
-                    </div>
-                    <input id="password" v-model="draft.password" type="password" required :disabled="saving"
-                        class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm disabled:opacity-50"
-                        placeholder="••••••••">
+                        placeholder="tucorreo@ejemplo.com">
                 </div>
 
                 <div>
@@ -79,11 +52,21 @@ const submit = async () => {
                                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
                             </path>
                         </svg>
-                        {{ saving ? 'Verificando...' : 'Ingresar' }}
+                        {{ saving ? 'Enviando...' : 'Enviar enlace' }}
                     </button>
                 </div>
-
             </form>
+
+            <div v-else class="text-center text-sm text-gray-600">
+                Si el correo existe en el sistema, te llegará un enlace para restablecer tu
+                contraseña en unos minutos. Revisa también tu carpeta de spam.
+            </div>
+
+            <p class="mt-6 text-center text-sm text-gray-600">
+                <RouterLink :to="{ name: 'login' }" class="font-medium text-indigo-600 hover:text-indigo-700">
+                    Volver a iniciar sesión
+                </RouterLink>
+            </p>
         </div>
     </div>
 </template>

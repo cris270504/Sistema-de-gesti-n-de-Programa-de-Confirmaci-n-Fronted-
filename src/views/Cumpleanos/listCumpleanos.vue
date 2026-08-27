@@ -1,6 +1,8 @@
 <script setup>
 import { storeToRefs } from 'pinia';
 import { Modal } from 'bootstrap';
+import { attachModalFocusReturn } from '@/composables/useModalFocusReturn';
+import { Cake, ArrowRight } from 'lucide-vue-next';
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 
@@ -176,6 +178,8 @@ const formatBirthDate = (isoString) => {
     return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
 };
 
+let detachFocusReturn = () => {};
+
 onMounted(async () => {
     await Promise.all([
         confirmandosStore.fetchAll(),
@@ -184,11 +188,15 @@ onMounted(async () => {
 
     nextTick(() => {
         const detailsEl = document.getElementById('detailsModal');
-        if (detailsEl) detailsModalInstance.value = new Modal(detailsEl);
+        if (detailsEl) {
+            detailsModalInstance.value = new Modal(detailsEl);
+            detachFocusReturn = attachModalFocusReturn(detailsEl);
+        }
     });
 });
 
 onUnmounted(() => {
+    detachFocusReturn();
     detailsModalInstance.value?.dispose();
 });
 </script>
@@ -237,7 +245,7 @@ onUnmounted(() => {
 
                         <h5 class="modal-title fw-bold position-relative z-1 d-flex align-items-center gap-2"
                             style="font-size: 1.1rem;">
-                            <i class="bi bi-cake2-fill"></i>¡Cumpleaños!
+                            <Cake class="h-5 w-5" aria-hidden="true" />¡Cumpleaños!
                         </h5>
                         <button type="button" class="btn-close btn-close-white position-relative z-1 shadow-none"
                             data-bs-dismiss="modal"></button>
@@ -261,7 +269,7 @@ onUnmounted(() => {
                                     :style="{ backgroundColor: selectedEvent.grupo.color || '#cbd5e1' }"></span>
                                 <span class="fw-bold text-truncate" style="max-width: 140px;">{{
                                     selectedEvent.grupo.nombre }}</span>
-                                <i class="bi bi-arrow-right-short text-muted fs-6"></i>
+                                <ArrowRight class="text-muted" :size="16" aria-hidden="true" />
                             </button>
                         </div>
 

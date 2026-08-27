@@ -5,7 +5,8 @@ import { useConfirmandosStore } from '@/stores/confirmandos';
 import { storeToRefs } from 'pinia';
 import { Modal } from 'bootstrap';
 import { showAlerta } from '@/funciones';
-import { Search } from 'lucide-vue-next';
+import { Search, Users } from 'lucide-vue-next';
+import { attachModalFocusReturn } from '@/composables/useModalFocusReturn';
 
 const emit = defineEmits(['updated']);
 const modalRef = ref(null);
@@ -20,11 +21,14 @@ const selectedConfirmandoIds = ref([]);
 const searchQuery = ref('');
 const saving = ref(false);
 
+let detachFocusReturn = () => {};
 onMounted(() => {
     modalInstance.value = new Modal(modalRef.value);
+    detachFocusReturn = attachModalFocusReturn(modalRef.value);
 });
 
 onUnmounted(() => {
+    detachFocusReturn();
     modalInstance.value?.dispose();
 });
 
@@ -100,7 +104,7 @@ const save = async () => {
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
             <div class="modal-content border-0">
                 <div class="modal-header-theme">
-                    <h5 class="modal-title fw-bold text-white"><i class="bi bi-people-fill me-2"></i>Asignar Confirmandos</h5>
+                    <h5 class="modal-title fw-bold text-white d-flex align-items-center"><Users class="h-5 w-5 me-2" aria-hidden="true" />Asignar Confirmandos</h5>
                     <button type="button" class="btn-close btn-close-white" @click="close"></button>
                 </div>
                 <div class="bg-light border-bottom p-3">

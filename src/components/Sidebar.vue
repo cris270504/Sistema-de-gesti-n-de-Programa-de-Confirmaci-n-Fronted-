@@ -4,22 +4,22 @@ import { useAuthStore } from '@/stores/auth';
 import { useGruposStore } from '@/stores/grupos';
 import { useRoute } from 'vue-router';
 import {
-  HomeIcon,
-  UsersIcon,
-  UserGroupIcon,
-  UserCircleIcon,
-  UserIcon,
-  ArrowLeftOnRectangleIcon,
-  Bars3Icon,
-  XMarkIcon,
-  ClipboardDocumentIcon,
-  ChevronDownIcon,
-  FireIcon,
-  WalletIcon,
-  CakeIcon,
-  ClipboardIcon,
-} from '@heroicons/vue/24/outline';
-import { CalendarIcon } from 'lucide-vue-next'; // Mantenemos tu import
+  Home,
+  Users,
+  UsersRound,
+  UserCircle,
+  User,
+  LogOut,
+  Menu,
+  X,
+  ClipboardList,
+  ChevronDown,
+  Flame,
+  Wallet,
+  Cake,
+  Clipboard,
+  Calendar,
+} from 'lucide-vue-next';
 
 const route = useRoute();
 
@@ -101,9 +101,9 @@ const menuSections = computed(() => {
   sections.push({
     title: 'General',
     items: [
-      { name: 'Dashboard', to: { name: 'dashboard' }, icon: HomeIcon },
-      { name: 'Cronograma', to: { name: 'cronograma' }, icon: CalendarIcon, permission: 'ver cronograma' },
-      { name: 'Cumpleaños', to: { name: 'cumpleanos' }, icon: CakeIcon },
+      { name: 'Dashboard', to: { name: 'dashboard' }, icon: Home },
+      { name: 'Cronograma', to: { name: 'cronograma' }, icon: Calendar, permission: 'ver cronograma' },
+      { name: 'Cumpleaños', to: { name: 'cumpleanos' }, icon: Cake },
     ]
   });
 
@@ -114,7 +114,7 @@ const menuSections = computed(() => {
   if (authStore.can('ver todas las asistencias')) {
     pastoralItems.push({
       name: 'Gestión Asistencias',
-      icon: ClipboardDocumentIcon,
+      icon: ClipboardList,
       permission: 'ver todas las asistencias',
       children: [
         { name: 'Confirmandos', to: { name: 'asistencias-confirmandos' } },
@@ -132,13 +132,13 @@ const menuSections = computed(() => {
       pastoralItems.push({
         name: `Asistencia: ${grupos[0].nombre}`,
         to: { name: 'asistencias-confirmandos', query: { grupo: grupos[0].id } }, // Enviamos el ID por query param
-        icon: ClipboardDocumentIcon,
+        icon: ClipboardList,
       });
     } else {
       // Tiene Varios grupos -> Menú Desplegable
       pastoralItems.push({
         name: 'Mis Asistencias',
-        icon: ClipboardDocumentIcon,
+        icon: ClipboardList,
         children: grupos.map(g => ({
           name: g.nombre,
           to: { name: 'asistencias-confirmandos', query: { grupo: g.id } }
@@ -152,13 +152,13 @@ const menuSections = computed(() => {
     pastoralItems.push({
       name: `Mi Grupo (${misGruposDetalle.value[0].nombre})`,
       to: { name: 'miGrupo', params: { id: misGruposDetalle.value[0].id } }, // ID individual correcto
-      icon: UserIcon,
+      icon: User,
       permission: 'ver grupos'
     });
   } else if (misGruposDetalle.value.length > 1) {
     pastoralItems.push({
       name: 'Mis Grupos',
-      icon: UserIcon,
+      icon: User,
       permission: 'ver grupos',
       children: misGruposDetalle.value.map(g => ({
         name: g.nombre,
@@ -176,12 +176,12 @@ const menuSections = computed(() => {
   sections.push({
     title: 'Administración',
     items: [
-      { name: 'Confirmandos', to: { name: 'confirmandos' }, icon: UserCircleIcon, permission: 'ver todos los confirmandos' },
-      { name: 'Grupos', to: { name: 'grupos' }, icon: UserGroupIcon, permission: 'ver todos los grupos' },
-      { name: 'Sacramentos', to: { name: 'sacramentos' }, icon: FireIcon, permission: 'ver todos los sacramentos' },
-      { name: 'Requisitos', to: { name: 'requisitos' }, icon: WalletIcon, permission: 'ver todos los requisitos' },
-      { name: 'Usuarios', to: { name: 'users' }, icon: UsersIcon, permission: 'ver usuarios' },
-      { name: 'Justificaciones', to: { name: 'justificaciones' }, icon: ClipboardIcon, permission: 'ver todas las asistencias' }
+      { name: 'Confirmandos', to: { name: 'confirmandos' }, icon: UserCircle, permission: 'ver todos los confirmandos' },
+      { name: 'Grupos', to: { name: 'grupos' }, icon: UsersRound, permission: 'ver todos los grupos' },
+      { name: 'Sacramentos', to: { name: 'sacramentos' }, icon: Flame, permission: 'ver todos los sacramentos' },
+      { name: 'Requisitos', to: { name: 'requisitos' }, icon: Wallet, permission: 'ver todos los requisitos' },
+      { name: 'Usuarios', to: { name: 'users' }, icon: Users, permission: 'ver usuarios' },
+      { name: 'Justificaciones', to: { name: 'justificaciones' }, icon: Clipboard, permission: 'ver todas las asistencias' }
     ]
   });
 
@@ -219,8 +219,8 @@ defineExpose({ toggleSidebar });
       </div>
       <button @click="toggleSidebar"
         class="rounded p-2 text-slate-500 hover:bg-slate-100 hover:text-primary transition-colors focus:outline-none">
-        <XMarkIcon v-if="isSidebarOpen" class="h-6 w-6" />
-        <Bars3Icon v-else class="h-6 w-6" />
+        <X v-if="isSidebarOpen" class="h-6 w-6" aria-hidden="true" />
+        <Menu v-else class="h-6 w-6" aria-hidden="true" />
       </button>
     </div>
 
@@ -268,7 +268,7 @@ defineExpose({ toggleSidebar });
 
                 <div v-if="isSidebarOpen" class="flex flex-1 items-center justify-between overflow-hidden">
                   <span class="truncate font-medium text-sm">{{ item.name }}</span>
-                  <ChevronDownIcon class="h-4 w-4 text-slate-400 transition-transform duration-200"
+                  <ChevronDown class="h-4 w-4 text-slate-400 transition-transform duration-200"
                     :class="openMenus[item.name] ? 'rotate-180' : ''" />
                 </div>
               </button>
@@ -298,7 +298,7 @@ defineExpose({ toggleSidebar });
     <div class="mt-auto border-t pt-3">
       <button @click="handleLogout" class="nav-link w-full text-red-600 hover:bg-red-50 hover:text-red-700 font-medium"
         :class="!isSidebarOpen ? 'justify-center' : ''">
-        <ArrowLeftOnRectangleIcon class="h-5 w-5 shrink-0" :class="isSidebarOpen ? 'mr-3' : 'mx-auto'" />
+        <LogOut class="h-5 w-5 shrink-0" :class="isSidebarOpen ? 'mr-3' : 'mx-auto'" aria-hidden="true" />
         <span v-if="isSidebarOpen" class="text-sm">Cerrar sesión</span>
       </button>
     </div>

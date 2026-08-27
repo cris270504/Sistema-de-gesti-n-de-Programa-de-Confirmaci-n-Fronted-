@@ -6,10 +6,8 @@ import { useAuthStore } from '@/stores/auth';
 import { useDashboardStore } from '../stores/dashboard';
 import { useReunionesStore } from '../stores/reunions';
 import { useConfirmandosStore } from '../stores/confirmandos';
-import { useGruposStore } from '../stores/grupos';
 
-import { CalendarIcon, ChatBubbleLeftRightIcon, ExclamationTriangleIcon, ClockIcon, MapPinIcon } from '@heroicons/vue/24/outline';
-import { CircleAlert, User } from 'lucide-vue-next';
+import { Calendar, MessagesSquare, TriangleAlert, Clock, MapPin, CircleAlert, User, Instagram, Facebook, MessageCircle } from 'lucide-vue-next';
 import { confirmar } from '@/funciones';
 import PerfilConfirmandoModal from '@/components/Modals/PerfilConfirmandoModal.vue';
 
@@ -25,7 +23,6 @@ const { fetchUpcoming } = reunionesStore;
 const { upcomingItems, loading: loadingReuniones } = storeToRefs(reunionesStore);
 
 const confirmandosStore = useConfirmandosStore();
-const gruposStore = useGruposStore();
 const perfilModalRef = ref(null);
 
 // 2. Carga Inicial ULTRA RÁPIDA (Solo lo estrictamente necesario)
@@ -35,38 +32,18 @@ onMounted(() => {
   if (authStore.can('ver cronograma') && upcomingItems.value.length === 0) {
       fetchUpcoming(); // Trae solo las reuniones futuras
   }
-
-  // Un catequista necesita esto para poder mapear sus grupo_ids a nombres (ver abajo).
-  // Usamos fetchById (permiso "ver grupos") en vez de fetchAll ("ver todos los grupos",
-  // que un catequista no tiene) para no pedir un endpoint al que no tiene acceso.
-  if (!esGestor) {
-      const misGrupoIds = authStore.user?.grupo_ids || [];
-      misGrupoIds.forEach(id => {
-          if (!gruposStore.items.some(g => g.id === id)) {
-              gruposStore.fetchById(id).catch(() => {});
-          }
-      });
-  }
 });
 
 // 3. Propiedades Computadas
-// El backend NO manda grupo_id en cada alerta, solo el nombre del grupo ("grupo"),
-// así que para filtrar por "mis grupos" necesitamos resolver mis grupo_ids a nombres.
-const misNombresDeGrupo = computed(() => {
-  const misIds = authStore.user?.grupo_ids || [];
-  return new Set(
-    gruposStore.items
-      .filter(g => misIds.includes(g.id))
-      .map(g => g.nombre)
-  );
-});
-
+// El backend ahora manda grupo_id en cada alerta, así que comparamos por id numérico
+// (más robusto que comparar strings de nombre: no se rompe por tildes/mayúsculas/espacios).
 const confirmandosAlerta = computed(() => {
   const dataAlertas = alertas.value || [];
+  const misGrupos = (authStore.user?.grupo_ids || []).map(Number);
 
   return dataAlertas.filter(alerta => {
     // El gestor ve todas las alertas. El catequista solo ve las de sus propios grupos.
-    return esGestor || misNombresDeGrupo.value.has(alerta.grupo);
+    return esGestor || misGrupos.includes(Number(alerta.grupo_id));
   });
 });
 
@@ -132,9 +109,11 @@ const confirmarRetiroJoven = async (joven) => {
         </h1>
         <div class="d-flex gap-3 mt-1">
           <a href="https://www.instagram.com/confirmacion_scj/" target="_blank"
-            class="text-danger small text-decoration-none"><i class="bi bi-instagram me-1"></i>Instagram</a>
+            class="text-danger small text-decoration-none d-inline-flex align-items-center gap-1">
+            <Instagram :size="14" aria-hidden="true" />Instagram</a>
           <a href="https://www.facebook.com/profile.php?id=61588086533946" target="_blank"
-            class="text-primary small text-decoration-none"><i class="bi bi-facebook me-1"></i>Facebook</a>
+            class="text-primary small text-decoration-none d-inline-flex align-items-center gap-1">
+            <Facebook :size="14" aria-hidden="true" />Facebook</a>
         </div>
       </div>
       <div class="col-md-auto ms-auto text-end">
@@ -176,7 +155,7 @@ const confirmarRetiroJoven = async (joven) => {
         <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
           <div class="card-header bg-white py-3 border-0 d-flex flex-wrap align-items-center justify-content-between gap-2">
             <div class="d-flex align-items-center">
-              <ExclamationTriangleIcon class="h-5 w-5 text-danger me-2" />
+              <TriangleAlert class="h-5 w-5 text-danger me-2" aria-hidden="true" />
               <h6 class="mb-0 fw-bold">Seguimiento Crítico</h6>
               <span v-if="confirmandosAlerta.length > 0"
                 class="badge rounded-pill bg-danger-subtle text-danger border border-danger-subtle ms-2">
@@ -246,7 +225,9 @@ const confirmarRetiroJoven = async (joven) => {
                     <div class="fw-bold">{{ c.nombre_apoderado }}</div>
                     <a :href="'https://wa.me/51' + c.celular_apoderado" target="_blank"
                       class="text-success text-decoration-none">
-                      <i class="bi bi-whatsapp me-1"></i>{{ c.celular_apoderado }}
+                      <!-- lucide-vue-next no incluye el logo de WhatsApp (no es una librería de
+                           íconos de marca) — se usa un ícono de chat genérico en su lugar. -->
+                      <MessageCircle class="h-4 w-4 me-1 d-inline-block align-text-bottom" aria-hidden="true" />{{ c.celular_apoderado }}
                     </a>
                   </td>
                   <td v-if="c.injustificadas_seguidas >= 3 || c.total_faltas_injustificadas >= 5" class="text-center">
@@ -276,7 +257,7 @@ const confirmarRetiroJoven = async (joven) => {
         <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
           <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
             <h6 class="mb-0 fw-bold d-flex align-items-center">
-              <CalendarIcon class="h-5 w-5 text-primary me-2" />Próximos Encuentros
+              <Calendar class="h-5 w-5 text-primary me-2" aria-hidden="true" />Próximos Encuentros
             </h6>
             <router-link to="/cronograma"
               class="btn btn-sm btn-primary-subtle text-primary rounded-pill px-3 fw-bold border-0">
@@ -303,11 +284,11 @@ const confirmarRetiroJoven = async (joven) => {
                     <h6 class="fw-bold mb-1">{{ actividad.nombre_tema }}</h6>
                     <div class="d-flex gap-3 text-muted small">
                       <span>
-                        <ClockIcon class="h-4 w-4 d-inline mb-1" /> {{ new
+                        <Clock class="h-4 w-4 d-inline mb-1" aria-hidden="true" /> {{ new
                           Date(actividad.fecha).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' }) }}
                       </span>
                       <span>
-                        <MapPinIcon class="h-4 w-4 d-inline mb-1" /> {{ actividad.tipo || 'Salón Parroquial' }}
+                        <MapPin class="h-4 w-4 d-inline mb-1" aria-hidden="true" /> {{ actividad.tipo || 'Salón Parroquial' }}
                       </span>
                     </div>
                   </div>
@@ -354,7 +335,7 @@ const confirmarRetiroJoven = async (joven) => {
         <!-- AVISOS RÁPIDOS -->
         <div class="p-4 rounded-4 bg-primary text-white shadow-sm mb-4">
           <div class="d-flex align-items-center mb-2">
-            <ChatBubbleLeftRightIcon class="h-5 w-5 me-2" />
+            <MessagesSquare class="h-5 w-5 me-2" aria-hidden="true" />
             <span class="fw-bold small">Recordatorio</span>
           </div>
           <p class="small mb-0 opacity-75">Registra la asistencia al terminar la reunión para mantener las métricas

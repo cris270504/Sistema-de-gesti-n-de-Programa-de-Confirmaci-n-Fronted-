@@ -3,6 +3,8 @@ import { onMounted, onUnmounted, ref, computed } from 'vue';
 import { useGruposStore } from '../../stores/grupos';
 import { showAlerta } from '@/funciones';
 import { Modal } from 'bootstrap';
+import { attachModalFocusReturn } from '@/composables/useModalFocusReturn';
+import { SquarePen, Layers, Tag, MapPin, CalendarRange, Check } from 'lucide-vue-next';
 
 const emit = defineEmits(['saved']);
 
@@ -27,14 +29,17 @@ const isEditing = computed(() => !!draft.value.id);
 const title = computed(() => (isEditing.value ? 'Editar Grupo' : 'Nuevo Grupo'));
 
 // Inicializar Modal
+let detachFocusReturn = () => {};
 onMounted(() => {
   modalInstance.value = new Modal(modalRef.value, {
     backdrop: 'static',
     keyboard: false
   });
+  detachFocusReturn = attachModalFocusReturn(modalRef.value);
 });
 
 onUnmounted(() => {
+  detachFocusReturn();
   modalInstance.value?.dispose();
 });
 
@@ -124,7 +129,7 @@ async function submitUpdate() {
         <div class="modal-header">
           <div>
             <h5 class="modal-title fw-bold text-white">
-              <i class="bi me-2 text-white-50" :class="isEditing ? 'bi-pencil-square' : 'bi-collection-fill'"></i>
+              <component :is="isEditing ? SquarePen : Layers" class="h-5 w-5 me-2 text-white-50 d-inline-block align-text-bottom" aria-hidden="true" />
               {{ title }}
             </h5>
             <p class="text-white-50 small mb-0">Gestión de grupos pastorales.</p>
@@ -146,7 +151,7 @@ async function submitUpdate() {
                   Grupo</label>
                 <div class="input-group">
                   <span class="input-group-text bg-blue-soft text-primary border-end-0">
-                    <i class="bi bi-tag-fill"></i>
+                    <Tag class="h-4 w-4" aria-hidden="true" />
                   </span>
                   <input id="grupoNombre" v-model="draft.nombre" type="text" class="form-control border-start-0"
                     placeholder="Ej. San José" required :disabled="saving">
@@ -158,7 +163,7 @@ async function submitUpdate() {
                   class="form-label fw-bold text-secondary small text-uppercase">Procedencia</label>
                 <div class="input-group">
                   <span class="input-group-text bg-blue-soft text-primary border-end-0">
-                    <i class="bi bi-calendar-range"></i>
+                    <MapPin class="h-4 w-4" aria-hidden="true" />
                   </span>
                   <select v-model="draft.procedencia" class="form-select border-start-0" :disabled="saving">
                     <option :value="null">-- Sin asignar --</option>
@@ -172,7 +177,7 @@ async function submitUpdate() {
                 <label for="grupoPeriodo" class="form-label fw-bold text-secondary small text-uppercase">Periodo</label>
                 <div class="input-group">
                   <span class="input-group-text bg-blue-soft text-primary border-end-0">
-                    <i class="bi bi-calendar-range"></i>
+                    <CalendarRange class="h-4 w-4" aria-hidden="true" />
                   </span>
                   <input id="grupoPeriodo" v-model="draft.periodo" type="text" class="form-control border-start-0"
                     placeholder="Ej. 2025-2026" required :disabled="saving">
@@ -215,7 +220,7 @@ async function submitUpdate() {
               <span class="spinner-border spinner-border-sm me-2"></span>
             </template>
             <template v-else>
-              <i class="bi bi-check-lg me-1"></i> Guardar
+              <Check class="h-4 w-4 me-1" aria-hidden="true" /> Guardar
             </template>
           </button>
         </div>

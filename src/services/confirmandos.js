@@ -1,7 +1,11 @@
 import api from '@/lib/api'
 
 export function getConfirmandosList() {
-  return api.get('/confirmandos').then(res => res.data)
+  // El backend ahora pagina (antes devolvía el array plano sin límite). Por default
+  // pide una página grande (ver ConfirmandoController@index) para no cambiar el
+  // comportamiento actual: ListConfirmandos.vue sigue filtrando/paginando en cliente
+  // sobre esta lista. `res.data` es el objeto paginador de Laravel; `.data` es el array.
+  return api.get('/confirmandos').then(res => res.data.data)
 }
 
 export function getConfirmandoById(id) {

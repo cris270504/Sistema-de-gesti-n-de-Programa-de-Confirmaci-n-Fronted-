@@ -23,5 +23,9 @@ export default defineConfig({
         secure: true, // Cámbialo a true porque Render tiene SSL (https)
       }
     }
+  },
+  test: {
+    environment: 'jsdom',
+    globals: true,
   }
 })

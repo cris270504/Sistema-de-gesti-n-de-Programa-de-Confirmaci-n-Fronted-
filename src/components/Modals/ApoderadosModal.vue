@@ -2,18 +2,22 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import { Modal } from 'bootstrap';
 import { ShieldCheck, Phone } from 'lucide-vue-next';
+import { attachModalFocusReturn } from '@/composables/useModalFocusReturn';
 
 const modalElement = ref(null);
 let modalInstance = null;
+let detachFocusReturn = () => {};
 const viewData = ref({ nombreConfirmando: '', apoderados: [] });
 
 onMounted(() => {
     if (modalElement.value) {
         modalInstance = new Modal(modalElement.value);
+        detachFocusReturn = attachModalFocusReturn(modalElement.value);
     }
 });
 
 onUnmounted(() => {
+    detachFocusReturn();
     modalInstance?.dispose();
 });
 
