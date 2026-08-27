@@ -101,19 +101,6 @@ const router = createRouter({
           meta: { title: 'Cronograma', permission: ['ver cronograma'] }
         },
 
-        {
-          path: '/cronograma/create',
-          name: 'createReunion',
-          component: Roles,
-          meta: { title: 'Crear reunión', permission: 'crear cronograma' }
-        },
-        {
-          path: '/cronograma/:id/edit',
-          name: 'editReunion',
-          component: Roles,
-          meta: { title: 'Editar reunión', permission: 'editar cronograma' }
-        },
-
         //ASISTENCIAS
         {
           path: '/asistencias/confirmandos/:id?',
