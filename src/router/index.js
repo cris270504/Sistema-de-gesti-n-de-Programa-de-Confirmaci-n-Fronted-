@@ -243,9 +243,34 @@ router.beforeEach((to) => {
   }
 })
 
+// Tras un deploy, el index.html cacheado del usuario puede apuntar a chunks de la
+// build anterior que ya no existen (404). Vue Router emite un error al cargar el
+// módulo dinámico de la vista: lo detectamos y recargamos la app una sola vez para
+// tomar el index.html nuevo. sessionStorage evita un bucle si el fallo es real.
+router.onError((error, to) => {
+  const patrones = [
+    'Failed to fetch dynamically imported module',
+    'Importing a module script failed',
+    'error loading dynamically imported module',
+    'Unable to preload CSS',
+  ]
+  const esChunkObsoleto = patrones.some(p => (error?.message || '').includes(p))
+  if (!esChunkObsoleto) return
+
+  const destino = to?.fullPath || window.location.pathname + window.location.search
+  const clave = 'reload-chunk:' + destino
+  if (!sessionStorage.getItem(clave)) {
+    sessionStorage.setItem(clave, '1')
+    window.location.assign(destino)
+  }
+})
+
 router.afterEach((to) => {
   // Red de seguridad: cualquier navegación completada apaga el overlay global.
   useUiStore().hideOverlay()
+
+  // La navegación funcionó: limpiamos la marca de recarga por chunk obsoleto.
+  try { sessionStorage.removeItem('reload-chunk:' + to.fullPath) } catch { /* noop */ }
 
   const nearestWithTitle = [...to.matched].reverse().find(r => r.meta?.title)
   const pagina = nearestWithTitle?.meta?.title

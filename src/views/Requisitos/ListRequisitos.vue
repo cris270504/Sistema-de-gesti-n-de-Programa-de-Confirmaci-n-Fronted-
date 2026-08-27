@@ -132,9 +132,9 @@ const handleDelete = async (id, nombre) => {
     <div class="modal fade" id="requisitoModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg">
-          <div class="modal-header bg-primary text-white">
+          <div class="modal-header">
             <h5 class="modal-title fw-bold">{{ modalTitle }}</h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" :disabled="saving"></button>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" :disabled="saving"></button>
           </div>
           
           <div class="modal-body p-4">

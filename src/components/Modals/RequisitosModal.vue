@@ -88,11 +88,11 @@ defineExpose({ open, hide });
     <div class="modal fade" id="requisitosModal" tabindex="-1" aria-hidden="true" ref="modalElement">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg rounded-4">
-                <div class="modal-header bg-primary text-white border-0 py-3 rounded-top-4 flex justify-between items-center">
+                <div class="modal-header py-3 flex justify-between items-center">
                     <h5 class="modal-title flex items-center !gap-2 !m-0 fs-6">
                         <FileText :size="18"/> Documentos de {{ docDraft.nombre }}
                     </h5>
-                    <button type="button" class="btn-close btn-close-white shadow-none" @click="hide"></button>
+                    <button type="button" class="btn-close shadow-none" @click="hide"></button>
                 </div>
 
                 <div class="modal-body p-0">

@@ -226,16 +226,11 @@ onUnmounted(() => {
         <div class="modal fade" id="detailsModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered modal-sm">
                 <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
-                    <div class="modal-header bg-primary text-white position-relative overflow-hidden border-0 py-3">
-                        <div class="position-absolute top-0 start-0 w-100 h-100 opacity-25"
-                            style="background: radial-gradient(circle at top right, white, transparent);"></div>
-
-                        <h5 class="modal-title fw-bold position-relative z-1 d-flex align-items-center gap-2"
-                            style="font-size: 1.1rem;">
+                    <div class="modal-header py-3">
+                        <h5 class="modal-title fw-bold d-flex align-items-center gap-2" style="font-size: 1.1rem;">
                             <Cake class="h-5 w-5" aria-hidden="true" />¡Cumpleaños!
                         </h5>
-                        <button type="button" class="btn-close btn-close-white position-relative z-1 shadow-none"
-                            data-bs-dismiss="modal"></button>
+                        <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal"></button>
                     </div>
 
                     <div class="modal-body text-center py-4">

@@ -36,11 +36,11 @@ defineExpose({ open });
     <div class="modal fade" id="apoderadosInfoModal" tabindex="-1" aria-hidden="true" ref="modalElement">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg rounded-4">
-                <div class="modal-header bg-primary text-white border-0 py-3 rounded-top-4 flex justify-between items-center">
+                <div class="modal-header py-3 flex justify-between items-center">
                     <h5 class="modal-title flex items-center !gap-2 !m-0 fs-6">
                         <ShieldCheck :size="18" /> Apoderados de {{ viewData.nombreConfirmando }}
                     </h5>
-                    <button type="button" class="btn-close btn-close-white shadow-none" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-0">
                     <div class="divide-y divide-gray-100">

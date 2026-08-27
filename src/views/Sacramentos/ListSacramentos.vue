@@ -252,11 +252,8 @@ const handleSubmit = async () => {
 .modal-content .btn-primary { background-color: #2563eb; border-color: #2563eb; font-size: 0.9rem; }
 .modal-content .btn-primary:hover { background-color: #1d4ed8; }
 
-/* MODAL & CHECKLIST */
-.modal-content { border: none; border-radius: 1rem; overflow: hidden; box-shadow: 0 15px 40px rgba(0,0,0,0.15); }
-.modal-header { background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; border-bottom: none; padding: 1.5rem 2rem; }
-.text-white-50 { color: rgba(255, 255, 255, 0.75) !important; }
-.modal-body { padding: 2rem; }
+/* MODAL & CHECKLIST — el marco del modal (contenido, cabecera, cuerpo) lo define
+   el estilo global unificado en src/assets/main.css. */
 
 .bg-blue-soft { background-color: #eff6ff !important; color: #2563eb !important; border: 1px solid #cbd5e1; border-right: none; }
 .form-control { border-left: none; border-color: #cbd5e1; }

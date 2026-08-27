@@ -636,13 +636,14 @@ onUnmounted(() => {
             aria-labelledby="apoderadosModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
-                    <header class="modal-header-blue p-4">
-                        <h5 id="apoderadosModalLabel" class="modal-title fw-bold text-white mb-0">
-                            <Users class="h-5 w-5 me-2 text-white-50 d-inline-block align-text-bottom" aria-hidden="true" /> Apoderados
-                        </h5>
-                        <p class="text-white-50 small mb-0 mt-1">Familiares de {{ selectedConfirmandoName }}</p>
-                        <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3"
-                            aria-label="Cerrar" data-bs-dismiss="modal"></button>
+                    <header class="modal-header p-4">
+                        <div>
+                            <h5 id="apoderadosModalLabel" class="modal-title fw-bold mb-0">
+                                <Users class="h-5 w-5 me-2 d-inline-block align-text-bottom" aria-hidden="true" /> Apoderados
+                            </h5>
+                            <p class="text-white-50 small mb-0 mt-1">Familiares de {{ selectedConfirmandoName }}</p>
+                        </div>
+                        <button type="button" class="btn-close" aria-label="Cerrar" data-bs-dismiss="modal"></button>
                     </header>
                     <div class="modal-body p-4 bg-light-gray-body">
                         <div v-if="selectedApoderados.length === 0" class="text-center text-muted py-4">
@@ -928,12 +929,7 @@ onUnmounted(() => {
     background-color: #1d4ed8;
 }
 
-/* MODALS */
-.modal-header-blue {
-    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-    position: relative;
-}
-
+/* MODALS — la cabecera usa el estilo global unificado (src/assets/main.css) */
 .bg-light-gray-body {
     background-color: #f8fafc;
 }

@@ -43,6 +43,10 @@ const saving = ref(false);
 const parroquiaStore = useParroquiaStore();
 const tiposReunion = computed(() => parroquiaStore.tiposReunion);
 
+// Color por tipo de reunión (mismo criterio en el calendario y en la leyenda).
+const COLORES_TIPO = { Confirmandos: '#198754', Catequistas: '#dc3545', Apoderados: '#fd7e14' };
+const colorTipo = (tipo) => COLORES_TIPO[tipo] || '#3788d8';
+
 const draftDate = ref('');
 const draftTime = ref('');
 
@@ -50,10 +54,7 @@ const draftTime = ref('');
 const formattedEvents = computed(() => {
   if (!reuniones || !reuniones.value) return [];
   return reuniones.value.map(r => {
-    let color = '#3788d8';
-    if (r.tipo === 'Confirmandos') color = '#198754';
-    if (r.tipo === 'Catequistas') color = '#dc3545';
-    if (r.tipo === 'Apoderados') color = '#fd7e14';
+    const color = colorTipo(r.tipo);
 
     return {
       id: r.id,
@@ -299,17 +300,10 @@ onUnmounted(() => {
   <AppPage title="Cronograma" subtitle="Calendario de reuniones y actividades" :loading="loading">
     <div class="d-flex flex-wrap gap-3 mb-3 align-items-center bg-white p-3 rounded shadow-sm border">
       <span class="text-muted small fw-bold text-uppercase me-2">Referencias:</span>
-      <div class="d-flex align-items-center">
-        <span class="d-inline-block rounded-circle me-2" style="width: 12px; height: 12px; background-color: #198754;"></span>
-        <span class="small text-dark">Confirmandos</span>
-      </div>
-      <div class="d-flex align-items-center">
-        <span class="d-inline-block rounded-circle me-2" style="width: 12px; height: 12px; background-color: #dc3545;"></span>
-        <span class="small text-dark">Catequistas</span>
-      </div>
-      <div class="d-flex align-items-center">
-        <span class="d-inline-block rounded-circle me-2" style="width: 12px; height: 12px; background-color: #fd7e14;"></span>
-        <span class="small text-dark">Apoderados</span>
+      <div v-for="t in tiposReunion" :key="t" class="d-flex align-items-center">
+        <span class="d-inline-block rounded-circle me-2" style="width: 12px; height: 12px;"
+          :style="{ backgroundColor: colorTipo(t) }"></span>
+        <span class="small text-dark">{{ t }}</span>
       </div>
     </div>
 
@@ -320,7 +314,7 @@ onUnmounted(() => {
     <div class="modal fade" id="detailsModal" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-          <div class="modal-header bg-light">
+          <div class="modal-header">
             <h5 class="modal-title fw-bold">{{ selectedEvent.title }}</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
           </div>
@@ -362,9 +356,9 @@ onUnmounted(() => {
       <div class="modal-dialog modal-dialog-centered">
         
         <div class="modal-content">
-          <div class="modal-header bg-primary text-white">
+          <div class="modal-header">
             <h5 class="modal-title">{{ isEditing ? 'Editar Actividad' : 'Agendar Nueva Actividad' }}</h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
           </div>
           <div class="modal-body">
             <form @submit.prevent="handleSubmit">

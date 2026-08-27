@@ -133,16 +133,25 @@ const menuSections = computed(() => {
 
   if (authStore.can('ver todas las asistencias')) {
     // Gestor / coordinador: matriz completa + justificaciones globales.
-    seguimientoItems.push({
-      name: 'Asistencias',
-      icon: ClipboardList,
-      permission: 'ver todas las asistencias',
-      children: [
-        { name: 'Confirmandos', to: { name: 'asistencias-confirmandos' } },
-        { name: 'Catequistas', to: { name: 'asistencias-catequistas' } },
-        { name: 'Apoderados', to: { name: 'asistencias-apoderados' } },
-      ]
-    });
+    // Solo se muestran los tipos de asistencia que la parroquia tomó en su
+    // configuración (configuracion.tipos_reunion).
+    const tipos = parroquiaStore.tiposReunion || [];
+    const opcionesAsistencia = [
+      { name: 'Confirmandos', to: { name: 'asistencias-confirmandos' } },
+      { name: 'Catequistas', to: { name: 'asistencias-catequistas' } },
+      { name: 'Apoderados', to: { name: 'asistencias-apoderados' } },
+    ].filter(o => tipos.includes(o.name));
+
+    if (opcionesAsistencia.length === 1) {
+      seguimientoItems.push({ ...opcionesAsistencia[0], name: 'Asistencias', icon: ClipboardList, permission: 'ver todas las asistencias' });
+    } else if (opcionesAsistencia.length > 1) {
+      seguimientoItems.push({
+        name: 'Asistencias',
+        icon: ClipboardList,
+        permission: 'ver todas las asistencias',
+        children: opcionesAsistencia,
+      });
+    }
     seguimientoItems.push({ name: 'Justificaciones', to: { name: 'justificaciones' }, icon: Clipboard });
   } else if (authStore.can('ver asistencias') && misGruposDetalle.value.length > 0) {
     // Catequista: asistencias de su(s) grupo(s) + justificaciones de sus jóvenes.
