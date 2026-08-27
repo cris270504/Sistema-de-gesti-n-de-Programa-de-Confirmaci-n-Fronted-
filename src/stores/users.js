@@ -142,8 +142,8 @@ export const useUsersStore = defineStore('users', {
         showAlerta('Usuario eliminado correctamente', 'success')
         return true
       } catch (e) {
-        this.error = e?.response?.data?.message || e?.message || 'No se pudo eliminar el usuario'
-        showAlerta(this.error, 'error')
+        // Se muestra en el diálogo, no como banner persistente en la vista.
+        showAlerta(e?.response?.data?.message || e?.message || 'No se pudo eliminar el usuario', 'error')
         return false
       }
     },
