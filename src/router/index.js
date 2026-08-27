@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { LS_TOKEN_KEY, LS_USER_KEY } from '@/constants/auth'
 import { useAuthStore } from '@/stores/auth'
+import { useUiStore } from '@/stores/ui'
 
 import DefaultLayout from '../components/DefaultLayout.vue'
 import { isTokenExpired } from '@/funciones'
@@ -243,6 +244,9 @@ router.beforeEach((to) => {
 })
 
 router.afterEach((to) => {
+  // Red de seguridad: cualquier navegación completada apaga el overlay global.
+  useUiStore().hideOverlay()
+
   const nearestWithTitle = [...to.matched].reverse().find(r => r.meta?.title)
   const pagina = nearestWithTitle?.meta?.title
   // Nombre público de la parroquia (branding). Import perezoso para no crear un

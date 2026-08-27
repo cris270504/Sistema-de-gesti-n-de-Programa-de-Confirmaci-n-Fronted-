@@ -1,76 +1,48 @@
 <script setup>
 import { ref, onMounted } from 'vue';
-import { useAuthStore } from '@/stores/auth'; // Asegúrate que la ruta al store sea correcta
-import { showAlerta, showErroresDeValidacion } from '@/funciones'; // Importa tus funciones de alerta
-import { Save, ShieldCheck } from 'lucide-vue-next';
+import { useAuthStore } from '@/stores/auth';
+import { showAlerta, showErroresDeValidacion } from '@/funciones';
+import { Save, ShieldCheck, User, KeyRound } from 'lucide-vue-next';
 import AppPage from '@/components/AppPage.vue';
+import PasswordField from '@/components/PasswordField.vue';
 
 const authStore = useAuthStore();
 
 // --- Estado para el formulario de Datos Personales ---
-const profileDraft = ref({
-    name: '',
-    email: '',
-    dni: ''
-});
+const profileDraft = ref({ name: '', email: '', dni: '' });
 const savingProfile = ref(false);
 
 // --- Estado para el formulario de Contraseña ---
-const passwordDraft = ref({
-    password: '',
-    password_confirmation: ''
-});
+const passwordDraft = ref({ password: '', password_confirmation: '' });
 const savingPassword = ref(false);
 
-// Carga los datos del usuario logueado en el formulario al montar el componente
 onMounted(() => {
     if (authStore.user) {
         profileDraft.value = {
             name: authStore.user.name || '',
             email: authStore.user.email || '',
-            dni: authStore.user.dni || 'N/A' // Muestra el DNI
+            dni: authStore.user.dni || 'N/A',
         };
     }
 });
 
-/**
- * Envía la actualización de los datos personales (Nombre, Email)
- */
 async function submitProfile() {
     savingProfile.value = true;
-
-    // Prepara el payload solo con lo que se puede cambiar
-    const payload = {
-        name: profileDraft.value.name,
-        email: profileDraft.value.email
-    };
+    const payload = { name: profileDraft.value.name, email: profileDraft.value.email };
 
     try {
-        // Llama a la acción del store (asume que existe y maneja la API)
-        // El store debe ser lo suficientemente inteligente para llamar a:
-        // api.put(`/users/${authStore.user.id}`, payload)
         const ok = await authStore.updateProfile(payload);
-
-        if (ok) {
-            showAlerta('Perfil actualizado con éxito', 'success');
-        } else {
-            // Si la acción del store devuelve 'false' pero no lanza error
-            showAlerta('No se pudo actualizar el perfil', 'error');
-        }
+        if (ok) showAlerta('Perfil actualizado con éxito', 'success');
+        else showAlerta('No se pudo actualizar el perfil', 'error');
     } catch (e) {
-        console.error("Error al actualizar perfil:", e);
-        // Muestra errores de validación si el store los lanza
+        console.error('Error al actualizar perfil:', e);
         showErroresDeValidacion(e?.response?.data?.errors || e);
     } finally {
         savingProfile.value = false;
     }
 }
 
-/**
- * Envía la actualización de la contraseña
- */
 async function submitPassword() {
-    // Validación de contraseña
     if (passwordDraft.value.password.length < 8) {
         showAlerta('La contraseña debe tener al menos 8 caracteres', 'warning');
         return;
@@ -81,26 +53,21 @@ async function submitPassword() {
     }
 
     savingPassword.value = true;
-
-    // El payload solo contiene la contraseña
     const payload = {
         password: passwordDraft.value.password,
-        password_confirmation: passwordDraft.value.password_confirmation
+        password_confirmation: passwordDraft.value.password_confirmation,
     };
 
     try {
-        // Reutiliza la misma acción del store para enviar el payload de contraseña
         const ok = await authStore.updateProfile(payload);
-
         if (ok) {
             showAlerta('Contraseña actualizada con éxito', 'success');
-            // Limpia los campos de contraseña después de éxito
             passwordDraft.value = { password: '', password_confirmation: '' };
         } else {
             showAlerta('No se pudo actualizar la contraseña', 'error');
         }
     } catch (e) {
-        console.error("Error al actualizar contraseña:", e);
+        console.error('Error al actualizar contraseña:', e);
         showErroresDeValidacion(e?.response?.data?.errors || e);
     } finally {
         savingPassword.value = false;
@@ -110,103 +77,148 @@ async function submitPassword() {
 
 <template>
     <AppPage title="Mi perfil" subtitle="Tus datos y contraseña" :wide="false">
-        <div class="row g-4">
+        <div class="prof-grid">
 
-            <div class="col-lg-6">
-                <div class="card h-100 shadow-sm">
-                    <div class="card-header bg-dark text-white">
-                        <h5 class="mb-0">Datos Personales</h5>
+            <section class="surface surface--pad">
+                <header class="prof-head">
+                    <span class="prof-head__icon"><User :size="18" /></span>
+                    <h2 class="prof-head__title">Datos personales</h2>
+                </header>
+
+                <form class="prof-form" @submit.prevent="submitProfile">
+                    <label class="prof-field">
+                        <span>DNI</span>
+                        <input v-model="profileDraft.dni" type="text" readonly disabled>
+                        <small>El DNI no se puede modificar.</small>
+                    </label>
+
+                    <label class="prof-field">
+                        <span>Nombre completo <em>*</em></span>
+                        <input v-model="profileDraft.name" type="text" required :disabled="savingProfile">
+                    </label>
+
+                    <label class="prof-field">
+                        <span>Email <em>*</em></span>
+                        <input v-model="profileDraft.email" type="email" required :disabled="savingProfile">
+                        <small>Usado para identificar tu cuenta y para la recuperación de contraseña.</small>
+                    </label>
+
+                    <div class="prof-actions">
+                        <button type="submit" class="btn-primary" :disabled="savingProfile">
+                            <span v-if="savingProfile" class="spinner-border spinner-border-sm mr-1.5"></span>
+                            <Save v-else :size="16" class="mr-1.5" />
+                            <span class="text-sm">{{ savingProfile ? 'Guardando…' : 'Guardar cambios' }}</span>
+                        </button>
                     </div>
-                    <div class="card-body">
-                        <form @submit.prevent="submitProfile">
+                </form>
+            </section>
 
-                            <div class="mb-3">
-                                <label for="profileDni" class="form-label">DNI</label>
-                                <input id="profileDni" v-model="profileDraft.dni" type="text" class="form-control"
-                                    readonly disabled>
-                                <div class="form-text">El DNI no se puede modificar.</div>
-                            </div>
+            <section class="surface surface--pad">
+                <header class="prof-head">
+                    <span class="prof-head__icon"><KeyRound :size="18" /></span>
+                    <h2 class="prof-head__title">Cambiar contraseña</h2>
+                </header>
 
-                            <div class="mb-3">
-                                <label for="profileName" class="form-label">Nombre Completo <span
-                                        class="text-danger">*</span></label>
-                                <input id="profileName" v-model="profileDraft.name" type="text" class="form-control"
-                                    required :disabled="savingProfile">
-                            </div>
+                <form class="prof-form" @submit.prevent="submitPassword">
+                    <p class="prof-note">
+                        Si es tu primer ingreso, usa la contraseña temporal que te dio el administrador
+                        al crear tu cuenta. Se recomienda cambiarla.
+                    </p>
 
-                            <div class="mb-3">
-                                <label for="profileEmail" class="form-label">Email <span
-                                        class="text-danger">*</span></label>
-                                <input id="profileEmail" v-model="profileDraft.email" type="email" class="form-control"
-                                    required :disabled="savingProfile">
-                                <div class="form-text">Usado para notificaciones y recuperación de contraseña.</div>
-                            </div>
+                    <label class="prof-field">
+                        <span>Nueva contraseña <em>*</em></span>
+                        <PasswordField v-model="passwordDraft.password" autocomplete="new-password" required
+                            :minlength="8" :disabled="savingPassword" placeholder="Mínimo 8 caracteres" />
+                    </label>
 
-                            <div class="d-flex justify-content-end">
-                                <button type="submit" class="btn btn-primary" :disabled="savingProfile">
-                                    <span v-if="savingProfile" class="spinner-border spinner-border-sm me-1"
-                                        role="status" aria-hidden="true"></span>
-                                    <Save v-else class="h-4 w-4 me-1" aria-hidden="true" />
-                                    {{ savingProfile ? 'Guardando...' : 'Guardar Cambios' }}
-                                </button>
-                            </div>
-                        </form>
+                    <label class="prof-field">
+                        <span>Confirmar contraseña <em>*</em></span>
+                        <PasswordField v-model="passwordDraft.password_confirmation" autocomplete="new-password" required
+                            :minlength="8" :disabled="savingPassword" placeholder="Repite la contraseña" />
+                    </label>
+
+                    <div class="prof-actions">
+                        <button type="submit" class="btn-success" :disabled="savingPassword">
+                            <span v-if="savingPassword" class="spinner-border spinner-border-sm mr-1.5"></span>
+                            <ShieldCheck v-else :size="16" class="mr-1.5" />
+                            <span class="text-sm">{{ savingPassword ? 'Actualizando…' : 'Actualizar contraseña' }}</span>
+                        </button>
                     </div>
-                </div>
-            </div>
-
-            <div class="col-lg-6">
-                <div class="card h-100 shadow-sm">
-                    <div class="card-header bg-dark text-white">
-                        <h5 class="mb-0">Cambiar Contraseña</h5>
-                    </div>
-                    <div class="card-body">
-                        <form @submit.prevent="submitPassword">
-                            <div class="form-text mb-3">
-                                Si es tu primer ingreso, usa la contraseña temporal que te dio el administrador al
-                                crear tu cuenta. Se recomienda cambiarla.
-                            </div>
-
-                            <div class="mb-3">
-                                <label for="newPassword" class="form-label">Nueva Contraseña <span
-                                        class="text-danger">*</span></label>
-                                <input id="newPassword" v-model="passwordDraft.password" type="password"
-                                    class="form-control" required minlength="8" :disabled="savingPassword"
-                                    placeholder="Mínimo 8 caracteres">
-                            </div>
-
-                            <div class="mb-3">
-                                <label for="confirmPassword" class="form-label">Confirmar Contraseña <span
-                                        class="text-danger">*</span></label>
-                                <input id="confirmPassword" v-model="passwordDraft.password_confirmation"
-                                    type="password" class="form-control" required minlength="8"
-                                    :disabled="savingPassword" placeholder="Repite la contraseña">
-                            </div>
-
-                            <div class="d-flex justify-content-end">
-                                <button type="submit" class="btn btn-success" :disabled="savingPassword">
-                                    <span v-if="savingPassword" class="spinner-border spinner-border-sm me-1"
-                                        role="status" aria-hidden="true"></span>
-                                    <ShieldCheck v-else class="h-4 w-4 me-1" aria-hidden="true" />
-                                    {{ savingPassword ? 'Actualizando...' : 'Actualizar Contraseña' }}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
+                </form>
+            </section>
 
         </div>
     </AppPage>
 </template>
 
 <style scoped>
-.form-text {
-    font-size: 0.875em;
-    color: #6c757d;
+.prof-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.25rem;
+    align-items: start;
 }
 
-.text-danger {
-    color: #dc3545;
+.prof-head {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding-bottom: 0.9rem;
+    margin-bottom: 1.1rem;
+    border-bottom: 1px solid #e2e8f0;
+}
+.prof-head__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    background: #eff6ff;
+    color: var(--parroquia-color, #2563eb);
+}
+.prof-head__title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.prof-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+.prof-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+.prof-field > span {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #64748b;
+}
+.prof-field em {
+    color: #dc2626;
+    font-style: normal;
+}
+.prof-field small {
+    font-size: 0.78rem;
+    color: #94a3b8;
+}
+
+.prof-note {
+    font-size: 0.82rem;
+    color: #64748b;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 0.7rem 0.85rem;
+}
+
+.prof-actions {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 0.25rem;
 }
 </style>

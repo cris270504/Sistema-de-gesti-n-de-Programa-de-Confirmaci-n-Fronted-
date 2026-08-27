@@ -2,6 +2,7 @@
 import { RouterView } from 'vue-router'
 import { SpeedInsights } from '@vercel/speed-insights/vue';
 import { onMounted, onUnmounted } from 'vue'
+import LoadingOverlay from '@/components/LoadingOverlay.vue'
 
 // Evita que Render suspenda el backend por inactividad (cold start ~50s)
 const HEALTH_URL = import.meta.env.MODE === 'production'
@@ -26,6 +27,7 @@ onUnmounted(() => {
 
 <template>
   <RouterView />
+  <LoadingOverlay />
   <SpeedInsights />
 </template>
 

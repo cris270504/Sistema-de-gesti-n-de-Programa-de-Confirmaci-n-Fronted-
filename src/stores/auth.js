@@ -4,6 +4,7 @@ import router from '@/router'
 import { LS_TOKEN_KEY, LS_USER_KEY } from '../constants/auth'
 import { updateUser } from '@/services/users'
 import { useParroquiaStore } from './parroquia'
+import { useUiStore } from './ui'
 import { showAlerta, showErroresDeValidacion } from '@/funciones'
 
 function safeParse(json) {
@@ -90,9 +91,14 @@ export const useAuthStore = defineStore('auth', {
     },
 
     async logout() {
-      try { await api.post('/logout') } catch (_) { }
+      const ui = useUiStore()
+      ui.showOverlay('Cerrando sesión…')
+      // Revocación del token en el servidor: sin bloquear la salida (el backend en
+      // Render puede tardar en despertar). La sesión local se limpia de inmediato.
+      api.post('/logout').catch(() => { })
       this.logoutLocal()
-      router.push({ name: 'login' })
+      await router.push({ name: 'login' })
+      ui.hideOverlay()
     },
 
     logoutLocal() {

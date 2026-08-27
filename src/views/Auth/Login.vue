@@ -2,11 +2,14 @@
 import { ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
+import { useUiStore } from '@/stores/ui';
 import { showAlerta } from '@/funciones';
+import PasswordField from '@/components/PasswordField.vue';
 
 const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
+const ui = useUiStore()
 
 const draft = ref({ login: '', password: '' })
 const saving = ref(false)
@@ -28,13 +31,16 @@ const submit = async () => {
         return
     }
 
-    // Login exitoso
+    // Login exitoso: mantenemos un overlay mientras se resuelve la navegación y
+    // carga el panel (el backend en Render puede tardar en despertar).
+    ui.showOverlay('Preparando tu panel…')
+
     const redirect = typeof route.query.redirect === 'string'
         ? route.query.redirect
         : '/'; // Redirige a la raíz (ruta protegida) por defecto
 
     await router.push(redirect)
-    // No es necesario limpiar saving o draft aquí, el componente se desmontará
+    // El componente se desmonta; el overlay lo apaga el afterEach del router.
 }
 </script>
 
@@ -49,7 +55,6 @@ const submit = async () => {
                 <p class="mt-2 text-sm text-gray-600">
                     Ingresa tus credenciales para acceder
                 </p>
-
             </div>
 
             <form class="space-y-6" @submit.prevent="submit">
@@ -57,8 +62,8 @@ const submit = async () => {
                     <label for="login" class="block text-sm font-medium text-gray-700 mb-1">
                         Correo o DNI
                     </label>
-                    <input id="login" v-model="draft.login" type="text" autocomplete="username" required :disabled="saving"
-                        class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm disabled:opacity-50"
+                    <input id="login" v-model="draft.login" type="text" autocomplete="username" required
+                        :disabled="saving" class="disabled:opacity-50"
                         placeholder="correo@ejemplo.com o tu DNI">
                 </div>
 
@@ -72,14 +77,13 @@ const submit = async () => {
                             ¿Olvidaste tu contraseña?
                         </button>
                     </div>
-                    <input id="password" v-model="draft.password" type="password" required :disabled="saving"
-                        class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm disabled:opacity-50"
-                        placeholder="••••••••">
+                    <PasswordField id="password" v-model="draft.password" autocomplete="current-password" required
+                        :disabled="saving" placeholder="••••••••" input-class="disabled:opacity-50" />
                 </div>
 
                 <div>
                     <button type="submit" :disabled="saving"
-                        class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition duration-150 ease-in-out">
+                        class="w-full flex justify-center items-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition duration-150 ease-in-out">
                         <svg v-if="saving" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
                             xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
@@ -91,7 +95,6 @@ const submit = async () => {
                         {{ saving ? 'Verificando...' : 'Ingresar' }}
                     </button>
                 </div>
-
             </form>
         </div>
     </div>

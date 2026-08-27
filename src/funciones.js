@@ -98,3 +98,21 @@ export function confirmarEliminacion(nombre = 'registro') {
     cancelarTexto: 'Cancelar'
   })
 }
+
+/**
+ * Convierte un texto en un slug URL-safe: minúsculas, sin acentos ni signos,
+ * espacios y separadores colapsados a un guion. "Parroquia Sagrado Corazón" ->
+ * "parroquia-sagrado-corazon".
+ * @param {string} texto
+ * @returns {string}
+ */
+export function slugify(texto = '') {
+  return String(texto)
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')   // quita acentos (marcas diacríticas)
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')       // todo lo no alfanumérico -> guion
+    .replace(/^-+|-+$/g, '')           // sin guiones al inicio/fin
+    .slice(0, 80)
+}
