@@ -19,6 +19,7 @@ import {
   Cake,
   Clipboard,
   Calendar,
+  KeyRound,
 } from 'lucide-vue-next';
 
 const route = useRoute();
@@ -181,7 +182,8 @@ const menuSections = computed(() => {
       { name: 'Sacramentos', to: { name: 'sacramentos' }, icon: Flame, permission: 'ver todos los sacramentos' },
       { name: 'Requisitos', to: { name: 'requisitos' }, icon: Wallet, permission: 'ver todos los requisitos' },
       { name: 'Usuarios', to: { name: 'users' }, icon: Users, permission: 'ver usuarios' },
-      { name: 'Justificaciones', to: { name: 'justificaciones' }, icon: Clipboard, permission: 'ver todas las asistencias' }
+      { name: 'Justificaciones', to: { name: 'justificaciones' }, icon: Clipboard, permission: 'ver todas las asistencias' },
+      { name: 'Roles y Permisos', to: { name: 'roles' }, icon: KeyRound, permission: ['ver roles', 'ver permisos'] }
     ]
   });
 
@@ -192,7 +194,12 @@ const menuSections = computed(() => {
 const filteredSections = computed(() => {
   return menuSections.value.map(section => {
     // Filtramos los items internos de cada sección
-    const allowedItems = section.items.filter(item => !item.permission || authStore.can(item.permission));
+    const allowedItems = section.items.filter(item => {
+      if (!item.permission) return true;
+      return Array.isArray(item.permission)
+        ? authStore.canAll(item.permission)
+        : authStore.can(item.permission);
+    });
     return { ...section, items: allowedItems };
   }).filter(section => section.items.length > 0); // Excluimos secciones sin items
 });

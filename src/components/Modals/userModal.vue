@@ -10,7 +10,7 @@ import { attachModalFocusReturn } from '@/composables/useModalFocusReturn';
 import { useFieldValidation, validarDni, validarCelular, validarEmail } from '@/composables/useFieldValidation';
 import {
   SquarePen, UserPlus, User, IdCard, Phone, Mail, CalendarDays,
-  CircleCheck, Circle, Info, Check,
+  Info, Check,
 } from 'lucide-vue-next';
 
 const usersStore = useUsersStore();
@@ -214,7 +214,7 @@ async function submitUpdate() {
                 </div>
               </div>
 
-              <div class="col-md-3">
+              <div class="col-md-4">
                 <label for="userDni" class="form-label fw-bold text-secondary small text-uppercase">DNI</label>
                 <div class="input-group">
                   <span class="input-group-text bg-blue-soft text-primary border-end-0">
@@ -227,7 +227,7 @@ async function submitUpdate() {
                 </div>
               </div>
 
-              <div class="col-md-3">
+              <div class="col-md-4">
                 <label for="userCelular" class="form-label fw-bold text-secondary small text-uppercase">Celular</label>
                 <div class="input-group">
                   <span class="input-group-text bg-blue-soft text-primary border-end-0">
@@ -240,7 +240,18 @@ async function submitUpdate() {
                 </div>
               </div>
 
-              <div class="col-md-6">
+              <div class="col-md-4">
+                <label for="userFechaNacimiento" class="form-label fw-bold text-secondary small text-uppercase">Fecha de nacimiento</label>
+                <div class="input-group">
+                  <span class="input-group-text bg-blue-soft text-primary border-end-0">
+                    <CalendarDays class="h-4 w-4" aria-hidden="true" />
+                  </span>
+                  <input id="userFechaNacimiento" v-model="draft.fechaNacimiento" type="date"
+                    class="form-control border-start-0" required :disabled="saving">
+                </div>
+              </div>
+
+              <div class="col-12">
                 <label for="userEmail" class="form-label fw-bold text-secondary small text-uppercase">Correo Electrónico</label>
                 <div class="input-group">
                   <span class="input-group-text bg-blue-soft text-primary border-end-0">
@@ -253,28 +264,17 @@ async function submitUpdate() {
                 </div>
               </div>
 
-              <div class="col-md-4">
-                <label for="userFechaNacimiento" class="form-label fw-bold text-secondary small text-uppercase">Fecha de nacimiento</label>
-                <div class="input-group">
-                  <span class="input-group-text bg-blue-soft text-primary border-end-0">
-                    <CalendarDays class="h-4 w-4" aria-hidden="true" />
-                  </span>
-                  <input id="userFechaNacimiento" v-model="draft.fechaNacimiento" type="date"
-                    class="form-control border-start-0" placeholder="DD/MM/AAAA" required :disabled="saving">
-                </div>
-              </div>
-
-              <!-- SECCIÓN DE ROLES (Se ajustó a col-md-6 para compartir fila con Grupos) -->
-              <div class="col-md-8">
+              <!-- SECCIÓN DE ROLES -->
+              <div class="col-12">
                 <label class="form-label fw-bold text-secondary small text-uppercase mb-2">Asignar Roles</label>
-                <div class="roles-container p-3 rounded-3 bg-white border">
+                <div class="chip-container p-3 rounded-3 bg-white border">
                   <div v-if="availableRoles && availableRoles.length" class="d-flex flex-wrap gap-2">
                     <template v-for="role in availableRoles" :key="role.id">
                       <input class="btn-check" type="checkbox" :id="'role-' + role.id" :value="role.id"
                         v-model="draft.roles" :disabled="saving" />
-                      <label class="role-card d-flex align-items-center gap-2 px-3 py-2 rounded-pill transition-all"
+                      <label class="role-card d-flex align-items-center gap-1 px-3 py-2 rounded-pill transition-all"
                         :for="'role-' + role.id">
-                        <component :is="draft.roles.includes(role.id) ? CircleCheck : Circle" class="h-4 w-4" aria-hidden="true" />
+                        <Check v-if="draft.roles.includes(role.id)" class="h-4 w-4" aria-hidden="true" />
                         <span>{{ role.name }}</span>
                       </label>
                     </template>
@@ -285,18 +285,17 @@ async function submitUpdate() {
                 </div>
               </div>
 
-              <!-- ➔ NUEVO: SECCIÓN DE GRUPOS -->
-              <div class="col-md-4">
+              <!-- SECCIÓN DE GRUPOS -->
+              <div class="col-12">
                 <label class="form-label fw-bold text-secondary small text-uppercase mb-2">Asignar Grupos (Opcional)</label>
-                <div class="roles-container p-3 rounded-3 bg-white border">
+                <div class="chip-container chip-container--scroll p-3 rounded-3 bg-white border">
                   <div v-if="availableGrupos && availableGrupos.length" class="d-flex flex-wrap gap-2">
                     <template v-for="grupo in availableGrupos" :key="grupo.id">
                       <input class="btn-check" type="checkbox" :id="'grupo-' + grupo.id" :value="grupo.id"
                         v-model="draft.grupo_ids" :disabled="saving" />
-                      <label class="role-card d-flex align-items-center gap-2 px-3 py-2 rounded-pill transition-all"
+                      <label class="role-card d-flex align-items-center gap-1 px-3 py-2 rounded-pill transition-all"
                         :for="'grupo-' + grupo.id">
-                        <component :is="draft.grupo_ids.includes(grupo.id) ? CircleCheck : Circle" class="h-4 w-4"
-                          :class="{ 'text-primary': draft.grupo_ids.includes(grupo.id) }" aria-hidden="true" />
+                        <Check v-if="draft.grupo_ids.includes(grupo.id)" class="h-4 w-4 text-primary" aria-hidden="true" />
                         <span>{{ grupo.nombre }}</span>
                       </label>
                     </template>
@@ -398,12 +397,23 @@ async function submitUpdate() {
   border-color: #2563eb;
 }
 
-/* 4. ROLES */
+/* 4. ROLES Y GRUPOS (chips) */
+.chip-container {
+  max-height: 190px;
+  overflow-y: auto;
+}
+
+.chip-container--scroll {
+  max-height: 220px;
+}
+
 .role-card {
   background-color: #ffffff;
   border: 1px solid #e2e8f0;
   color: #64748b;
   font-weight: 500;
+  font-size: 0.85rem;
+  white-space: nowrap;
   cursor: pointer;
   user-select: none;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
