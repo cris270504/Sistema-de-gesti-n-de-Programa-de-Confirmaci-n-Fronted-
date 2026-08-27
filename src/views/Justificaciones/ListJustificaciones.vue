@@ -11,6 +11,7 @@ import {
 } from 'lucide-vue-next';
 import { confirmar } from '../../funciones';
 import PerfilConfirmandoModal from '../../components/Modals/PerfilConfirmandoModal.vue';
+import AppPage from '@/components/AppPage.vue';
 
 const perfilModalRef = ref(null);
 const justificacionesStore = useJustificacionesStore();
@@ -212,15 +213,7 @@ const rechazarCumplimientoSwal = async (item) => {
 </script>
 
 <template>
-    <div class="container-fluid p-4">
-        <!-- HEADER -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <h2 class="h3 fw-bold text-gray-800 mb-1">Módulo de Justificaciones</h2>
-                <p class="text-muted mb-0 small">Gestión, seguimiento y recuperación de faltas</p>
-            </div>
-        </div>
-
+    <AppPage title="Justificaciones" subtitle="Gestión, seguimiento y recuperación de faltas" :loading="loading">
         <!-- BARRA DE BÚSQUEDA Y FILTROS -->
         <div class="card border-0 shadow-sm mb-4 rounded-4">
             <div class="card-body p-3">
@@ -280,15 +273,9 @@ const rechazarCumplimientoSwal = async (item) => {
         <!-- TABLA PRINCIPAL -->
         <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
             <div class="card-body p-0">
-                
-                <!-- Estado Carga -->
-                <div v-if="loading" class="text-center py-5">
-                    <div class="spinner-border text-primary opacity-50 mb-3" style="width: 3rem; height: 3rem;"></div>
-                    <p class="mt-2 text-muted fw-medium">Sincronizando inasistencias...</p>
-                </div>
 
                 <!-- Estado Vacío -->
-                <div v-else-if="filteredPendientes.length === 0" class="text-center py-5 text-muted bg-light">
+                <div v-if="filteredPendientes.length === 0" class="text-center py-5 text-muted bg-light">
                     <Check :size="48" class="text-success opacity-50 mb-3 d-block mx-auto" stroke-width="1.5"/>
                     <h5 class="fw-bold text-dark mb-1">Todo al día</h5>
                     <p class="mb-0 small">No se registran faltas en esta categoría.</p>
@@ -485,10 +472,9 @@ const rechazarCumplimientoSwal = async (item) => {
                 </div>
             </div>
         </transition>
-    </div>
-    
-    <!-- Componente Global -->
-    <PerfilConfirmandoModal ref="perfilModalRef" />
+
+        <PerfilConfirmandoModal ref="perfilModalRef" />
+    </AppPage>
 </template>
 
 <style scoped>

@@ -6,6 +6,7 @@ import { Modal } from 'bootstrap';
 import { showAlerta, confirmarEliminacion } from '@/funciones';
 import { attachModalFocusReturn } from '@/composables/useModalFocusReturn';
 import { Pencil, Trash, Plus, FileText } from 'lucide-vue-next';
+import AppPage from '@/components/AppPage.vue';
 
 // --- Store ---
 const requisitosStore = useRequisitosStore();
@@ -83,68 +84,49 @@ const handleDelete = async (id, nombre) => {
 </script>
 
 <template>
-  <div class="!p-4 md:p-6">
-
-    <div class="flex justify-between items-center mb-6">
-      <div>
-        <h2 class="text-xl font-semibold text-gray-800 !mb-1">Gestión de Requisitos</h2>
-        <p class="text-gray-500 text-sm mb-0">Documentos solicitados para los sacramentos</p>
-      </div>
-      <button class="btn-success !shadow-sm" @click="openModal(null)">
-         <Plus :size="18" class="mr-1.5" />
-         <span class="text-sm">Nuevo Requisito</span>
+  <AppPage title="Requisitos" subtitle="Documentos solicitados para los sacramentos" :loading="loading">
+    <template #actions>
+      <button class="btn-success" @click="openModal(null)">
+        <Plus :size="18" class="mr-1.5" /> <span class="text-sm">Nuevo requisito</span>
       </button>
-    </div>
+    </template>
 
-    <div class="!bg-white rounded-xl !shadow-sm !border border-gray-200 !overflow-hidden">
+    <div v-if="error" class="alert-error !mb-4">{{ error }}</div>
 
-      <div v-if="loading" class="!text-center py-16">
-         <div class="inline-block h-8 w-8 animate-spin rounded-full border-4 border-indigo-200 border-t-indigo-600"></div>
-         <p class="!mt-3 text-gray-500 text-sm">Cargando requisitos...</p>
-      </div>
-
-      <div v-else-if="error" class="alert-error !m-4">
-         {{ error }}
-      </div>
-
-      <div v-else class="!overflow-x-auto">
-        <table class="mb-0">
-          <thead>
-            <tr>
-              <th class="pl-6 w-[5%]">#</th>
-              <th>Nombre del Requisito</th>
-              <th class="!text-center w-[15%]">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-if="requisitos.length === 0">
-               <td colspan="3" class="!text-center py-16 text-gray-500">
-                 No hay requisitos registrados.
-               </td>
-            </tr>
-
-            <tr v-for="(req, i) in requisitos" :key="req.id">
-              <td class="pl-6 font-semibold text-gray-500">{{ i + 1 }}</td>
-              <td>
-                  <div class="flex items-center">
-                      <div class="bg-gray-100 rounded-md !p-2 mr-3 text-indigo-600">
-                          <FileText :size="20" />
-                      </div>
-                      <span class="font-medium">{{ req.nombre }}</span>
-                  </div>
-              </td>
-              <td class="!text-center">
-                <button class="btn-icon-edit mr-2" @click="openModal(req)" title="Editar">
-                  <Pencil :size="15" />
-                </button>
-                <button class="btn-icon-delete" @click="handleDelete(req.id, req.nombre)" title="Eliminar">
-                  <Trash :size="15" />
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+    <div class="surface table-wrap">
+      <table class="mb-0">
+        <thead>
+          <tr>
+            <th class="pl-6 w-[5%]">#</th>
+            <th>Nombre del requisito</th>
+            <th class="!text-center w-[15%]">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-if="requisitos.length === 0">
+            <td colspan="3" class="empty-state">No hay requisitos registrados.</td>
+          </tr>
+          <tr v-for="(req, i) in requisitos" :key="req.id">
+            <td class="pl-6 font-semibold text-gray-500">{{ i + 1 }}</td>
+            <td>
+              <div class="flex items-center">
+                <div class="bg-gray-100 rounded-md !p-2 mr-3 text-indigo-600">
+                  <FileText :size="20" />
+                </div>
+                <span class="font-medium">{{ req.nombre }}</span>
+              </div>
+            </td>
+            <td class="!text-center">
+              <button class="btn-icon-edit mr-2" @click="openModal(req)" title="Editar">
+                <Pencil :size="15" />
+              </button>
+              <button class="btn-icon-delete" @click="handleDelete(req.id, req.nombre)" title="Eliminar">
+                <Trash :size="15" />
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
     <div class="modal fade" id="requisitoModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
@@ -184,6 +166,5 @@ const handleDelete = async (id, nombre) => {
         </div>
       </div>
     </div>
-
-  </div>
+  </AppPage>
 </template>

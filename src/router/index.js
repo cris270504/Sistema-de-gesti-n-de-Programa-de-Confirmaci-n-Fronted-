@@ -9,8 +9,6 @@ import { isTokenExpired } from '@/funciones'
 const NotFound = () => import('../views/NotFound.vue')
 const Forbidden = () => import('../views/Forbidden.vue')
 const Login = () => import('../views/Auth/Login.vue')
-const ForgotPassword = () => import('../views/Auth/ForgotPassword.vue')
-const ResetPassword = () => import('../views/Auth/ResetPassword.vue')
 const ListarUsuarios = () => import('../views/Users/ListUsers.vue')
 const Roles = () => import('../views/Auth/Roles.vue')
 const Profile = () => import('../views/Profile/profile.vue')
@@ -207,18 +205,6 @@ const router = createRouter({
       name: 'login',
       component: Login,
       meta: { guest: true, title: 'Login' }
-    },
-    {
-      path: '/forgot-password',
-      name: 'forgot-password',
-      component: ForgotPassword,
-      meta: { guest: true, title: 'Recuperar contraseña' }
-    },
-    {
-      path: '/reset-password/:token',
-      name: 'reset-password',
-      component: ResetPassword,
-      meta: { guest: true, title: 'Nueva contraseña' }
     },
   ],
 })

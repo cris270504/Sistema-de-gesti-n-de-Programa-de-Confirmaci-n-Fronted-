@@ -6,7 +6,7 @@ import { useAuthStore } from '../../stores/auth';
 import { useParroquiaStore } from '@/stores/parroquia';
 import { Pencil, Trash, Plus, User, Mail } from 'lucide-vue-next';
 import UserModal from '../../components/Modals/userModal.vue';
-import TableSkeleton from '@/components/TableSkeleton.vue';
+import AppPage from '@/components/AppPage.vue';
 
 const usersStore = useUsersStore();
 const { items: users, loading, error } = storeToRefs(usersStore);
@@ -54,36 +54,26 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="main-container">
-    
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <div>
-          <h2 class="page-title">Usuarios</h2>
-          <p class="page-subtitle">Gestión del sistema</p>
-      </div>
-      <button @click="abrirCrear" class="btn btn-primary shadow-sm px-3 py-2 d-flex align-items-center">
-        <Plus :size="18" class="me-2" stroke-width="2.5" /> 
-        <span class="fw-bold fs-7 text-uppercase">Nuevo Usuario</span>
+  <AppPage title="Usuarios" subtitle="Personal del sistema" :loading="loading">
+    <template #actions>
+      <button @click="abrirCrear" class="btn-primary">
+        <Plus :size="18" class="mr-1.5" /> <span class="text-sm">Nuevo usuario</span>
       </button>
-    </div>
+    </template>
 
-    <div v-if="error" class="alert alert-danger" role="alert">
-      {{ error }}
-    </div>
+    <div v-if="error" class="alert-error !mb-4">{{ error }}</div>
 
-    <div v-else class="card border-0 shadow-sm rounded-3 overflow-hidden">
-      <div class="table-responsive">
-        <table class="table align-middle mb-0">
-          <thead class="bg-light-gray">
-            <tr>
-              <th class="ps-4 py-2 text-secondary text-uppercase fw-bold">Usuario</th>
-              <th class="py-2 text-secondary text-uppercase fw-bold">Contacto</th>
-              <th class="py-2 text-secondary text-uppercase fw-bold">Roles</th>
-              <th v-if="authStore.can('editar usuarios')" class="text-end pe-4 py-2 text-secondary text-uppercase fw-bold">Acciones</th>
-            </tr>
-          </thead>
-          <TableSkeleton v-if="loading" :columns="4" />
-          <tbody v-else>
+    <div class="surface table-wrap">
+      <table class="mb-0">
+        <thead>
+          <tr>
+            <th class="pl-4">Usuario</th>
+            <th>Contacto</th>
+            <th>Roles</th>
+            <th v-if="authStore.can('editar usuarios')" class="!text-right pr-4">Acciones</th>
+          </tr>
+        </thead>
+          <tbody>
             <tr v-if="!users || users.length === 0">
               <td colspan="4" class="text-center py-5 text-muted">No hay usuarios registrados.</td>
             </tr>
@@ -140,11 +130,10 @@ onMounted(() => {
             </tr>
           </tbody>
         </table>
-      </div>
     </div>
 
     <UserModal ref="modalRef" @saved="recargarTabla" />
-  </div>
+  </AppPage>
 </template>
 
 <style scoped>

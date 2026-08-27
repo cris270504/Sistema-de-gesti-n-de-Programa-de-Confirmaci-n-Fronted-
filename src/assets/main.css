@@ -198,6 +198,21 @@ textarea {
   @apply text-sm text-gray-600;
 }
 
+/* ===== SUPERFICIE ESTÁNDAR (contenedor blanco de listas/tablas) ===== */
+.surface {
+  @apply bg-white rounded-xl shadow-sm overflow-hidden;
+  border: 1px solid #e5e7eb;
+}
+.surface--pad {
+  @apply p-4 md:p-5;
+}
+.table-wrap {
+  @apply overflow-x-auto;
+}
+.empty-state {
+  @apply py-16 text-center text-gray-500 text-sm;
+}
+
 /* ===== TABLAS ===== */
 table {
   @apply w-full border-collapse text-sm;

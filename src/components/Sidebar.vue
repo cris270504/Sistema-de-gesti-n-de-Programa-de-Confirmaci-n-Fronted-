@@ -113,6 +113,11 @@ const menuSections = computed(() => {
     });
   }
 
+  // El proveedor de la plataforma solo opera el panel de parroquias.
+  if (authStore.hasRole('proveedor')) {
+    return sections;
+  }
+
   // --- 1. SECCIÓN PRINCIPAL ---
   sections.push({
     title: 'General',
@@ -123,13 +128,13 @@ const menuSections = computed(() => {
     ]
   });
 
-  // --- 2. SECCIÓN: MI PASTORAL (Dinámica para Catequistas) ---
-  const pastoralItems = [];
+  // --- 2. SECCIÓN: SEGUIMIENTO (asistencias + justificaciones, según el rol) ---
+  const seguimientoItems = [];
 
-  // A. Gestión de Asistencias (Admin / Coordinador)
   if (authStore.can('ver todas las asistencias')) {
-    pastoralItems.push({
-      name: 'Gestión Asistencias',
+    // Gestor / coordinador: matriz completa + justificaciones globales.
+    seguimientoItems.push({
+      name: 'Asistencias',
       icon: ClipboardList,
       permission: 'ver todas las asistencias',
       children: [
@@ -138,30 +143,20 @@ const menuSections = computed(() => {
         { name: 'Apoderados', to: { name: 'asistencias-apoderados' } },
       ]
     });
-  }
-  // B. Asistencia (Catequista)
-  else if (authStore.can('ver asistencias') && misGruposDetalle.value.length > 0) {
+    seguimientoItems.push({ name: 'Justificaciones', to: { name: 'justificaciones' }, icon: Clipboard });
+  } else if (authStore.can('ver asistencias') && misGruposDetalle.value.length > 0) {
+    // Catequista: asistencias de su(s) grupo(s) + justificaciones de sus jóvenes.
     const grupos = misGruposDetalle.value;
 
-    // El catequista gestiona las justificaciones de los confirmandos de sus grupos
-    // (el backend filtra por grupo). Para gestores va en la sección Administración.
-    pastoralItems.push({
-      name: 'Justificaciones',
-      to: { name: 'justificaciones' },
-      icon: Clipboard,
-    });
-
     if (grupos.length === 1) {
-      // Tiene 1 solo grupo -> Botón directo
-      pastoralItems.push({
-        name: `Asistencia: ${grupos[0].nombre}`,
-        to: { name: 'asistencias-confirmandos', query: { grupo: grupos[0].id } }, // Enviamos el ID por query param
+      seguimientoItems.push({
+        name: 'Asistencias',
+        to: { name: 'asistencias-confirmandos', query: { grupo: grupos[0].id } },
         icon: ClipboardList,
       });
     } else {
-      // Tiene Varios grupos -> Menú Desplegable
-      pastoralItems.push({
-        name: 'Mis Asistencias',
+      seguimientoItems.push({
+        name: 'Asistencias',
         icon: ClipboardList,
         children: grupos.map(g => ({
           name: g.nombre,
@@ -169,18 +164,28 @@ const menuSections = computed(() => {
         }))
       });
     }
+    seguimientoItems.push({ name: 'Justificaciones', to: { name: 'justificaciones' }, icon: Clipboard });
   }
 
-  // C. Accesos a "Mi Grupo" (Perfiles)
+  if (seguimientoItems.length > 0) {
+    sections.push({ title: 'Seguimiento', items: seguimientoItems });
+  }
+
+  // --- 3. SECCIÓN: PADRÓN (personas del programa) ---
+  const padronItems = [
+    { name: 'Confirmandos', to: { name: 'confirmandos' }, icon: UserCircle, permission: 'ver todos los confirmandos' },
+    { name: 'Grupos', to: { name: 'grupos' }, icon: UsersRound, permission: 'ver todos los grupos' },
+  ];
+  // Accesos directos a "Mi Grupo" para el catequista.
   if (misGruposDetalle.value.length === 1) {
-    pastoralItems.push({
+    padronItems.push({
       name: `Mi Grupo (${misGruposDetalle.value[0].nombre})`,
-      to: { name: 'miGrupo', params: { id: misGruposDetalle.value[0].id } }, // ID individual correcto
+      to: { name: 'miGrupo', params: { id: misGruposDetalle.value[0].id } },
       icon: User,
       permission: 'ver grupos'
     });
   } else if (misGruposDetalle.value.length > 1) {
-    pastoralItems.push({
+    padronItems.push({
       name: 'Mis Grupos',
       icon: User,
       permission: 'ver grupos',
@@ -190,23 +195,23 @@ const menuSections = computed(() => {
       }))
     });
   }
+  sections.push({ title: 'Padrón', items: padronItems });
 
-  // Solo agregamos la sección si tiene items (Si un usuario no es catequista, no la verá)
-  if (pastoralItems.length > 0) {
-    sections.push({ title: 'Mi grupo', items: pastoralItems });
-  }
+  // --- 4. SECCIÓN: CATEQUESIS (ruta sacramental) ---
+  sections.push({
+    title: 'Catequesis',
+    items: [
+      { name: 'Sacramentos', to: { name: 'sacramentos' }, icon: Flame, permission: 'ver todos los sacramentos' },
+      { name: 'Requisitos', to: { name: 'requisitos' }, icon: Wallet, permission: 'ver todos los requisitos' },
+    ]
+  });
 
-  // --- 3. SECCIÓN: ADMINISTRACIÓN ---
+  // --- 5. SECCIÓN: ADMINISTRACIÓN (gestión del sistema) ---
   sections.push({
     title: 'Administración',
     items: [
-      { name: 'Confirmandos', to: { name: 'confirmandos' }, icon: UserCircle, permission: 'ver todos los confirmandos' },
-      { name: 'Grupos', to: { name: 'grupos' }, icon: UsersRound, permission: 'ver todos los grupos' },
-      { name: 'Sacramentos', to: { name: 'sacramentos' }, icon: Flame, permission: 'ver todos los sacramentos' },
-      { name: 'Requisitos', to: { name: 'requisitos' }, icon: Wallet, permission: 'ver todos los requisitos' },
       { name: 'Usuarios', to: { name: 'users' }, icon: Users, permission: 'ver usuarios' },
-      { name: 'Justificaciones', to: { name: 'justificaciones' }, icon: Clipboard, permission: 'ver todas las asistencias' },
-      { name: 'Roles y Permisos', to: { name: 'roles' }, icon: KeyRound, permission: ['ver roles', 'ver permisos'] },
+      { name: 'Roles y Permisos', to: { name: 'roles' }, icon: KeyRound, permission: 'ver roles' },
       { name: 'Configuración', to: { name: 'configuracion' }, icon: Settings, permission: 'administrar parroquia' }
     ]
   });

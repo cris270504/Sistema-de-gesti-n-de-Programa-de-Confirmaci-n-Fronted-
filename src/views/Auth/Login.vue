@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
+import { showAlerta } from '@/funciones';
 
 const router = useRouter()
 const route = useRoute()
@@ -9,6 +10,13 @@ const auth = useAuthStore()
 
 const draft = ref({ login: '', password: '' })
 const saving = ref(false)
+
+// El sistema aún no envía correos: la recuperación de contraseña se gestiona
+// contactando al dueño/administrador del sistema.
+const avisoContrasena = () => showAlerta(
+    'Contáctate con el dueño del sistema para restablecer tu contraseña.',
+    'info',
+)
 
 const submit = async () => {
     saving.value = true
@@ -59,9 +67,10 @@ const submit = async () => {
                         <label for="password" class="block text-sm font-medium text-gray-700">
                             Contraseña
                         </label>
-                        <RouterLink :to="{ name: 'forgot-password' }" class="text-sm font-medium text-indigo-600 hover:text-indigo-700">
+                        <button type="button" @click="avisoContrasena"
+                            class="text-sm font-medium text-indigo-600 hover:text-indigo-700">
                             ¿Olvidaste tu contraseña?
-                        </RouterLink>
+                        </button>
                     </div>
                     <input id="password" v-model="draft.password" type="password" required :disabled="saving"
                         class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm disabled:opacity-50"

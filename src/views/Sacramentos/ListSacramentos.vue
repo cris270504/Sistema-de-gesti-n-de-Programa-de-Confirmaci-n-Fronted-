@@ -5,6 +5,7 @@ import { useSacramentosStore } from '../../stores/sacramentos';
 import { useRequisitosStore } from '../../stores/requisitos';
 import { Modal } from 'bootstrap';
 import { Pencil, Trash, Plus, Check, FileCheck, FolderOpen, BookMarked, Lock, Tag, Info } from 'lucide-vue-next';
+import AppPage from '@/components/AppPage.vue';
 import { attachModalFocusReturn } from '@/composables/useModalFocusReturn';
 import { showAlerta } from '@/funciones';
 
@@ -96,26 +97,15 @@ const handleSubmit = async () => {
 </script>
 
 <template>
-    <div class="!p-4 md:p-6">
-
-        <div class="flex justify-between items-center mb-6">
-            <div>
-                <h2 class="text-xl font-semibold text-gray-800 !mb-1">Sacramentos</h2>
-                <p class="text-gray-500 text-sm mb-0">Configuración de rutas sacramentales</p>
-            </div>
-            <button class="btn-primary !shadow-sm" @click="openModal(null)">
-                <Plus :size="18" class="mr-1.5" />
-                <span class="text-sm">Nuevo Sacramento</span>
+    <AppPage title="Sacramentos" subtitle="Configuración de rutas sacramentales" :loading="loading">
+        <template #actions>
+            <button class="btn-primary" @click="openModal(null)">
+                <Plus :size="18" class="mr-1.5" /> <span class="text-sm">Nuevo sacramento</span>
             </button>
-        </div>
+        </template>
 
-        <div v-if="loading" class="!text-center py-16">
-            <div class="inline-block h-8 w-8 animate-spin rounded-full border-4 border-indigo-200 border-t-indigo-600"></div>
-            <p class="!mt-3 text-gray-500 text-sm">Cargando sacramentos...</p>
-        </div>
-
-        <div v-else class="!bg-white rounded-xl !shadow-sm !border border-gray-200 !overflow-hidden">
-            <div class="!overflow-x-auto">
+        <div class="surface">
+            <div class="table-wrap">
                 <table class="mb-0">
                     <thead>
                         <tr>
@@ -247,8 +237,7 @@ const handleSubmit = async () => {
                 </div>
             </div>
         </div>
-
-    </div>
+    </AppPage>
 </template>
 
 <style scoped>

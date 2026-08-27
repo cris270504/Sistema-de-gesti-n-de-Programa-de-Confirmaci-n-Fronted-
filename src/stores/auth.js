@@ -89,38 +89,6 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    async forgotPassword(email) {
-      this.loading = true
-      this.error = null
-      try {
-        // silent: el 503 "correo no configurado" lo mostramos acá con su mensaje,
-        // sin que el interceptor de api.js dispare su toast genérico de error 5xx.
-        const { data } = await api.post('/forgot-password', { email }, { silent: true })
-        showAlerta(data?.status || 'Te enviamos un enlace para recuperar tu contraseña.', 'success')
-        return true
-      } catch (e) {
-        showErroresDeValidacion(e?.response?.data?.errors || e)
-        return false
-      } finally {
-        this.loading = false
-      }
-    },
-
-    async resetPassword(payload) {
-      this.loading = true
-      this.error = null
-      try {
-        await api.post('/reset-password', payload)
-        showAlerta('Contraseña actualizada. Ya puedes iniciar sesión.', 'success')
-        return true
-      } catch (e) {
-        showErroresDeValidacion(e?.response?.data?.errors || e)
-        return false
-      } finally {
-        this.loading = false
-      }
-    },
-
     async logout() {
       try { await api.post('/logout') } catch (_) { }
       this.logoutLocal()
