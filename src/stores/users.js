@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { getUsersList, createUser, updateUser, deleteUserById, getUserById, setUserEstado } from '@/services/users'
-import { confirmar, confirmarEliminacion, showAlerta, showErroresDeValidacion } from '@/funciones'
+import { confirmar, showAlerta, showErroresDeValidacion } from '@/funciones'
 import { useGruposStore } from './grupos';
 
 export const useUsersStore = defineStore('users', {
@@ -131,7 +131,13 @@ export const useUsersStore = defineStore('users', {
 
     async remove(id, nombre) {
       const userId = Number(id);
-      const ok = await confirmarEliminacion(nombre || `usuario con ID ${userId}`)
+      const ok = await confirmar({
+        titulo: `¿Eliminar definitivamente a ${nombre || `el usuario ${userId}`}?`,
+        texto: 'Se borrará la cuenta y su historial de asistencia como catequista. '
+          + 'Si quieres conservar el historial, usa "Desactivar" en su lugar.',
+        icono: 'warning',
+        confirmarTexto: 'Sí, eliminar',
+      })
       if (!ok) {
         showAlerta('Operación cancelada', 'info')
         return false

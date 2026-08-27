@@ -80,14 +80,14 @@ onMounted(() => {
     <div v-if="error" class="alert-error !mb-4">{{ error }}</div>
 
     <div class="users-bar">
-      <label class="users-filter">
-        <span>Mostrar</span>
-        <select v-model="filtroEstado">
-          <option value="activos">Activos</option>
-          <option value="inactivos">Deshabilitados</option>
-          <option value="todos">Todos</option>
-        </select>
-      </label>
+      <div class="seg" role="group" aria-label="Filtrar usuarios por estado">
+        <button type="button" class="seg__btn" :class="{ 'seg__btn--on': filtroEstado === 'activos' }"
+          @click="filtroEstado = 'activos'">Activos</button>
+        <button type="button" class="seg__btn" :class="{ 'seg__btn--on': filtroEstado === 'inactivos' }"
+          @click="filtroEstado = 'inactivos'">Deshabilitados</button>
+        <button type="button" class="seg__btn" :class="{ 'seg__btn--on': filtroEstado === 'todos' }"
+          @click="filtroEstado = 'todos'">Todos</button>
+      </div>
       <span class="users-count">{{ usuariosVisibles.length }} usuario(s)</span>
     </div>
 
@@ -190,17 +190,32 @@ onMounted(() => {
     margin-bottom: 1rem;
     flex-wrap: wrap;
 }
-.users-filter {
+.seg {
     display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: #475569;
+    border: 1px solid #e2e8f0;
+    border-radius: 9px;
+    background: #f8fafc;
+    padding: 3px;
+    gap: 2px;
 }
-.users-filter select {
-    width: auto;
-    min-width: 150px;
+.seg__btn {
+    border: 0;
+    background: transparent;
+    padding: 0.4rem 0.9rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #64748b;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s, box-shadow 0.15s;
+}
+.seg__btn:hover:not(.seg__btn--on) {
+    color: #1e293b;
+}
+.seg__btn--on {
+    background: #ffffff;
+    color: var(--parroquia-color, #2563eb);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
 }
 .users-count {
     font-size: 0.8rem;
