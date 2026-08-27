@@ -12,6 +12,12 @@ import {
 } from 'lucide-vue-next';
 import AppPage from '@/components/AppPage.vue';
 import AppSkeleton from '@/components/AppSkeleton.vue';
+import { useMediaQuery } from '@/composables/useMediaQuery';
+
+// En celular la matriz (persona × reunión) es incómoda: se muestra una reunión a
+// la vez con una lista vertical y botones de estado grandes.
+const esMovil = useMediaQuery('(max-width: 767px)');
+const reunionMovilId = ref(null);
 
 const modelTypeMap = {
     'Confirmandos': 'App\\Models\\Confirmando',
@@ -163,6 +169,13 @@ watch(() => props.defaultTipo, (newTipo) => {
     attendanceMap.value = {};
     loadMatrix();
 });
+
+// En móvil: mantener seleccionada una reunión válida del mes cargado.
+watch(reuniones, (nuevas) => {
+    if (nuevas.length && !nuevas.some(r => r.id === reunionMovilId.value)) {
+        reunionMovilId.value = nuevas[0].id;
+    }
+}, { immediate: true });
 
 onMounted(async () => {
     try {
@@ -459,6 +472,32 @@ const setStatus = (newStatus) => {
     else popover.value.estado = newStatus;
 };
 
+// --- MÓVIL: registro rápido sin popover (Confirmandos / Catequistas) ---
+const estadoDe = (personaId, reunionId) => attendanceMap.value[personaId]?.[reunionId]?.estado || null;
+
+const setEstadoRapido = (personaId, reunionId, nuevoEstado) => {
+    if (!reunionId) return;
+    if (!canEditAttendance(personaId, reunionId)) {
+        showAlerta('Registro cerrado. Solo el coordinador puede editarlo.', 'info');
+        return;
+    }
+
+    const actual = estadoDe(personaId, reunionId);
+    const estadoFinal = actual === nuevoEstado ? null : nuevoEstado; // toggle
+    const notaActual = attendanceMap.value[personaId]?.[reunionId]?.nota || '';
+
+    if (!attendanceMap.value[personaId]) attendanceMap.value[personaId] = {};
+    attendanceMap.value[personaId][reunionId] = { estado: estadoFinal, nota: notaActual };
+
+    changes.value[`${personaId}-${reunionId}`] = {
+        asistente_id: personaId,
+        asistente_type: modelTypeMap[tipoActual.value],
+        reunion_id: reunionId,
+        estado: estadoFinal,
+        nota: notaActual,
+    };
+};
+
 //SOLO EL ADMIN PUEDE EDITAR
 const canEditAttendance = (personaId, reunionId) => {
     if (authStore.can('editar asistencias')) return true; // Coordinadores siempre pueden
@@ -654,7 +693,7 @@ const formatColDate = (dateStr) => {
                         </select>
                     </div>
 
-                    <div class="col-md-5 d-flex justify-content-end gap-2 align-self-end">
+                    <div class="col-md-5 d-none d-md-flex justify-content-end gap-2 align-self-end">
                         <span class="badge bg-success-subtle text-success border border-success-subtle d-inline-flex align-items-center gap-1">
                             <Check :size="12" aria-hidden="true" /> A</span>
                         <span class="badge bg-warning-subtle text-warning border border-warning-subtle d-inline-flex align-items-center gap-1">
@@ -676,6 +715,62 @@ const formatColDate = (dateStr) => {
                 <div v-else-if="reuniones.length === 0" class="text-center py-5 text-muted bg-light">
                     <CalendarX :size="48" class="mb-3 d-block mx-auto opacity-50" aria-hidden="true" />
                     <p>No hay reuniones registradas en este mes.</p>
+                </div>
+
+                <!-- ===== Vista MÓVIL: una reunión a la vez ===== -->
+                <div v-else-if="esMovil" class="asis-movil">
+                    <div class="asis-chips">
+                        <button v-for="r in reuniones" :key="r.id" type="button" class="asis-chip"
+                            :class="{ 'asis-chip--on': r.id === reunionMovilId }" @click="reunionMovilId = r.id">
+                            <span class="asis-chip__fecha">{{ formatColDate(r.fecha) }}</span>
+                            <span class="asis-chip__tema">{{ r.nombre_tema }}</span>
+                        </button>
+                    </div>
+
+                    <div v-if="filteredPersonas.length === 0" class="text-center py-5 text-muted">
+                        No hay {{ labelSingular.toLowerCase() }}s en esta selección.
+                    </div>
+
+                    <ul v-else class="asis-lista">
+                        <li v-for="(p, index) in filteredPersonas" :key="p.id" class="asis-persona"
+                            :class="{ 'asis-persona--retirado': p.estado === 'retirado' }">
+                            <div class="asis-persona__nom">
+                                {{ index + 1 }}. {{ p.apellidos ? `${p.apellidos}, ${p.nombres}` : p.name }}
+                                <span v-if="p.estado === 'retirado'" class="badge bg-danger">RETIRADO</span>
+                                <span v-else-if="!filterGrupo" class="asis-persona__grupo">· {{ p.grupo_nombre || 'Sin grupo' }}</span>
+                            </div>
+
+                            <div v-if="p.estado !== 'retirado' && tipoActual !== 'Apoderados'" class="asis-estados">
+                                <button type="button" class="asis-btn asis-btn--a"
+                                    :class="{ 'asis-btn--on': estadoDe(p.id, reunionMovilId) === 'asistio' }"
+                                    @click="setEstadoRapido(p.id, reunionMovilId, 'asistio')">
+                                    <Check :size="15" aria-hidden="true" /> A
+                                </button>
+                                <button type="button" class="asis-btn asis-btn--t"
+                                    :class="{ 'asis-btn--on': estadoDe(p.id, reunionMovilId) === 'tardanza' }"
+                                    @click="setEstadoRapido(p.id, reunionMovilId, 'tardanza')">
+                                    <Clock :size="15" aria-hidden="true" /> T
+                                </button>
+                                <button type="button" class="asis-btn asis-btn--j"
+                                    :class="{ 'asis-btn--on': estadoDe(p.id, reunionMovilId) === 'falta justificada' }"
+                                    @click="setEstadoRapido(p.id, reunionMovilId, 'falta justificada')">
+                                    <FileHeart :size="15" aria-hidden="true" /> J
+                                </button>
+                                <button type="button" class="asis-btn asis-btn--f"
+                                    :class="{ 'asis-btn--on': estadoDe(p.id, reunionMovilId) === 'falta injustificada' }"
+                                    @click="setEstadoRapido(p.id, reunionMovilId, 'falta injustificada')">
+                                    <CircleX :size="15" aria-hidden="true" /> F
+                                </button>
+                            </div>
+
+                            <div v-else-if="p.estado !== 'retirado'" class="asis-estados">
+                                <button type="button" class="asis-btn asis-btn--editar"
+                                    @click="openPopover($event, p.id, reunionMovilId)">
+                                    Registrar apoderado
+                                </button>
+                            </div>
+                        </li>
+                    </ul>
                 </div>
 
                 <div v-else class="table-responsive custom-scrollbar" style="max-height: 70vh;">
@@ -897,6 +992,88 @@ const formatColDate = (dateStr) => {
 </template>
 
 <style scoped>
+/* ===== Vista móvil (una reunión a la vez) ===== */
+.asis-chips {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    padding: 0.75rem;
+    -webkit-overflow-scrolling: touch;
+    border-bottom: 1px solid #f1f5f9;
+}
+.asis-chip {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    min-width: 92px;
+    padding: 0.45rem 0.7rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #f8fafc;
+    cursor: pointer;
+}
+.asis-chip--on {
+    border-color: var(--parroquia-color, #2563eb);
+    background: #eff6ff;
+}
+.asis-chip__fecha {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: #1e293b;
+    text-transform: capitalize;
+}
+.asis-chip__tema {
+    font-size: 0.68rem;
+    color: #64748b;
+    max-width: 130px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.asis-lista { list-style: none; margin: 0; padding: 0; }
+.asis-persona {
+    padding: 0.7rem 0.75rem;
+    border-top: 1px solid #f1f5f9;
+}
+.asis-persona:first-child { border-top: 0; }
+.asis-persona--retirado { opacity: 0.55; }
+.asis-persona__nom {
+    font-weight: 600;
+    color: #1e293b;
+    font-size: 0.88rem;
+}
+.asis-persona__grupo { font-weight: 400; color: #94a3b8; font-size: 0.78rem; }
+
+.asis-estados {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.4rem;
+    margin-top: 0.55rem;
+}
+.asis-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    min-height: 42px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #ffffff;
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: #64748b;
+    cursor: pointer;
+    transition: background-color 0.12s, color 0.12s, border-color 0.12s;
+}
+.asis-btn--editar { grid-column: 1 / -1; font-size: 0.82rem; }
+.asis-btn--on.asis-btn--a { background: #16a34a; border-color: #16a34a; color: #fff; }
+.asis-btn--on.asis-btn--t { background: #d97706; border-color: #d97706; color: #fff; }
+.asis-btn--on.asis-btn--j { background: #0891b2; border-color: #0891b2; color: #fff; }
+.asis-btn--on.asis-btn--f { background: #dc2626; border-color: #dc2626; color: #fff; }
+
 .cursor-not-allowed {
     cursor: not-allowed !important;
 }
