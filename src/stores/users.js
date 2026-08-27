@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
-import { getUsersList, createUser, updateUser, deleteUserById, getUserById } from '@/services/users'
-import { confirmarEliminacion, showAlerta, showErroresDeValidacion } from '@/funciones'
+import { getUsersList, createUser, updateUser, deleteUserById, getUserById, setUserEstado } from '@/services/users'
+import { confirmar, confirmarEliminacion, showAlerta, showErroresDeValidacion } from '@/funciones'
 import { useGruposStore } from './grupos';
 
 export const useUsersStore = defineStore('users', {
@@ -102,6 +102,30 @@ export const useUsersStore = defineStore('users', {
           showAlerta(e?.response?.data?.message || e?.message || 'Error al actualizar usuario', 'error');
         }
         throw e
+      }
+    },
+
+    async setEstado(user) {
+      const activar = !user.activo
+      const ok = await confirmar({
+        titulo: activar ? `¿Activar a ${user.name}?` : `¿Desactivar a ${user.name}?`,
+        texto: activar
+          ? 'Volverá a poder iniciar sesión.'
+          : 'No podrá iniciar sesión, pero se conserva su historial. Puedes reactivarlo cuando quieras.',
+        icono: activar ? 'question' : 'warning',
+        confirmarTexto: activar ? 'Sí, activar' : 'Sí, desactivar',
+      })
+      if (!ok) return false
+
+      try {
+        await setUserEstado(user.id, activar)
+        const idx = this.items.findIndex(u => u.id === user.id)
+        if (idx !== -1) this.items[idx] = { ...this.items[idx], activo: activar }
+        showAlerta(activar ? 'Usuario activado' : 'Usuario desactivado', 'success')
+        return true
+      } catch (e) {
+        showAlerta(e?.response?.data?.message || 'No se pudo cambiar el estado', 'error')
+        return false
       }
     },
 

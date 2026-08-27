@@ -1,16 +1,24 @@
 <script setup>
 import { useUsersStore } from '@/stores/users';
 import { storeToRefs } from 'pinia';
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useAuthStore } from '../../stores/auth';
 import { useParroquiaStore } from '@/stores/parroquia';
-import { Pencil, Trash, Plus, User, Mail } from 'lucide-vue-next';
+import { Pencil, Trash, Plus, User, Mail, Ban, CircleCheck } from 'lucide-vue-next';
 import UserModal from '../../components/Modals/userModal.vue';
 import AppPage from '@/components/AppPage.vue';
 
 const usersStore = useUsersStore();
 const { items: users, loading, error } = storeToRefs(usersStore);
-const { fetchAll: fetchAllUsers, remove: removeUser } = usersStore;
+const { fetchAll: fetchAllUsers, remove: removeUser, setEstado } = usersStore;
+
+// Activos primero; dentro de cada bloque, por nombre.
+const usuariosOrdenados = computed(() => [...(users.value || [])].sort((a, b) => {
+  const act = Number(b.activo !== false) - Number(a.activo !== false);
+  return act !== 0 ? act : (a.name || '').localeCompare(b.name || '', 'es');
+}));
+
+const gruposDe = (u) => (u.grupos?.length ?? u.grupo_ids?.length ?? 0);
 
 const authStore = useAuthStore();
 const parroquiaStore = useParroquiaStore();
@@ -78,21 +86,25 @@ onMounted(() => {
               <td colspan="4" class="text-center py-5 text-muted">No hay usuarios registrados.</td>
             </tr>
 
-            <tr v-for="u in users" :key="u.id" class="hover-row">
+            <tr v-for="u in usuariosOrdenados" :key="u.id" class="hover-row"
+                :class="{ 'user-row--off': u.activo === false }">
               <td class="ps-4 py-2">
                 <div class="d-flex align-items-center">
                     <div class="icon-box me-3">
                         <User :size="18" class="text-dark" />
                     </div>
                     <div>
-                        <div class="fw-bold text-dark fs-6 lh-sm">{{ u.name }}</div>
+                        <div class="fw-bold text-dark fs-6 lh-sm d-flex align-items-center gap-2">
+                          {{ u.name }}
+                          <span v-if="u.activo === false" class="user-badge-off">Inactivo</span>
+                        </div>
                         <div class="text-muted mt-1 font-monospace small">
                            DNI: {{ u.dni }}
                         </div>
                     </div>
                 </div>
               </td>
-              
+
               <td class="py-2">
                 <div class="d-flex align-items-center text-secondary small-text">
                     <Mail :size="16" class="me-2 opacity-75" />
@@ -118,11 +130,21 @@ onMounted(() => {
               </td>
               
               <td v-if="authStore.can('editar usuarios')" class="text-end pe-4 py-2">
-                <div  class="d-inline-flex gap-2">
-                  <button @click="abrirEditar(u)" class="btn btn-action btn-soft-primary" title="Editar">
+                <div class="d-inline-flex gap-2">
+                  <button @click="abrirEditar(u)" class="btn-action btn-soft-primary" title="Editar">
                     <Pencil :size="18" />
                   </button>
-                  <button class="btn btn-action btn-soft-danger" title="Eliminar" @click="removeUser(u.id, u.name)">
+                  <button v-if="u.activo === false" class="btn-action btn-soft-success" title="Activar"
+                    @click="setEstado(u)">
+                    <CircleCheck :size="18" />
+                  </button>
+                  <button v-else class="btn-action btn-soft-warning" title="Desactivar" @click="setEstado(u)">
+                    <Ban :size="18" />
+                  </button>
+                  <button class="btn-action btn-soft-danger"
+                    :disabled="gruposDe(u) > 0"
+                    :title="gruposDe(u) > 0 ? 'Tiene grupos asignados: reasígnalos o desactívalo' : 'Eliminar'"
+                    @click="removeUser(u.id, u.name)">
                     <Trash :size="18" />
                   </button>
                 </div>
@@ -137,6 +159,21 @@ onMounted(() => {
 </template>
 
 <style scoped>
+/* Usuarios inactivos: fila atenuada + etiqueta fija */
+.user-row--off td:not(:last-child) {
+    opacity: 0.55;
+}
+.user-badge-off {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #64748b;
+    background: #e2e8f0;
+    border-radius: 999px;
+    padding: 0.1rem 0.45rem;
+}
+
 /* Header */
 .page-title {
     font-size: 1.5rem; /* Reducido de 1.75 a 1.5 */

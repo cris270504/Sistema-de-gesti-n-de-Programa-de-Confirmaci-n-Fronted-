@@ -19,3 +19,7 @@ export function updateUser(id, user) {
 export function deleteUserById(id) {
   return api.delete(`/users/${id}`).then(res => res.data)
 }
+
+export function setUserEstado(id, activo) {
+  return api.patch(`/users/${id}/estado`, { activo }).then(res => res.data)
+}
