@@ -64,6 +64,18 @@
   --color-primary-foreground: #ffffff;
 }
 
+/* @theme genera las utilidades (text-primary, bg-primary, etc.) pero NO expone
+   --color-primary como variable CSS normal utilizable con var() fuera de esas
+   utilidades — confirmado en vivo: Sidebar.vue ya usaba "var(--color-primary)" en
+   .active-indicator/.nav-link--active y quedaba sin valor (background-color
+   inválido en tiempo de cómputo → transparente, indicador de navegación activo
+   invisible). Se declara acá también como variable CSS normal en :root para que
+   cualquier var(--color-primary) — el de Sidebar.vue y los headers con degradado
+   de los modales de Fase 8 — resuelva al azul real. */
+:root {
+  --color-primary: #2563eb;
+}
+
 /* ===== RESET GLOBAL ===== */
 *,
 *::before,

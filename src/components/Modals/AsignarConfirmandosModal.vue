@@ -102,48 +102,48 @@ const save = async () => {
 <template>
     <div class="modal fade" ref="modalRef" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
-            <div class="modal-content border-0">
-                <div class="modal-header-theme">
-                    <h5 class="modal-title fw-bold text-white d-flex align-items-center"><Users class="h-5 w-5 me-2" aria-hidden="true" />Asignar Confirmandos</h5>
+            <div class="modal-content !border-0 !rounded-2xl !shadow-lg overflow-hidden">
+                <div class="!p-6 flex justify-between items-center" style="background: linear-gradient(135deg, var(--color-primary) 0%, #1e293b 150%);">
+                    <h5 class="modal-title font-bold text-white flex items-center"><Users class="h-5 w-5 !mr-2" aria-hidden="true" />Asignar Confirmandos</h5>
                     <button type="button" class="btn-close btn-close-white" @click="close"></button>
                 </div>
-                <div class="bg-light border-bottom p-3">
+                <div class="!bg-gray-50 border-b !p-3">
                     <div class="input-group">
-                        <span class="input-group-text bg-white border-end-0"><Search :size="16" class="text-muted" /></span>
+                        <span class="input-group-text !bg-white border-end-0"><Search :size="16" class="text-gray-400" /></span>
                         <input type="text" class="form-control border-start-0 shadow-none" v-model="searchQuery" placeholder="Buscar por nombre...">
                     </div>
                 </div>
                 <div class="modal-body p-0">
-                    <table class="table align-middle mb-0">
-                        <thead class="bg-light sticky-top text-muted small text-uppercase" style="z-index: 1;">
+                    <table class="w-full">
+                        <thead class="!bg-gray-50 sticky-top text-gray-500 text-xs uppercase" style="z-index: 1;">
                             <tr>
-                                <th class="ps-4 py-2" style="width: 50px;">
+                                <th class="!pl-4 py-2 text-left" style="width: 50px;">
                                     <input class="form-check-input" type="checkbox" @change="toggleSelectAll">
                                 </th>
-                                <th class="py-2">Nombre</th>
-                                <th class="py-2">Estado</th>
+                                <th class="py-2 text-left">Nombre</th>
+                                <th class="py-2 text-left">Estado</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <tr v-for="conf in filteredConfirmandos" :key="conf.id" class="hover-bg-light cursor-pointer" @click="toggleSelection(conf.id)">
-                                <td class="ps-4">
+                        <tbody class="divide-y divide-gray-100">
+                            <tr v-for="conf in filteredConfirmandos" :key="conf.id" class="hover:bg-gray-50 cursor-pointer transition-colors" @click="toggleSelection(conf.id)">
+                                <td class="!pl-4 py-2">
                                     <input class="form-check-input" type="checkbox" :value="conf.id" v-model="selectedConfirmandoIds" :disabled="saving" @click.stop>
                                 </td>
-                                <td><div class="fw-bold text-dark">{{ conf.apellidos }}, {{ conf.nombres }}</div></td>
-                                <td class="small">
-                                    <span v-if="conf.grupo_id" class="badge bg-success-subtle text-success border-0 px-3 py-1">Inscrito</span>
-                                    <span v-else class="badge bg-secondary-subtle text-muted border-0 px-3 py-1">Sin asignar</span>
+                                <td class="py-2"><div class="font-bold text-gray-800">{{ conf.apellidos }}, {{ conf.nombres }}</div></td>
+                                <td class="py-2 text-sm">
+                                    <span v-if="conf.grupo_id" class="inline-flex items-center rounded-full !border-0 bg-green-50 text-green-700 !px-3 !py-1 text-xs font-medium">Inscrito</span>
+                                    <span v-else class="inline-flex items-center rounded-full !border-0 bg-gray-100 text-gray-500 !px-3 !py-1 text-xs font-medium">Sin asignar</span>
                                 </td>
                             </tr>
                             <tr v-if="filteredConfirmandos.length === 0">
-                                <td colspan="3" class="text-center py-4 text-muted small">No hay confirmandos disponibles.</td>
+                                <td colspan="3" class="!text-center py-4 text-gray-500 text-sm">No hay confirmandos disponibles.</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
-                <div class="modal-footer bg-light-subtle border-top">
-                    <button class="btn btn-secondary border-0" @click="close">Cancelar</button>
-                    <button class="btn btn-success rounded-pill px-4" @click="save" :disabled="saving">
+                <div class="modal-footer bg-gray-50 border-t !gap-2">
+                    <button class="btn-outline !border-0 text-sm" @click="close">Cancelar</button>
+                    <button class="btn-success !rounded-full !px-4 text-sm" @click="save" :disabled="saving">
                         {{ saving ? 'Guardando...' : 'Confirmar Asignación' }}
                     </button>
                 </div>
@@ -151,136 +151,3 @@ const save = async () => {
         </div>
     </div>
 </template>
-
-<style scoped>
-.main-container {
-    --theme-color: v-bind(groupColor);
-    --theme-soft: color-mix(in srgb, var(--theme-color), white 93%);
-    --theme-hover: color-mix(in srgb, var(--theme-color), black 12%);
-}
-
-.text-theme {
-    color: var(--theme-color) !important;
-}
-
-.page-title {
-    font-size: 1.4rem;
-    font-weight: 800;
-    color: #1e293b;
-    margin: 0;
-}
-
-.page-subtitle {
-    font-size: 0.825rem;
-    color: #64748b;
-}
-
-.btn-theme {
-    background-color: var(--theme-color);
-    border-color: var(--theme-color);
-    color: white;
-}
-
-.btn-theme:hover {
-    background-color: var(--theme-hover);
-    border-color: var(--theme-hover);
-    color: white;
-}
-
-.bg-theme-soft {
-    background-color: var(--theme-soft) !important;
-}
-
-.modal-header-theme {
-    background: linear-gradient(135deg, var(--theme-color) 0%, #1e293b 150%);
-    color: white;
-    padding: 1.5rem 2rem;
-    border-bottom: none;
-    position: relative;
-}
-
-.modal-content {
-    border-radius: 1.2rem !important;
-    overflow: hidden;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-}
-
-.rounded-4 {
-    border-radius: 1rem !important;
-}
-
-.hover-row {
-    transition: background-color 0.2s ease;
-}
-
-.hover-row:hover td {
-    background-color: #f8fafc;
-}
-
-.hover-bg-light:hover {
-    background-color: #f1f5f9;
-}
-
-.cursor-pointer {
-    cursor: pointer;
-}
-
-.btn-action {
-    width: 32px;
-    height: 32px;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    transition: all 0.2s ease;
-}
-
-.btn-soft-warning {
-    background-color: #fef3c7;
-    color: #d97706;
-}
-
-.btn-soft-warning:hover {
-    background-color: #d97706;
-    color: white;
-}
-
-.btn-soft-theme {
-    background-color: var(--theme-soft);
-    color: var(--theme-color);
-}
-
-.btn-soft-theme:hover {
-    background-color: var(--theme-color);
-    color: white;
-}
-
-.row-critica {
-    background-color: rgba(239, 68, 68, 0.04) !important;
-}
-
-.row-preventiva {
-    background-color: rgba(245, 158, 11, 0.04) !important;
-}
-
-.badge-alert-glow {
-    display: inline-flex;
-    align-items: center;
-    padding: 2px 8px;
-    border-radius: 50px;
-    font-size: 8px;
-    font-weight: 800;
-    letter-spacing: 0.5px;
-}
-
-.badge-alert-glow.critico {
-    background-color: #fecaca;
-    color: #ef4444;
-}
-
-.badge-alert-glow.preventivo {
-    background-color: #fef3c7;
-    color: #d97706;
-}
-</style>
