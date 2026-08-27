@@ -2,6 +2,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useParroquiaStore, CONFIG_DEFAULTS } from '@/stores/parroquia'
 import { Save, RotateCcw, Image as ImageIcon } from 'lucide-vue-next'
+import AppPage from '@/components/AppPage.vue'
 
 const parroquiaStore = useParroquiaStore()
 
@@ -84,16 +85,12 @@ const UMBRALES = [
 </script>
 
 <template>
-  <div class="cfg !p-4 md:p-6">
-    <div class="cfg__head">
-      <div>
-        <h2 class="text-xl font-semibold text-slate-800 !mb-1">Configuración de la parroquia</h2>
-        <p class="text-sm text-slate-500 mb-0">Ajustes que aplican a todo el sistema.</p>
-      </div>
-      <button type="button" class="cfg__reset" :disabled="parroquiaStore.loading || saving" @click="cargarDesdeStore">
+  <AppPage title="Configuración" subtitle="Ajustes que aplican a toda la parroquia" :loading="parroquiaStore.loading" skeleton="form">
+    <template #actions>
+      <button type="button" class="cfg__reset" :disabled="saving" @click="cargarDesdeStore">
         <RotateCcw :size="14" /> Descartar
       </button>
-    </div>
+    </template>
 
     <form class="cfg__form" @submit.prevent="guardar">
       <!-- Identidad -->
@@ -194,7 +191,7 @@ const UMBRALES = [
         </button>
       </div>
     </form>
-  </div>
+  </AppPage>
 </template>
 
 <style scoped>

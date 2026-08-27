@@ -10,6 +10,7 @@ import {
     Save, Check, Clock, FileHeart, X, ChartPie, CalendarX,
     CircleCheck, CircleX, Lock, TriangleAlert, MessageSquareText,
 } from 'lucide-vue-next';
+import AppPage from '@/components/AppPage.vue';
 
 const modelTypeMap = {
     'Confirmandos': 'App\\Models\\Confirmando',
@@ -534,21 +535,16 @@ const formatColDate = (dateStr) => {
 </script>
 
 <template>
-    <div class="container-fluid p-4 position-relative">
-
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <h2 class="h3 text-gray-800 mb-1">Matriz de Asistencia: {{ tipoActual }}</h2>
-                <p class="text-muted mb-0 small">Gestión mensual de asistencia</p>
-            </div>
-            <button class="btn btn-primary shadow-sm px-4" @click="saveChanges"
+    <AppPage :title="`Asistencia · ${tipoActual}`" subtitle="Registro mensual" class="position-relative">
+        <template #actions>
+            <button class="btn-primary" @click="saveChanges"
                 :disabled="Object.keys(changes).length === 0 || saving">
                 <span v-if="saving" class="spinner-border spinner-border-sm me-2"></span>
-                <Save v-else class="h-4 w-4 me-2 d-inline-block align-text-bottom" aria-hidden="true" />
-                Guardar Cambios <span v-if="Object.keys(changes).length > 0" class="badge bg-white text-primary ms-2">{{
-                    Object.keys(changes).length }}</span>
+                <Save v-else :size="16" class="mr-1.5" />
+                <span class="text-sm">Guardar</span>
+                <span v-if="Object.keys(changes).length > 0" class="badge bg-white text-primary ms-2">{{ Object.keys(changes).length }}</span>
             </button>
-        </div>
+        </template>
 
         <div class="row g-3 mb-4">
             <div class="col-md-3 col-6">
@@ -888,8 +884,7 @@ const formatColDate = (dateStr) => {
                 </div>
             </div>
         </transition>
-
-    </div>
+    </AppPage>
 </template>
 
 <style scoped>

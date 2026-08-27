@@ -3,6 +3,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { Plus, Check, X, Copy } from 'lucide-vue-next'
 import { showAlerta } from '@/funciones'
 import { listParroquias, crearParroquia, actualizarParroquia } from '@/services/proveedor'
+import AppPage from '@/components/AppPage.vue'
 
 const parroquias = ref([])
 const loading = ref(true)
@@ -59,16 +60,12 @@ function copiar(txt) {
 </script>
 
 <template>
-  <div class="!p-4 md:p-6">
-    <div class="flex items-center justify-between mb-5">
-      <div>
-        <h2 class="text-xl font-semibold text-slate-800 !mb-1">Parroquias</h2>
-        <p class="text-sm text-slate-500 mb-0">Panel del proveedor de la plataforma.</p>
-      </div>
-      <button class="btn-primary inline-flex items-center gap-2" @click="showForm = !showForm">
-        <Plus :size="16" /> Nueva parroquia
+  <AppPage title="Parroquias" subtitle="Panel del proveedor de la plataforma" :loading="loading">
+    <template #actions>
+      <button class="btn-primary" @click="showForm = !showForm">
+        <Plus :size="16" class="mr-1.5" /> <span class="text-sm">Nueva parroquia</span>
       </button>
-    </div>
+    </template>
 
     <!-- Contraseña temporal del admin recién creado -->
     <div v-if="nuevoAdmin" class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm">
@@ -105,17 +102,16 @@ function copiar(txt) {
       </div>
     </form>
 
-    <div v-if="loading" class="py-16 text-center text-slate-400">Cargando…</div>
-    <div v-else class="overflow-x-auto rounded-xl border bg-white">
-      <table class="w-full text-sm">
-        <thead class="bg-slate-50 text-slate-500">
+    <div class="surface table-wrap">
+      <table class="mb-0">
+        <thead>
           <tr>
-            <th class="px-4 py-2 text-left">Parroquia</th>
-            <th class="px-4 py-2 text-left">Slug</th>
-            <th class="px-4 py-2 text-center">Usuarios</th>
-            <th class="px-4 py-2 text-center">Grupos</th>
-            <th class="px-4 py-2 text-center">Confirmandos</th>
-            <th class="px-4 py-2 text-center">Estado</th>
+            <th>Parroquia</th>
+            <th>Slug</th>
+            <th class="!text-center">Usuarios</th>
+            <th class="!text-center">Grupos</th>
+            <th class="!text-center">Confirmandos</th>
+            <th class="!text-center">Estado</th>
           </tr>
         </thead>
         <tbody>
@@ -138,5 +134,5 @@ function copiar(txt) {
         </tbody>
       </table>
     </div>
-  </div>
+  </AppPage>
 </template>

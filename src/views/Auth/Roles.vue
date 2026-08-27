@@ -9,6 +9,7 @@ import { useParroquiaStore } from '@/stores/parroquia';
 import { getRoles } from '@/services/roles';
 import { showAlerta } from '@/funciones';
 import { Pencil, Trash, Plus, ShieldCheck, Search, KeyRound, Users } from 'lucide-vue-next';
+import AppPage from '@/components/AppPage.vue';
 
 // --- Stores ---
 const rolesStore = useRolesStore();
@@ -170,33 +171,19 @@ const handleDelete = async (role) => {
 </script>
 
 <template>
-  <div class="container-fluid p-4">
-
-    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-      <div>
-        <h2 class="h3 text-gray-800 mb-1">Gestión de Roles y Permisos</h2>
-        <p class="text-muted mb-0 small">Define qué puede hacer cada tipo de usuario en el sistema</p>
-      </div>
-      <button v-if="puedeGestionar" class="btn btn-success shadow-sm px-3 py-2 d-flex align-items-center" @click="openModal(null)">
-        <Plus :size="20" class="me-1" />
-        <span class="fw-bold text-uppercase small">Nuevo Rol</span>
+  <AppPage title="Roles y permisos" subtitle="Qué puede hacer cada tipo de usuario" :loading="loading">
+    <template v-if="puedeGestionar" #actions>
+      <button class="btn-success" @click="openModal(null)">
+        <Plus :size="18" class="mr-1.5" /> <span class="text-sm">Nuevo rol</span>
       </button>
-    </div>
+    </template>
 
-    <div class="card shadow border-0">
-      <div class="card-body p-0">
+    <div v-if="error" class="alert-error !mb-4">{{ error }}</div>
 
-        <div v-if="loading" class="text-center p-5">
-          <div class="spinner-border text-primary" role="status"></div>
-          <p class="mt-2 text-muted">Cargando roles...</p>
-        </div>
-
-        <div v-else-if="error" class="alert alert-danger m-3">
-          {{ error }}
-        </div>
-
-        <div v-else class="table-responsive">
-          <table class="table table-hover align-middle mb-0">
+    <div class="surface">
+      <div>
+        <div class="table-wrap">
+          <table class="mb-0">
             <thead class="table-light">
               <tr>
                 <th class="ps-4" style="width: 5%;">#</th>
@@ -333,8 +320,7 @@ const handleDelete = async (role) => {
         </div>
       </div>
     </div>
-
-  </div>
+  </AppPage>
 </template>
 
 <style scoped>

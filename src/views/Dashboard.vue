@@ -10,6 +10,7 @@ import { useConfirmandosStore } from '../stores/confirmandos';
 import { Calendar, MessagesSquare, TriangleAlert, Clock, MapPin, CircleAlert, User, Instagram, Facebook, MessageCircle } from 'lucide-vue-next';
 import { confirmar } from '@/funciones';
 import PerfilConfirmandoModal from '@/components/Modals/PerfilConfirmandoModal.vue';
+import AppPage from '@/components/AppPage.vue';
 
 // 1. Instancias
 const authStore = useAuthStore();
@@ -98,7 +99,7 @@ const confirmarRetiroJoven = async (joven) => {
 </script>
 
 <template>
-  <main class="container-fluid p-3 p-lg-4 bg-light min-vh-100">
+  <AppPage :wide="true">
     <!-- HEADER COMPACTO -->
     <header class="row mb-4 align-items-center g-3">
       <div class="col-md-auto">
@@ -343,10 +344,9 @@ const confirmarRetiroJoven = async (joven) => {
         </div>
       </div>
     </div>
-  </main>
 
-  <!-- ➔ NUEVO: Componente inyectado al final del template -->
-  <PerfilConfirmandoModal ref="perfilModalRef" />
+    <PerfilConfirmandoModal ref="perfilModalRef" />
+  </AppPage>
 </template>
 
 <style scoped>

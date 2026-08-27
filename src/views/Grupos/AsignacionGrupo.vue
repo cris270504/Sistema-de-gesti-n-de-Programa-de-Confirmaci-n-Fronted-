@@ -18,6 +18,7 @@ import AsignarCatequistasModal from '@/components/Modals/AsignarCatequistasModal
 import AsignarConfirmandosModal from '@/components/Modals/AsignarConfirmandosModal.vue';
 import PerfilConfirmandoModal from '../../components/Modals/PerfilConfirmandoModal.vue';
 import ApoderadosModal from '@/components/Modals/ApoderadosModal.vue'; // NUEVO MODAL
+import AppSkeleton from '@/components/AppSkeleton.vue';
 
 const props = defineProps({ id: { type: [Number, String], required: true } });
 
@@ -121,12 +122,10 @@ const countEntregados = (requisitos) => requisitos?.filter(r => r.pivot.estado =
 </script>
 
 <template>
-    <div class="main-container py-3 py-lg-4 px-2 px-md-4">
-        <div v-if="loadingGrupo" class="text-center py-5">
-            <div class="spinner-border text-theme" role="status"></div>
-        </div>
+    <div class="main-container !p-4 md:p-6">
+        <AppSkeleton v-if="loadingGrupo" skeleton="cards" />
 
-        <div v-else-if="!grupo" class="alert alert-danger m-4">Grupo no encontrado.</div>
+        <div v-else-if="!grupo" class="alert-error">Grupo no encontrado.</div>
 
         <div v-else>
             <!-- Encabezado del Grupo -->

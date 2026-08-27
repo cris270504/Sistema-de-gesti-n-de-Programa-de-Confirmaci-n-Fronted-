@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue';
 import { useAuthStore } from '@/stores/auth'; // Asegúrate que la ruta al store sea correcta
 import { showAlerta, showErroresDeValidacion } from '@/funciones'; // Importa tus funciones de alerta
 import { Save, ShieldCheck } from 'lucide-vue-next';
+import AppPage from '@/components/AppPage.vue';
 
 const authStore = useAuthStore();
 
@@ -108,9 +109,7 @@ async function submitPassword() {
 </script>
 
 <template>
-    <div class="container-fluid p-4">
-        <h2 class="title mb-4">Mi Perfil</h2>
-
+    <AppPage title="Mi perfil" subtitle="Tus datos y contraseña" :wide="false">
         <div class="row g-4">
 
             <div class="col-lg-6">
@@ -198,7 +197,7 @@ async function submitPassword() {
             </div>
 
         </div>
-    </div>
+    </AppPage>
 </template>
 
 <style scoped>
