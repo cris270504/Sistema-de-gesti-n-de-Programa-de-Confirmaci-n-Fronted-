@@ -198,45 +198,7 @@ onMounted(() => {
     border-style: solid;
 }
 
-/* BOTONES DE ACCIÓN (Tamaño medio perfecto) */
-.btn-action {
-    width: 36px;  /* Reducido de 42 a 36px */
-    height: 36px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    transition: all 0.2s;
-}
-
-/* Colores de los botones (MANTENIDOS) */
-.btn-soft-primary {
-    background-color: #eff6ff; 
-    color: #2563eb; 
-    border: 1px solid #dbeafe;
-}
-.btn-soft-primary:hover {
-    background-color: #2563eb;
-    color: white;
-    border-color: #2563eb;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2);
-}
-
-.btn-soft-danger {
-    background-color: #fef2f2;
-    color: #dc2626;
-    border: 1px solid #fee2e2;
-}
-.btn-soft-danger:hover {
-    background-color: #dc2626;
-    color: white;
-    border-color: #dc2626;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 6px rgba(220, 38, 38, 0.2);
-}
-
+/* .btn-action y .btn-soft-* ahora son globales (src/assets/main.css) */
 /* Botón Principal */
 .btn-primary {
     background-color: #2563eb;

@@ -214,52 +214,7 @@ onMounted(() => {
     border-radius: 6px;
 }
 
-.btn-action {
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    transition: all 0.2s;
-}
-
-.btn-soft-success {
-    background-color: #f0fdf4;
-    color: #16a34a;
-}
-
-.btn-soft-success:hover {
-    background-color: #16a34a;
-    color: white;
-    transform: translateY(-2px);
-}
-
-.btn-soft-primary {
-    background-color: #eff6ff;
-    color: #2563eb;
-    border: 1px solid #dbeafe;
-}
-
-.btn-soft-primary:hover {
-    background-color: #2563eb;
-    color: white;
-    transform: translateY(-2px);
-}
-
-.btn-soft-danger {
-    background-color: #fef2f2;
-    color: #ef4444;
-    border: 1px solid #fee2e2;
-}
-
-.btn-soft-danger:hover {
-    background-color: #ef4444;
-    color: white;
-    transform: translateY(-2px);
-}
-
+/* .btn-action y .btn-soft-* ahora son globales (src/assets/main.css) */
 .btn-primary {
     background-color: #2563eb;
     border-color: #2563eb;

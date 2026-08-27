@@ -576,24 +576,23 @@ onUnmounted(() => {
                             <td class="text-end pe-4 py-2">
                                 <div class="d-inline-flex gap-2">
                                     <button @click="abrirPerfil(c.id)" :disabled="isPerfilModalLoading"
-                                        class=" btn btn-sm btn-soft-suggest rounded-circle d-flex align-items-center justify-content-center me-1"
-                                        style="width: 32px; height: 32px;" title="Ver Ficha Completa"
+                                        class="btn-action btn-soft-suggest" title="Ver Ficha Completa"
                                         aria-label="Ver ficha completa">
                                         <span v-if="isPerfilModalLoading" class="spinner-border spinner-border-sm"></span>
                                         <Eye v-else :size="16" />
                                     </button>
-                                    <button class="btn btn-action btn-soft-info" title="Ver Apoderados"
+                                    <button class="btn-action btn-soft-info" title="Ver Apoderados"
                                         aria-label="Ver apoderados" @click="openApoderadosModal(c)">
                                         <Users :size="18" />
                                     </button>
-                                    <button class="btn btn-action btn-soft-warning" title="Editar"
+                                    <button class="btn-action btn-soft-primary" title="Editar"
                                         aria-label="Editar confirmando" :disabled="isConfirmandoModalLoading"
                                         @click="abrirEditar(c.id)">
                                         <span v-if="isConfirmandoModalLoading" class="spinner-border spinner-border-sm"></span>
                                         <Pencil v-else :size="18" />
                                     </button>
                                     <button v-if="authStore.can('eliminar confirmandos')"
-                                        class="btn btn-action btn-soft-danger" title="Eliminar"
+                                        class="btn-action btn-soft-danger" title="Eliminar"
                                         aria-label="Eliminar confirmando"
                                         @click="removeConfirmando(c.id, c.apellidos + ' ' + c.nombres)">
                                         <Trash :size="18" />
@@ -918,51 +917,7 @@ onUnmounted(() => {
     border-radius: 6px;
 }
 
-/* BOTONES */
-.btn-action {
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    transition: all 0.2s;
-}
-
-.btn-soft-info {
-    background-color: #ecfeff;
-    color: #06b6d4;
-}
-
-.btn-soft-info:hover {
-    background-color: #06b6d4;
-    color: white;
-    transform: translateY(-2px);
-}
-
-.btn-soft-warning {
-    background-color: #fffbeb;
-    color: #d97706;
-}
-
-.btn-soft-warning:hover {
-    background-color: #d97706;
-    color: white;
-    transform: translateY(-2px);
-}
-
-.btn-soft-danger {
-    background-color: #fef2f2;
-    color: #ef4444;
-}
-
-.btn-soft-danger:hover {
-    background-color: #ef4444;
-    color: white;
-    transform: translateY(-2px);
-}
-
+/* BOTONES — .btn-action y .btn-soft-* ahora son globales (src/assets/main.css) */
 .btn-primary {
     background-color: #2563eb;
     border-color: #2563eb;

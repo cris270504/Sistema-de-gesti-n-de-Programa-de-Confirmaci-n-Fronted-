@@ -173,19 +173,64 @@ textarea {
   @apply border border-gray-300 text-gray-700 bg-white hover:bg-gray-50;
 }
 
-/* Botones de acción tipo ícono (editar/eliminar en filas de tabla) — mismo motivo que
-   los .btn-* de arriba: agrupados en clases con nombre para no depender de un
-   selector de elemento `button` que perdería contra el reset de Bootstrap. */
+/* ===== BOTONES DE ACCIÓN TIPO ÍCONO (una sola fuente para TODO el sistema) =====
+   Editar/eliminar/ver en filas de tabla. Antes cada vista redefinía .btn-action y
+   .btn-soft-* en su propio <style scoped> con tamaños/colores ligeramente distintos
+   (36 vs 32px, con y sin borde, hover con y sin desplazamiento), y por eso Roles se
+   veía distinto de Confirmandos. Ahora viven solo aquí y todas las vistas heredan el
+   mismo botón; cada .vue borró su copia local. Mismo motivo que los .btn-* de arriba
+   para no usar un selector `button` base: Bootstrap resetea <button> y ganaría. */
+.btn-action,
 .btn-icon-edit,
 .btn-icon-delete {
-  @apply inline-flex items-center justify-center h-9 w-9 rounded-lg transition-colors;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  transition: background-color .18s, color .18s, border-color .18s, transform .18s, box-shadow .18s;
 }
-.btn-icon-edit {
-  @apply bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white;
+.btn-action:disabled { opacity: .5; cursor: not-allowed; }
+.btn-action:disabled:hover { transform: none; box-shadow: none; }
+
+/* Variantes de color. Reposo: fondo suave + texto de color + borde tenue.
+   Hover: se rellena, texto blanco y una elevación mínima. */
+.btn-soft-primary   { background-color: #eff6ff; color: #2563eb; border-color: #dbeafe; }
+.btn-soft-info      { background-color: #ecfeff; color: #0891b2; border-color: #cffafe; }
+.btn-soft-warning   { background-color: #fffbeb; color: #d97706; border-color: #fef3c7; }
+.btn-soft-danger    { background-color: #fef2f2; color: #dc2626; border-color: #fee2e2; }
+.btn-soft-success   { background-color: #f0fdf4; color: #16a34a; border-color: #dcfce7; }
+.btn-soft-secondary { background-color: #f8fafc; color: #475569; border-color: #e2e8f0; }
+.btn-soft-suggest   { background-color: #f5f3ff; color: #7c3aed; border-color: #ede9fe; }
+
+.btn-soft-primary:hover:not(:disabled)   { background-color: #2563eb; color: #fff; border-color: #2563eb; }
+.btn-soft-info:hover:not(:disabled)      { background-color: #0891b2; color: #fff; border-color: #0891b2; }
+.btn-soft-warning:hover:not(:disabled)   { background-color: #d97706; color: #fff; border-color: #d97706; }
+.btn-soft-danger:hover:not(:disabled)    { background-color: #dc2626; color: #fff; border-color: #dc2626; }
+.btn-soft-success:hover:not(:disabled)   { background-color: #16a34a; color: #fff; border-color: #16a34a; }
+.btn-soft-secondary:hover:not(:disabled) { background-color: #475569; color: #fff; border-color: #475569; }
+.btn-soft-suggest:hover:not(:disabled)   { background-color: #7c3aed; color: #fff; border-color: #7c3aed; }
+
+.btn-soft-primary:hover:not(:disabled),
+.btn-soft-info:hover:not(:disabled),
+.btn-soft-warning:hover:not(:disabled),
+.btn-soft-danger:hover:not(:disabled),
+.btn-soft-success:hover:not(:disabled),
+.btn-soft-secondary:hover:not(:disabled),
+.btn-soft-suggest:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px -2px rgba(15, 23, 42, .18);
 }
-.btn-icon-delete {
-  @apply bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white;
-}
+
+/* Alias legibles: editar = primary, eliminar = danger. Mantienen el mismo botón. */
+.btn-icon-edit   { background-color: #eff6ff; color: #2563eb; border-color: #dbeafe; }
+.btn-icon-delete { background-color: #fef2f2; color: #dc2626; border-color: #fee2e2; }
+.btn-icon-edit:hover   { background-color: #2563eb; color: #fff; border-color: #2563eb; transform: translateY(-1px); }
+.btn-icon-delete:hover { background-color: #dc2626; color: #fff; border-color: #dc2626; transform: translateY(-1px); }
 
 /* ===== TARJETAS ===== */
 .card {

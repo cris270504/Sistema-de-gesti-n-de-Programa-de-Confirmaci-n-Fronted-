@@ -173,7 +173,7 @@ const handleDelete = async (role) => {
 <template>
   <AppPage title="Roles y permisos" subtitle="Qué puede hacer cada tipo de usuario" :loading="loading">
     <template v-if="puedeGestionar" #actions>
-      <button class="btn-success" @click="openModal(null)">
+      <button class="btn-primary" @click="openModal(null)">
         <Plus :size="18" class="mr-1.5" /> <span class="text-sm">Nuevo rol</span>
       </button>
     </template>
@@ -227,17 +227,19 @@ const handleDelete = async (role) => {
                   <span v-else class="text-muted fst-italic small">Sin permisos asignados</span>
                 </td>
                 <td v-if="puedeGestionar" class="text-center">
-                  <button class="btn btn-sm btn-outline-warning me-2" @click="openModal(role)" title="Editar">
-                    <Pencil :size="16" />
-                  </button>
-                  <button
-                    class="btn btn-sm btn-outline-danger"
-                    :disabled="esProtegido(role.name)"
-                    :title="esProtegido(role.name) ? 'Rol protegido' : 'Eliminar'"
-                    @click="handleDelete(role)"
-                  >
-                    <Trash :size="16" />
-                  </button>
+                  <div class="d-inline-flex gap-2">
+                    <button class="btn-action btn-soft-primary" @click="openModal(role)" title="Editar">
+                      <Pencil :size="16" />
+                    </button>
+                    <button
+                      class="btn-action btn-soft-danger"
+                      :disabled="esProtegido(role.name)"
+                      :title="esProtegido(role.name) ? 'Rol protegido' : 'Eliminar'"
+                      @click="handleDelete(role)"
+                    >
+                      <Trash :size="16" />
+                    </button>
+                  </div>
                 </td>
               </tr>
             </tbody>

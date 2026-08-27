@@ -339,35 +339,19 @@ const countEntregados = (requisitos) => requisitos?.filter(r => r.pivot.estado =
     cursor: pointer;
 }
 
-.btn-action {
-    width: 32px;
-    height: 32px;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    transition: all 0.2s ease;
-}
-
-.btn-soft-warning {
-    background-color: #fef3c7;
-    color: #d97706;
-}
-
-.btn-soft-warning:hover {
-    background-color: #d97706;
-    color: white;
-}
-
+/* .btn-action y .btn-soft-* ahora son globales (src/assets/main.css). Solo queda la
+   variante temática, que depende de las variables --theme-* que fija esta vista. */
 .btn-soft-theme {
     background-color: var(--theme-soft);
     color: var(--theme-color);
+    border-color: color-mix(in srgb, var(--theme-color), transparent 80%);
 }
 
 .btn-soft-theme:hover {
     background-color: var(--theme-color);
     color: white;
+    border-color: var(--theme-color);
+    transform: translateY(-1px);
 }
 
 .row-critica {

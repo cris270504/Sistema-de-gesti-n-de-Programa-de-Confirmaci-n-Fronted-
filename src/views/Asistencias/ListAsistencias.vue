@@ -11,6 +11,7 @@ import {
     CircleCheck, CircleX, Lock, TriangleAlert, MessageSquareText,
 } from 'lucide-vue-next';
 import AppPage from '@/components/AppPage.vue';
+import AppSkeleton from '@/components/AppSkeleton.vue';
 
 const modelTypeMap = {
     'Confirmandos': 'App\\Models\\Confirmando',
@@ -44,7 +45,8 @@ const reuniones = ref([]);
 const personas = ref([]);
 const attendanceMap = ref({});
 const changes = ref({});
-const loading = ref(false);
+const loading = ref(true);
+const cargaInicial = ref(true);
 const saving = ref(false);
 
 // --- PROTECCIÓN DE NAVEGACIÓN ---
@@ -163,10 +165,16 @@ watch(() => props.defaultTipo, (newTipo) => {
 });
 
 onMounted(async () => {
-    await gruposStore.fetchAll();
+    try {
+        await gruposStore.fetchAll();
+    } catch { /* el bloque de abajo maneja el estado visual */ }
 
     // BLOQUEO: Si no tiene acceso, no cargamos nada
-    if (!canAccess.value) return;
+    if (!canAccess.value) {
+        loading.value = false;
+        cargaInicial.value = false;
+        return;
+    }
 
     if (route.query.fecha) currentMonth.value = route.query.fecha;
     if (route.query.grupo) filterGrupo.value = Number(route.query.grupo);
@@ -290,6 +298,7 @@ async function loadMatrix() {
         console.error("Error cargando matriz:", e);
     } finally {
         loading.value = false;
+        cargaInicial.value = false;
     }
 }
 
@@ -535,7 +544,8 @@ const formatColDate = (dateStr) => {
 </script>
 
 <template>
-    <AppPage :title="`Asistencia · ${tipoActual}`" subtitle="Registro mensual" class="position-relative">
+    <AppPage :title="`Asistencia · ${tipoActual}`" subtitle="Registro mensual" class="position-relative"
+        :loading="cargaInicial" skeleton="table">
         <template #actions>
             <button class="btn-primary" @click="saveChanges"
                 :disabled="Object.keys(changes).length === 0 || saving">
@@ -660,9 +670,8 @@ const formatColDate = (dateStr) => {
 
         <div class="card border-0 shadow rounded-3 overflow-hidden">
             <div class="card-body p-0">
-                <div v-if="loading" class="text-center py-5">
-                    <div class="spinner-border text-primary"></div>
-                    <p class="mt-2 text-muted">Cargando matriz...</p>
+                <div v-if="loading" class="p-3">
+                    <AppSkeleton skeleton="table" />
                 </div>
                 <div v-else-if="reuniones.length === 0" class="text-center py-5 text-muted bg-light">
                     <CalendarX :size="48" class="mb-3 d-block mx-auto opacity-50" aria-hidden="true" />

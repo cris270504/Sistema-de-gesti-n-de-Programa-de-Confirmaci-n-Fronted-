@@ -358,19 +358,17 @@ const rechazarCumplimientoSwal = async (item) => {
                                 </td>
 
                                 <td class="text-end pe-4">
-                                    <div class="d-inline-flex gap-1">
+                                    <div class="d-inline-flex gap-2">
                                         <!-- Botón Perfil -->
                                         <button @click="perfilModalRef.abrir(item.confirmando_id)"
-                                            class="btn btn-sm btn-light text-secondary rounded-circle d-flex align-items-center justify-content-center"
-                                            style="width: 32px; height: 32px;" title="Ver Ficha del Confirmando">
+                                            class="btn-action btn-soft-secondary" title="Ver Ficha del Confirmando">
                                             <User :size="15" />
                                         </button>
 
                                         <!-- Acciones Injustificado -->
                                         <template v-if="item.estado_justificacion === 'injustificado'">
                                             <button @click="abrirModalAcuerdo(item)"
-                                                class="btn btn-sm btn-primary rounded-circle d-flex align-items-center justify-content-center shadow-sm"
-                                                style="width: 32px; height: 32px;" title="Registrar Acuerdo">
+                                                class="btn-action btn-soft-primary" title="Registrar Acuerdo">
                                                 <Plus :size="16" stroke-width="2.5" />
                                             </button>
                                         </template>
@@ -378,18 +376,15 @@ const rechazarCumplimientoSwal = async (item) => {
                                         <!-- Acciones Pendiente -->
                                         <template v-else-if="item.estado_justificacion === 'pendiente'">
                                             <button @click="abrirModalAcuerdo(item)"
-                                                class="btn btn-sm btn-soft-warning rounded-circle d-flex align-items-center justify-content-center"
-                                                style="width: 32px; height: 32px;" title="Editar acuerdo">
+                                                class="btn-action btn-soft-warning" title="Editar acuerdo">
                                                 <Pencil :size="14" />
                                             </button>
                                             <button @click="confirmarCumplimientoSwal(item)"
-                                                class="btn btn-sm btn-success rounded-circle d-flex align-items-center justify-content-center shadow-sm"
-                                                style="width: 32px; height: 32px;" title="Validar Cumplimiento">
+                                                class="btn-action btn-soft-success" title="Validar Cumplimiento">
                                                 <Check :size="18" stroke-width="2.5" />
                                             </button>
                                             <button @click="rechazarCumplimientoSwal(item)"
-                                                class="btn btn-sm btn-danger rounded-circle d-flex align-items-center justify-content-center shadow-sm"
-                                                style="width: 32px; height: 32px;" title="Marcar como no cumplido">
+                                                class="btn-action btn-soft-danger" title="Marcar como no cumplido">
                                                 <X :size="18" stroke-width="2.5" />
                                             </button>
                                         </template>
@@ -397,12 +392,11 @@ const rechazarCumplimientoSwal = async (item) => {
                                         <!-- Acciones Justificado -->
                                         <template v-else-if="item.estado_justificacion !== 'justificado'">
                                             <button @click="abrirModalAcuerdo(item)"
-                                                class="btn btn-sm btn-light text-secondary rounded-circle d-flex align-items-center justify-content-center"
-                                                style="width: 32px; height: 32px;" title="Ver detalles">
+                                                class="btn-action btn-soft-secondary" title="Ver detalles">
                                                 <Pencil :size="14" />
                                             </button>
-                                            <span class="text-success bg-success-subtle rounded-circle d-flex align-items-center justify-content-center ms-1"
-                                                title="Completado" style="width: 32px; height: 32px;">
+                                            <span class="btn-action btn-soft-success" style="pointer-events: none;"
+                                                title="Completado">
                                                 <Check :size="16" stroke-width="3" />
                                             </span>
                                         </template>
@@ -538,28 +532,7 @@ const rechazarCumplimientoSwal = async (item) => {
     font-size: 0.72rem;
 }
 
-/* Estilos para botones circulares de acción soft */
-.btn-soft-warning {
-    background-color: #fff3cd !important;
-    color: #664d03 !important;
-    border: 1px solid #ffe69c !important;
-}
-
-.btn-soft-warning:hover {
-    background-color: #ffda6a !important;
-    color: #000000 !important;
-}
-
-.btn-soft-secondary {
-    background-color: #f8f9fa !important;
-    color: #495057 !important;
-    border: 1px solid #dee2e6 !important;
-}
-
-.btn-soft-secondary:hover {
-    background-color: #e9ecef !important;
-    color: #212529 !important;
-}
+/* Los botones de acción (.btn-action / .btn-soft-*) son globales: src/assets/main.css */
 
 /* Efecto hover general de las filas */
 .hover-row:hover {
