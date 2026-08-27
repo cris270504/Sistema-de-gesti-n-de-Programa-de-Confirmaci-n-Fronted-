@@ -134,7 +134,7 @@ const router = createRouter({
           path: '/justificaciones',
           name: 'justificaciones',
           component: ListJustificaciones,
-          meta: { title: 'Justificaciones', permission: 'ver todas las asistencias' }
+          meta: { title: 'Justificaciones', permission: 'ver asistencias' }
         },
 
         //SACRAMENTOS

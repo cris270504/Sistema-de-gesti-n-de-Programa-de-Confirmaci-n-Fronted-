@@ -128,6 +128,14 @@ const menuSections = computed(() => {
   else if (authStore.can('ver asistencias') && misGruposDetalle.value.length > 0) {
     const grupos = misGruposDetalle.value;
 
+    // El catequista gestiona las justificaciones de los confirmandos de sus grupos
+    // (el backend filtra por grupo). Para gestores va en la sección Administración.
+    pastoralItems.push({
+      name: 'Justificaciones',
+      to: { name: 'justificaciones' },
+      icon: Clipboard,
+    });
+
     if (grupos.length === 1) {
       // Tiene 1 solo grupo -> Botón directo
       pastoralItems.push({
