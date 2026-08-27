@@ -70,129 +70,172 @@ const UMBRALES = [
   ['medio_justificadas', 'Faltas justificadas acumuladas', 'MEDIO'],
   ['bajo_tardanzas_seguidas', 'Tardanzas en las últimas N reuniones', 'BAJO'],
 ]
-const RIESGO_CLS = {
-  ALTO: 'bg-rose-100 text-rose-700',
-  MEDIO: 'bg-amber-100 text-amber-700',
-  BAJO: 'bg-sky-100 text-sky-700',
-}
 </script>
 
 <template>
-  <div class="mx-auto w-full max-w-2xl p-4 pb-16">
-    <div class="mb-5 flex items-center justify-between">
+  <div class="cfg !p-4 md:p-6">
+    <div class="cfg__head">
       <div>
-        <h1 class="text-xl font-bold text-slate-800">Configuración de la parroquia</h1>
-        <p class="text-sm text-slate-500">Ajustes que aplican a todo el sistema.</p>
+        <h2 class="text-xl font-semibold text-slate-800 !mb-1">Configuración de la parroquia</h2>
+        <p class="text-sm text-slate-500 mb-0">Ajustes que aplican a todo el sistema.</p>
       </div>
-      <button type="button" class="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-sm text-slate-600 hover:bg-slate-50"
-        :disabled="parroquiaStore.loading || saving" @click="cargarDesdeStore">
-        <RotateCcw class="h-3.5 w-3.5" /> Descartar
+      <button type="button" class="cfg__reset" :disabled="parroquiaStore.loading || saving" @click="cargarDesdeStore">
+        <RotateCcw :size="14" /> Descartar
       </button>
     </div>
 
-    <form class="space-y-4" @submit.prevent="guardar">
+    <form class="cfg__form" @submit.prevent="guardar">
       <!-- Identidad -->
-      <section class="rounded-xl border bg-white p-5">
-        <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">Identidad</h2>
-
-        <div class="flex items-center gap-4">
-          <div class="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-lg border bg-slate-50">
-            <img v-if="form.branding.logo_url" :src="form.branding.logo_url" alt="" class="h-full w-full object-contain" />
-            <ImageIcon v-else class="h-5 w-5 text-slate-300" />
+      <section class="card">
+        <h3 class="card__title">Identidad</h3>
+        <div class="card__body">
+          <div class="row-identidad">
+            <div class="logo-box">
+              <img v-if="form.branding.logo_url" :src="form.branding.logo_url" alt="" />
+              <ImageIcon v-else :size="20" class="text-slate-300" />
+            </div>
+            <div class="field grow">
+              <label>Nombre visible</label>
+              <input v-model="form.branding.nombre_publico" type="text" maxlength="120"
+                placeholder="Parroquia Sagrado Corazón de Jesús" class="inp" />
+            </div>
+            <div class="field">
+              <label>Color</label>
+              <input v-model="form.branding.color_primario" type="color" class="inp-color" />
+            </div>
           </div>
-          <label class="min-w-0 flex-1 text-sm">
-            <span class="text-slate-600">Nombre visible</span>
-            <input v-model="form.branding.nombre_publico" type="text" maxlength="120"
-              placeholder="Parroquia Sagrado Corazón de Jesús"
-              class="mt-1 w-full rounded-md border-slate-300 text-sm shadow-sm" />
-          </label>
-          <label class="shrink-0 text-sm">
-            <span class="block text-slate-600">Color</span>
-            <input v-model="form.branding.color_primario" type="color"
-              class="mt-1 h-9 w-14 cursor-pointer rounded-md border border-slate-300 p-0.5" />
-          </label>
+          <div class="field">
+            <label>URL del logo</label>
+            <input v-model="form.branding.logo_url" type="url" maxlength="500" placeholder="https://…/logo.png" class="inp" />
+            <small>Súbelo a un hosting de imágenes y pega el enlace.</small>
+          </div>
         </div>
-
-        <label class="mt-3 block text-sm">
-          <span class="text-slate-600">URL del logo</span>
-          <input v-model="form.branding.logo_url" type="url" maxlength="500" placeholder="https://…/logo.png"
-            class="mt-1 w-full rounded-md border-slate-300 text-sm shadow-sm" />
-          <span class="text-xs text-slate-400">Súbelo a un hosting de imágenes y pega el enlace.</span>
-        </label>
       </section>
 
       <!-- Programa -->
-      <section class="rounded-xl border bg-white p-5">
-        <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">Programa</h2>
-        <div class="flex flex-wrap gap-x-8 gap-y-3">
-          <label class="text-sm">
-            <span class="block text-slate-600">Inicio</span>
-            <input v-model="form.programa_inicio" type="date"
-              class="mt-1 w-44 rounded-md border-slate-300 text-sm shadow-sm" />
-          </label>
-          <label class="text-sm">
-            <span class="block text-slate-600">Cierre <span class="text-slate-400">(opcional)</span></span>
-            <input v-model="form.programa_fin" type="date" :min="form.programa_inicio || undefined"
-              class="mt-1 w-44 rounded-md border-slate-300 text-sm shadow-sm" />
-          </label>
+      <section class="card">
+        <h3 class="card__title">Programa</h3>
+        <div class="card__body row">
+          <div class="field">
+            <label>Inicio</label>
+            <input v-model="form.programa_inicio" type="date" class="inp inp--date" />
+          </div>
+          <div class="field">
+            <label>Cierre <span class="opt">(opcional)</span></label>
+            <input v-model="form.programa_fin" type="date" :min="form.programa_inicio || undefined" class="inp inp--date" />
+          </div>
         </div>
       </section>
 
       <!-- Reuniones y grupos -->
-      <section class="rounded-xl border bg-white p-5">
-        <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">Reuniones y grupos</h2>
-
-        <div class="mb-4">
-          <span class="text-sm text-slate-600">Tipos de reunión activos</span>
-          <div class="mt-1.5 flex flex-wrap gap-2">
-            <label v-for="t in TIPOS_REUNION" :key="t"
-              class="inline-flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition"
-              :class="form.tipos_reunion.includes(t) ? 'border-indigo-300 bg-indigo-50 text-indigo-700' : 'border-slate-200 text-slate-500'">
-              <input type="checkbox" :value="t" v-model="form.tipos_reunion" class="rounded" />
-              {{ t }}
-            </label>
+      <section class="card">
+        <h3 class="card__title">Reuniones y grupos</h3>
+        <div class="card__body">
+          <div class="field">
+            <label>Tipos de reunión activos</label>
+            <div class="chips">
+              <label v-for="t in TIPOS_REUNION" :key="t" class="chip" :class="{ 'chip--on': form.tipos_reunion.includes(t) }">
+                <input type="checkbox" :value="t" v-model="form.tipos_reunion" />
+                {{ t }}
+              </label>
+            </div>
+            <small v-if="form.tipos_reunion.length === 0" class="err">Debe quedar al menos uno.</small>
           </div>
-          <p v-if="form.tipos_reunion.length === 0" class="mt-1 text-xs text-rose-500">Debe quedar al menos uno.</p>
+          <div class="field">
+            <label>Procedencias de grupo</label>
+            <input v-model="form.procedencias" type="text" class="inp inp--md" />
+            <small>Separadas por coma. Ej: <code>sede, caserio</code></small>
+          </div>
         </div>
-
-        <label class="block text-sm">
-          <span class="text-slate-600">Procedencias de grupo</span>
-          <input v-model="form.procedencias" type="text"
-            class="mt-1 w-full max-w-sm rounded-md border-slate-300 text-sm shadow-sm" />
-          <span class="text-xs text-slate-400">Separadas por coma. Ej: <code>sede, caserio</code></span>
-        </label>
       </section>
 
       <!-- Alertas -->
-      <section class="rounded-xl border bg-white p-5">
-        <h2 class="mb-1 text-sm font-semibold uppercase tracking-wide text-slate-500">Alertas del dashboard</h2>
-        <p class="mb-3 text-xs text-slate-400">Un confirmando entra en la alerta al alcanzar estos valores.</p>
-
-        <label class="flex items-center justify-between gap-4 border-b py-2.5 text-sm">
-          <span class="text-slate-600">Días para poder justificar una falta</span>
-          <input v-model="form.dias_ventana_justificacion" type="number" min="1" max="365"
-            class="w-20 rounded-md border-slate-300 text-center text-sm shadow-sm" />
-        </label>
-
-        <label v-for="[key, label, riesgo] in UMBRALES" :key="key"
-          class="flex items-center justify-between gap-4 border-b py-2.5 text-sm last:border-0">
-          <span class="flex items-center gap-2 text-slate-600">
-            <span class="rounded px-1.5 py-0.5 text-[10px] font-bold" :class="RIESGO_CLS[riesgo]">{{ riesgo }}</span>
-            {{ label }}
-          </span>
-          <input v-model="form.umbrales_alerta[key]" type="number" min="1" max="99"
-            class="w-16 rounded-md border-slate-300 text-center text-sm shadow-sm" />
-        </label>
+      <section class="card">
+        <h3 class="card__title">Alertas del dashboard</h3>
+        <p class="card__hint">Un confirmando entra en la alerta al alcanzar estos valores.</p>
+        <div class="card__body">
+          <div class="umbral">
+            <span>Días para poder justificar una falta</span>
+            <input v-model="form.dias_ventana_justificacion" type="number" min="1" max="365" class="inp-num" />
+          </div>
+          <div v-for="[key, label, riesgo] in UMBRALES" :key="key" class="umbral">
+            <span><i class="tag" :class="'tag--' + riesgo.toLowerCase()">{{ riesgo }}</i> {{ label }}</span>
+            <input v-model="form.umbrales_alerta[key]" type="number" min="1" max="99" class="inp-num" />
+          </div>
+        </div>
       </section>
 
-      <div class="sticky bottom-0 -mx-4 flex justify-end border-t bg-slate-50/80 px-4 py-3 backdrop-blur">
-        <button type="submit"
-          class="inline-flex items-center gap-2 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50"
-          :disabled="saving || form.tipos_reunion.length === 0">
-          <Save class="h-4 w-4" />
-          {{ saving ? 'Guardando…' : 'Guardar configuración' }}
+      <div class="cfg__bar">
+        <button type="submit" class="btn-primary" :disabled="saving || form.tipos_reunion.length === 0">
+          <Save :size="16" /> {{ saving ? 'Guardando…' : 'Guardar configuración' }}
         </button>
       </div>
     </form>
   </div>
 </template>
+
+<style scoped>
+.cfg { max-width: 780px; }
+.cfg__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; }
+.cfg__reset {
+  display: inline-flex; align-items: center; gap: .4rem;
+  border: 1px solid #e2e8f0; border-radius: 8px; padding: .4rem .7rem;
+  font-size: .8rem; color: #475569; background: #fff;
+}
+.cfg__reset:hover { background: #f8fafc; }
+.cfg__form { display: flex; flex-direction: column; gap: .9rem; }
+
+.card { border: 1px solid #e2e8f0; border-radius: 12px; background: #fff; padding: 1.1rem 1.25rem; }
+.card__title { font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: #64748b; margin: 0 0 .85rem; }
+.card__hint { font-size: .78rem; color: #94a3b8; margin: -.6rem 0 .85rem; }
+.card__body { display: flex; flex-direction: column; gap: .85rem; }
+.card__body.row { flex-direction: row; flex-wrap: wrap; gap: .85rem 2rem; }
+
+.field { display: flex; flex-direction: column; min-width: 0; }
+.field.grow { flex: 1; }
+.field label { font-size: .82rem; color: #475569; margin-bottom: .3rem; }
+.field small { font-size: .72rem; color: #94a3b8; margin-top: .25rem; }
+.field small.err, .err { font-size: .72rem; color: #e11d48; margin-top: .25rem; }
+.opt { color: #94a3b8; }
+
+.inp {
+  width: 100%; border: 1px solid #cbd5e1; border-radius: 8px;
+  padding: .45rem .6rem; font-size: .88rem; background: #fff;
+}
+.inp:focus { outline: 2px solid #c7d2fe; outline-offset: -1px; border-color: #6366f1; }
+.inp--md { max-width: 340px; }
+.inp--date { width: 176px; }
+.inp-color { width: 56px; height: 36px; padding: 2px; border: 1px solid #cbd5e1; border-radius: 8px; cursor: pointer; }
+.inp-num { width: 68px; border: 1px solid #cbd5e1; border-radius: 8px; padding: .4rem; text-align: center; font-size: .88rem; }
+
+.row-identidad { display: flex; align-items: flex-end; gap: 1rem; }
+@media (max-width: 560px) { .row-identidad { flex-wrap: wrap; } .field.grow { flex-basis: 100%; } }
+.logo-box {
+  width: 56px; height: 56px; flex-shrink: 0;
+  display: grid; place-items: center; overflow: hidden;
+  border: 1px solid #e2e8f0; border-radius: 10px; background: #f8fafc;
+}
+.logo-box img { width: 100%; height: 100%; object-fit: contain; }
+
+.chips { display: flex; flex-wrap: wrap; gap: .5rem; }
+.chip {
+  display: inline-flex; align-items: center; gap: .45rem; margin: 0;
+  border: 1px solid #e2e8f0; border-radius: 9px; padding: .4rem .7rem;
+  font-size: .84rem; color: #64748b; cursor: pointer;
+}
+.chip--on { border-color: #c7d2fe; background: #eef2ff; color: #3730a3; }
+
+.umbral {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  padding: .55rem 0; border-bottom: 1px solid #f1f5f9; font-size: .86rem; color: #475569;
+}
+.umbral:last-child { border-bottom: 0; }
+.umbral > span { display: inline-flex; align-items: center; gap: .5rem; }
+.tag { font-style: normal; font-size: .62rem; font-weight: 700; border-radius: 4px; padding: .1rem .35rem; }
+.tag--alto { background: #ffe4e6; color: #be123c; }
+.tag--medio { background: #fef3c7; color: #b45309; }
+.tag--bajo { background: #e0f2fe; color: #0369a1; }
+
+.cfg__bar { position: sticky; bottom: 0; padding: .8rem 0; margin-top: .25rem; display: flex; justify-content: flex-end; background: linear-gradient(transparent, #f9fafb 40%); }
+.cfg__bar .btn-primary { display: inline-flex; align-items: center; gap: .5rem; }
+</style>
