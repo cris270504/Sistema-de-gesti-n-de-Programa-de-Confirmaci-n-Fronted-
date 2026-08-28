@@ -249,4 +249,30 @@ defineExpose({ abrir });
         overflow: visible !important;
     }
 }
+
+/* Historial de asistencias en celular: fecha a la izquierda, estado a la
+   derecha en la misma línea, y el tema debajo (ahorra espacio vertical). */
+@media (max-width: 767px) {
+    .cards-sm tr {
+        display: grid !important;
+        grid-template-columns: 1fr auto;
+        column-gap: 0.5rem;
+        align-items: start;
+    }
+    .cards-sm td:nth-child(1) {
+        grid-column: 1;
+        grid-row: 1;
+        font-weight: 600;
+    }
+    .cards-sm td:nth-child(3) {
+        grid-column: 2;
+        grid-row: 1;
+        text-align: right !important;
+    }
+    .cards-sm td:nth-child(2) {
+        grid-column: 1 / -1;
+        grid-row: 2;
+        color: #64748b;
+    }
+}
 </style>
