@@ -39,7 +39,7 @@ const formatFechaFalta = (dateStr) => {
     if (!dateStr) return '';
     const date = new Date(dateStr);
     date.setMinutes(date.getMinutes() + date.getTimezoneOffset());
-    return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
+    return date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
 };
 
 // Exponemos la función 'abrir' para que los componentes padres puedan usarla
@@ -154,7 +154,7 @@ defineExpose({ abrir });
                         </div>
 
                         <h6 id="historialAsistenciasLabel" class="text-uppercase text-muted fw-bold mb-2" style="font-size: 0.75rem;">Historial Completo de Asistencias</h6>
-                        <div class="border rounded-3 overflow-hidden">
+                        <div class="border rounded-3 overflow-x-auto cards-sm">
                             <table class="table table-sm table-hover mb-0" aria-labelledby="historialAsistenciasLabel">
                                 <caption class="visually-hidden">Historial completo de asistencias del confirmando</caption>
                                 <thead class="bg-light text-muted small">
@@ -227,5 +227,26 @@ defineExpose({ abrir });
 .popover-anim-leave-to {
     opacity: 0;
     transform: translate(-50%, -40%) scale(0.9);
+}
+
+/* En celular el modal es pantalla completa (regla global .mini-dialog): el
+   contenido interno no debe tener su propio alto ni scroll, scrollea el modal. */
+@media (max-width: 575.98px) {
+    .mini-dialog > div {
+        max-height: none !important;
+        height: auto !important;
+    }
+    .mini-dialog header,
+    .mini-dialog section {
+        padding: 1rem !important;
+    }
+    .mini-dialog header {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+    }
+    .mini-dialog section {
+        overflow: visible !important;
+    }
 }
 </style>
