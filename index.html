@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <link rel="icon" type="image/png" href="/logoNav.png?v=2">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Adelanta el handshake DNS + TLS con la API (Render) para que la primera
+         petición no pague ~100-300 ms de conexión. -->
+    <link rel="preconnect" href="https://sistema-de-gestion-de-programa-de.onrender.com" crossorigin>
+    <link rel="dns-prefetch" href="https://sistema-de-gestion-de-programa-de.onrender.com">
     <title>Sistema de Confirmación</title>
 </head>
   <body>

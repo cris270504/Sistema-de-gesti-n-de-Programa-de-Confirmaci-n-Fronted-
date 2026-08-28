@@ -224,6 +224,7 @@ const handleFileUpload = async (event) => {
 const apoderadosModalInstance = ref(null);
 const selectedApoderados = ref([]);
 const selectedConfirmandoName = ref('');
+const loadingApoderados = ref(false);
 
 // --- LÓGICA GENERADOR DE GRUPOS ---
 const generadorModalInstance = ref(null);
@@ -274,7 +275,13 @@ const generarGruposApi = async () => {
         const response = await gruposStore.generateGroups({ nombres_grupos: groupNames.value, periodo: periodoActual });
         showAlerta(response.message, 'success');
         generadorModalInstance.value?.hide();
-        await fetchAllConfirmandos();
+        // El backend devuelve el mapa de asignaciones: parcheamos la lista en memoria
+        // en vez de re-descargar los ~458 kB de confirmandos.
+        if (response.asignaciones) {
+            confirmandosStore.aplicarAsignaciones(response.asignaciones, response.grupos || []);
+        } else {
+            await fetchAllConfirmandos({ force: true });
+        }
     } catch (error) {
         console.error("Error en la vista:", error);
     } finally {
@@ -313,7 +320,7 @@ const abrirEditar = (id) => {
     hasPendingConfirmandoAction.value = true;
 };
 
-const recargarTabla = () => fetchAllConfirmandos();
+const recargarTabla = () => fetchAllConfirmandos({ force: true });
 
 const formatGenero = (genero) => {
     if (!genero) return '---';
@@ -344,10 +351,26 @@ const getSacramentoFaltante = (confirmando) => {
     return pendiente ? pendiente.nombre : 'Completado';
 };
 
-const openApoderadosModal = (confirmando) => {
+const openApoderadosModal = async (confirmando) => {
     selectedConfirmandoName.value = `${confirmando.nombres} ${confirmando.apellidos}`;
-    selectedApoderados.value = confirmando.apoderados || [];
     apoderadosModalInstance.value?.show();
+
+    // El listado ya no trae apoderados: se piden on-demand solo al abrir este modal.
+    if (Array.isArray(confirmando.apoderados)) {
+        selectedApoderados.value = confirmando.apoderados;
+        return;
+    }
+
+    loadingApoderados.value = true;
+    selectedApoderados.value = [];
+    try {
+        const full = await confirmandosStore.fetchById(confirmando.id, { silent: true });
+        selectedApoderados.value = full?.apoderados || [];
+    } catch {
+        selectedApoderados.value = [];
+    } finally {
+        loadingApoderados.value = false;
+    }
 };
 
 // --- CICLO DE VIDA ---
@@ -358,6 +381,18 @@ onMounted(() => {
 
     if (authStore.can('ver todos los grupos') && gruposStore.items.length === 0) {
         gruposStore.fetchAll().catch(e => console.error(e));
+    }
+
+    // Prefetch de los modales pesados cuando el navegador está ocioso: el primer
+    // clic en "Nuevo confirmando" / "Ver ficha" ya no espera la descarga del chunk.
+    const prefetchModales = () => {
+        import('../../components/Modals/confirmandoModal.vue').catch(() => {});
+        import('../../components/Modals/PerfilConfirmandoModal.vue').catch(() => {});
+    };
+    if ('requestIdleCallback' in window) {
+        requestIdleCallback(prefetchModales, { timeout: 3000 });
+    } else {
+        setTimeout(prefetchModales, 1500);
     }
 
     nextTick(() => {
@@ -646,7 +681,11 @@ onUnmounted(() => {
                         <button type="button" class="btn-close" aria-label="Cerrar" data-bs-dismiss="modal"></button>
                     </header>
                     <div class="modal-body p-4 bg-light-gray-body">
-                        <div v-if="selectedApoderados.length === 0" class="text-center text-muted py-4">
+                        <div v-if="loadingApoderados" class="text-center text-muted py-4" role="status" aria-live="polite">
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                            <span class="small">Cargando apoderados…</span>
+                        </div>
+                        <div v-else-if="selectedApoderados.length === 0" class="text-center text-muted py-4">
                             <div class="mb-2">
                                 <Users :size="48" class="opacity-25" />
                             </div>

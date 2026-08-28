@@ -3,28 +3,45 @@ import { getUpcomingReuniones } from '@/services/reunions'
 import { createReunion, deleteReunionById, getReunionById, getReunionsList, updateReunion } from '../services/reunions';
 import { confirmarEliminacion, showAlerta, showErroresDeValidacion } from '@/funciones'
 
+const FRESH_MS = 30_000
+
 export const useReunionesStore = defineStore('reuniones', {
     state: () => ({
         items: [],
         upcomingItems: [],
         loading: false,
         error: null,
+        lastFetch: 0,
+        lastFetchUpcoming: 0,
+        _inflight: null,
+        _inflightUpcoming: null,
     }),
     getters: {
         byId: (state) => (id) => state.items.find(r => r.id === Number(id)),
     },
     actions: {
-        async fetchAll() {
-            this.loading = true;
+        async fetchAll({ force = false } = {}) {
+            if (this._inflight) return this._inflight;
+            if (!force && this.items.length > 0 && Date.now() - this.lastFetch < FRESH_MS) return;
+
+            if (this.items.length === 0) this.loading = true;
             this.error = null;
-            try {
-                this.items = await getReunionsList();
-            } catch (e) {
-                this.error = e?.message || 'Error al listar reuniones';
-                showAlerta(this.error, 'error');
-            } finally {
-                this.loading = false;
-            }
+
+            this._inflight = getReunionsList()
+                .then((data) => {
+                    this.items = data;
+                    this.lastFetch = Date.now();
+                })
+                .catch((e) => {
+                    this.error = e?.message || 'Error al listar reuniones';
+                    showAlerta(this.error, 'error');
+                })
+                .finally(() => {
+                    this.loading = false;
+                    this._inflight = null;
+                });
+
+            return this._inflight;
         },
         async fetchById(id) {
             const existingReunion = this.byId(id);
@@ -115,16 +132,27 @@ export const useReunionesStore = defineStore('reuniones', {
                 return false
             }
         },
-        async fetchUpcoming() {
-            this.loading = true
-            try {
-                this.upcomingItems = await getUpcomingReuniones()
-            } catch (e) {
-                this.error = e?.message || 'Error al cargar actividades'
-                console.error(this.error)
-            } finally {
-                this.loading = false
-            }
+        async fetchUpcoming({ force = false } = {}) {
+            if (this._inflightUpcoming) return this._inflightUpcoming
+            if (!force && this.upcomingItems.length > 0 && Date.now() - this.lastFetchUpcoming < FRESH_MS) return
+
+            if (this.upcomingItems.length === 0) this.loading = true
+
+            this._inflightUpcoming = getUpcomingReuniones()
+                .then((data) => {
+                    this.upcomingItems = data
+                    this.lastFetchUpcoming = Date.now()
+                })
+                .catch((e) => {
+                    this.error = e?.message || 'Error al cargar actividades'
+                    console.error(this.error)
+                })
+                .finally(() => {
+                    this.loading = false
+                    this._inflightUpcoming = null
+                })
+
+            return this._inflightUpcoming
         }
     }
 })

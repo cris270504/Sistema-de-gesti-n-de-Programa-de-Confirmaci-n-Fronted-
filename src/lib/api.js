@@ -4,6 +4,7 @@ import { LS_TOKEN_KEY,LS_USER_KEY } from '@/constants/auth';
 import { API_BASE_URL } from '@/constants/api';
 import { showAlerta } from '@/funciones';
 import { logFrontendError } from '@/composables/useErrorLogger';
+import { useUiStore } from '@/stores/ui';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -12,15 +13,70 @@ const api = axios.create({
   }
 });
 
-api.interceptors.request.use((config) => {  
+api.interceptors.request.use((config) => {
   const token = localStorage.getItem(LS_TOKEN_KEY)
   if (token) config.headers.Authorization = `Bearer ${token}`
   return config
 })
 
+// --- Reintentos automáticos para el "cold start" de Render ---------------------
+// El backend gratuito de Render se duerme a los 15 min: la primera petición tras
+// eso tarda 30–60 s o falla con error de red / 502 / 503 / 504. En vez de mostrarle
+// un toast rojo al usuario, reintentamos con backoff y le enseñamos un overlay
+// honesto ("estamos despertando el servidor"). Cuando el server responde, seguimos
+// como si nada.
+const RETRY_DELAYS = [2000, 5000, 10000] // ~17 s en total antes de rendirse
+const RETRY_STATUS = [502, 503, 504]
+
+let warmupActivo = false
+function mostrarWarmup() {
+  if (warmupActivo) return
+  warmupActivo = true
+  try { useUiStore().showOverlay('Estamos despertando el servidor, esto puede tardar unos segundos…') } catch { /* pinia aún no lista */ }
+}
+function ocultarWarmup() {
+  if (!warmupActivo) return
+  warmupActivo = false
+  try { useUiStore().hideOverlay() } catch { /* noop */ }
+}
+
+function esReintentable(error) {
+  const cfg = error?.config
+  if (!cfg) return false
+  const metodo = (cfg.method || 'get').toLowerCase()
+  // Solo reintentamos métodos seguros (idempotentes) salvo que el caller marque
+  // explícitamente la petición como reintentable (p. ej. el login).
+  const metodoSeguro = ['get', 'head', 'options'].includes(metodo) || cfg.__retryable
+  if (!metodoSeguro) return false
+
+  const status = error?.response?.status
+  if (!status) return true // sin respuesta: error de red / timeout / server dormido
+  return RETRY_STATUS.includes(status)
+}
+
+const esperar = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
 api.interceptors.response.use(
-  (res) => res,
+  (res) => {
+    ocultarWarmup()
+    return res
+  },
   async (error) => {
+    const cfg = error.config || {}
+
+    // 1) ¿Toca reintentar? (cold start de Render)
+    cfg.__retryCount = cfg.__retryCount || 0
+    if (esReintentable(error) && cfg.__retryCount < RETRY_DELAYS.length) {
+      const delay = RETRY_DELAYS[cfg.__retryCount]
+      cfg.__retryCount += 1
+      if (!cfg.__noWarmup) mostrarWarmup()
+      await esperar(delay)
+      return api(cfg)
+    }
+
+    // Se agotaron los reintentos (o no aplicaban): cerramos el overlay de warm-up.
+    ocultarWarmup()
+
     const status = error?.response?.status
 
     if (status === 401) {

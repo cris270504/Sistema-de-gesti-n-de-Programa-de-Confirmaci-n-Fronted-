@@ -155,7 +155,9 @@ defineExpose({ open });
 async function loadData(id) {
   loading.value = true;
   try {
-    const confirmando = await confirmandoStore.fetchById(Number(id));
+    // silent: este modal ya muestra su propio "Cargando expediente…"; no queremos
+    // además meter en skeleton la tabla que quedó detrás.
+    const confirmando = await confirmandoStore.fetchById(Number(id), { silent: true });
 
     if (confirmando) {
       const sacramentoPendiente = confirmando.sacramentos?.find(s => s.pivot.estado === 'pendiente');

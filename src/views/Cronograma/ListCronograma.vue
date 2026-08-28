@@ -225,7 +225,7 @@ const handleSubmit = async () => {
     } else {
       await add(draft.value);
     }
-    await fetchAll();
+    await fetchAll({ force: true });
     formModalInstance.value?.hide();
   } catch (e) {
     console.error(e);
@@ -238,7 +238,7 @@ const handleSubmit = async () => {
 const handleDelete = async () => {
   await remove(selectedEvent.value.id);
   detailsModalInstance.value?.hide();
-  await fetchAll();
+  await fetchAll({ force: true });
 };
 
 const canRegisterAttendance = computed(() => {

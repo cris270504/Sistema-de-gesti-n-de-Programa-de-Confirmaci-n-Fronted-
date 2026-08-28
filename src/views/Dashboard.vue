@@ -99,8 +99,9 @@ const confirmarRetiroJoven = async (joven) => {
     const exito = await confirmandosStore.registrarRetiro(joven.id, joven.nombre_completo);
     if (exito) {
       // ➔ CORRECCIÓN CRÍTICA: En lugar de descargar los 458kB de confirmandos de nuevo,
-      // simplemente actualizamos las métricas del dashboard.
-      await dashboardStore.fetchMetricas();
+      // simplemente actualizamos las métricas del dashboard. force: saltamos la ventana
+      // de frescura porque acabamos de cambiar datos.
+      await dashboardStore.fetchMetricas({ force: true });
     }
   }
 };

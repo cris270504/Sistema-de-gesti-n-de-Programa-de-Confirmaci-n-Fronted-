@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/auth';
 import { useGruposStore } from '@/stores/grupos';
 import { useParroquiaStore } from '@/stores/parroquia';
 import { useRoute } from 'vue-router';
+import { prefetchRoute } from '@/router';
 import defaultLogo from '@/assets/logo.png';
 import {
   Home,
@@ -304,7 +305,8 @@ defineExpose({ toggleSidebar });
 
             <!-- Enlace Simple -->
             <RouterLink v-if="!item.children" :to="item.to" custom v-slot="{ navigate, href, isActive, isExactActive }">
-              <a :href="href" @click="navigate" :title="!expanded ? item.name : undefined" class="nav-link group"
+              <a :href="href" @click="navigate" @mouseenter="prefetchRoute(item.to?.name)" @focus="prefetchRoute(item.to?.name)"
+                :title="!expanded ? item.name : undefined" class="nav-link group"
                 :class="[
                   (item.to.name === 'dashboard' ? isExactActive : isActive) ? 'nav-link--active' : 'nav-link--idle',
                   !expanded ? 'justify-center' : ''
@@ -341,7 +343,7 @@ defineExpose({ toggleSidebar });
                 class="flex flex-col gap-1 mt-1 transition-all duration-300 pl-8">
                 <RouterLink v-for="child in item.children" :key="child.name" :to="child.to" custom
                   v-slot="{ navigate, href }">
-                  <a :href="href" @click="navigate"
+                  <a :href="href" @click="navigate" @mouseenter="prefetchRoute(child.to?.name)" @focus="prefetchRoute(child.to?.name)"
                     class="nav-link group child-link py-1.5 px-3 rounded-lg flex items-center gap-2"
                     :class="isChildActive(child) ? 'text-primary bg-primary/5 font-semibold' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'">
                     <div class="w-1.5 h-1.5 rounded-full" :class="isChildActive(child) ? 'bg-primary' : 'bg-slate-300'">

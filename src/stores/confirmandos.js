@@ -11,6 +11,10 @@ import {
 } from '../services/confirmandos';
 import { confirmarEliminacion, showAlerta, showErroresDeValidacion } from '@/funciones'
 
+// Ventana de frescura: dentro de este lapso no se vuelve a pedir la lista completa
+// al re-montar ListConfirmandos (evita el skeleton al navegar de ida y vuelta).
+const FRESH_MS = 30_000
+
 export const useConfirmandosStore = defineStore('confirmandos', {
     state: () => ({
         items: [],
@@ -21,7 +25,9 @@ export const useConfirmandosStore = defineStore('confirmandos', {
         },
         loading: false,
         error: null,
-        stats: {}
+        stats: {},
+        lastFetch: 0,
+        _inflight: null,
     }),
 
     getters: {
@@ -35,23 +41,36 @@ export const useConfirmandosStore = defineStore('confirmandos', {
     },
 
     actions: {
-        async fetchAll() {
-            this.loading = true;
-            this.error = null;
-            try {
-                // "response" recibe directamente lo que retornó el servicio (el Array completo)
-                const response = await getConfirmandosList();
+        async fetchAll({ force = false } = {}) {
+            // Dedupe: si dos componentes montan a la vez, una sola petición.
+            if (this._inflight) return this._inflight;
 
-                // ➔ CAMBIO AQUÍ: Asignamos 'response' directamente, sin el '.data'
-                this.items = response;
-
-                this.fetchMetricas();
-
-            } catch (e) {
-                this.error = e?.message || 'Error al listar Confirmandos';
-            } finally {
-                this.loading = false;
+            // Stale-while-revalidate: si la lista es reciente, no repetimos la llamada
+            // (la vista ya la está mostrando).
+            if (!force && this.items.length > 0 && Date.now() - this.lastFetch < FRESH_MS) {
+                return;
             }
+
+            // Skeleton solo si todavía no hay nada que mostrar; si ya hay datos,
+            // refrescamos en silencio.
+            if (this.items.length === 0) this.loading = true;
+            this.error = null;
+
+            this._inflight = getConfirmandosList()
+                .then((response) => {
+                    this.items = response;
+                    this.lastFetch = Date.now();
+                    this.fetchMetricas();
+                })
+                .catch((e) => {
+                    this.error = e?.message || 'Error al listar Confirmandos';
+                })
+                .finally(() => {
+                    this.loading = false;
+                    this._inflight = null;
+                });
+
+            return this._inflight;
         },
 
         // 3. NUEVA ACCIÓN ORDINARIA QUE SE CONECTA AL CONTROLADOR DE LARAVEL
@@ -77,11 +96,19 @@ export const useConfirmandosStore = defineStore('confirmandos', {
             }
         },
 
-        async fetchById(id) {
-            const existingConfirmando = this.byId(id);
-            if (existingConfirmando) return existingConfirmando;
+        /**
+         * Trae un confirmando con TODAS sus relaciones (grupo, sacramentos, requisitos,
+         * apoderados). El listado ya no incluye apoderados, así que un item "de lista"
+         * se considera incompleto hasta que tenga el array `apoderados`.
+         * @param {object} [opts]
+         * @param {boolean} [opts.silent] no toca `loading` (para no meter la tabla en
+         *   skeleton cuando esto se llama desde un modal que ya tiene su propio spinner).
+         */
+        async fetchById(id, { silent = false } = {}) {
+            const existente = this.byId(id);
+            if (existente && Array.isArray(existente.apoderados)) return existente;
 
-            this.loading = true;
+            if (!silent) this.loading = true;
             this.error = null;
             try {
                 const confirmandoId = Number(id);
@@ -91,15 +118,16 @@ export const useConfirmandosStore = defineStore('confirmandos', {
                 if (idx === -1) {
                     this.items.unshift(confirmando);
                 } else {
-                    this.items[idx] = confirmando;
+                    // Merge: conservamos lo que ya tenía la fila y le sumamos el detalle.
+                    this.items[idx] = { ...this.items[idx], ...confirmando };
                 }
-                return confirmando;
+                return this.items[idx === -1 ? 0 : idx];
             } catch (e) {
                 this.error = e?.response?.data?.message || e?.message || `Error al obtener confirmando ${id}`;
                 showAlerta(this.error, 'error');
                 throw e;
             } finally {
-                this.loading = false;
+                if (!silent) this.loading = false;
             }
         },
 
@@ -194,11 +222,36 @@ export const useConfirmandosStore = defineStore('confirmandos', {
         async importarExcel(formData) {
             try {
                 const response = await importarConfirmandosExcel(formData);
-                await this.fetchAll(); // Recarga masiva e indirectamente ejecuta métricas
+                await this.fetchAll({ force: true }); // Recarga masiva e indirectamente ejecuta métricas
                 return response;
             } catch (error) {
                 throw error;
             }
+        },
+
+        /**
+         * Aplica en memoria el resultado del generador de grupos (mapa
+         * confirmando_id -> grupo_id + lista de grupos), sin re-descargar toda la
+         * lista de confirmandos.
+         */
+        aplicarAsignaciones(asignaciones = {}, grupos = []) {
+            const gruposPorId = new Map(grupos.map(g => [Number(g.id), g]));
+            for (const [confId, grupoId] of Object.entries(asignaciones)) {
+                const c = this.items.find(x => x.id === Number(confId));
+                if (!c) continue;
+                c.grupo_id = Number(grupoId);
+                const g = gruposPorId.get(Number(grupoId));
+                if (g) {
+                    c.grupo = {
+                        id: g.id,
+                        nombre: g.nombre,
+                        color: g.color,
+                        procedencia: g.procedencia,
+                    };
+                }
+            }
+            this.lastFetch = Date.now(); // el estado local quedó al día
+            this.fetchMetricas();
         },
 
         async registrarRetiro(id, nombre) {

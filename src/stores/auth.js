@@ -5,6 +5,7 @@ import { LS_TOKEN_KEY, LS_USER_KEY } from '../constants/auth'
 import { updateUser } from '@/services/users'
 import { useParroquiaStore } from './parroquia'
 import { useUiStore } from './ui'
+import { useDashboardStore } from './dashboard'
 import { showAlerta, showErroresDeValidacion } from '@/funciones'
 
 function safeParse(json) {
@@ -36,7 +37,9 @@ export const useAuthStore = defineStore('auth', {
       this.loading = true
       this.error = null
       try {
-        const { data } = await api.post('/login', credentials)
+        // __retryable: si Render está dormido, el interceptor reintenta este POST
+        // con backoff en vez de fallar de una (el login es seguro de reintentar).
+        const { data } = await api.post('/login', credentials, { __retryable: true })
 
         this.token = data.token
         this.user = data.user
@@ -48,6 +51,10 @@ export const useAuthStore = defineStore('auth', {
           parroquia: data.user?.parroquia,
           configuracion: data.configuracion,
         })
+
+        // El backend manda los conteos básicos en el login: el dashboard pinta los
+        // números al instante sin esperar la llamada (más pesada) a /dashboard/metricas.
+        if (data.metricas) useDashboardStore().seedMetricas(data.metricas)
 
         return true
       } catch (e) {

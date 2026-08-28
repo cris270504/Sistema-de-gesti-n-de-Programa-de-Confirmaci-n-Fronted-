@@ -39,7 +39,7 @@ const abrirEditar = (grupoId) => {
 };
 
 const recargarTabla = () => {
-    fetchAll();
+    fetchAll({ force: true });
 };
 
 const exportarDatos = async () => {

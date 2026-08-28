@@ -222,6 +222,20 @@ const router = createRouter({
   ],
 })
 
+// Prefetch del chunk de una vista (se llama al hacer hover sobre su enlace en el
+// menú): cuando el usuario hace clic, el módulo ya está en caché y la navegación es
+// instantánea. Silencioso: si el import falla, onError/afterEach lo manejan al navegar.
+const rutasYaPrefetcheadas = new Set()
+export function prefetchRoute(name) {
+  if (!name || rutasYaPrefetcheadas.has(name)) return
+  rutasYaPrefetcheadas.add(name)
+  const record = router.getRoutes().find(r => r.name === name)
+  const loader = record?.components?.default
+  if (typeof loader === 'function') {
+    Promise.resolve(loader()).catch(() => rutasYaPrefetcheadas.delete(name))
+  }
+}
+
 router.beforeEach(async (to) => {
   const logged = hasSession();
   const needsAuth = to.matched.some(r => r.meta?.authenticated);

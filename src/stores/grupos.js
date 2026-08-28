@@ -2,11 +2,15 @@ import { defineStore } from 'pinia'
 import { confirmarEliminacion, showAlerta, showErroresDeValidacion } from '@/funciones'
 import { createGrupo, deleteGrupoById, getGrupoById, getGruposList, syncCatequists, updateGrupo, syncConfirmandos, getApoderadosByGrupo, generarGruposEquitativos } from '../services/grupos';
 
+const FRESH_MS = 30_000
+
 export const useGruposStore = defineStore('grupos', {
     state: () => ({
         items: [],
         loading: false,
         error: null,
+        lastFetch: 0,
+        _inflight: null,
     }),
 
     getters: {
@@ -15,17 +19,28 @@ export const useGruposStore = defineStore('grupos', {
     },
 
     actions: {
-        async fetchAll() {
-            this.loading = true
+        async fetchAll({ force = false } = {}) {
+            if (this._inflight) return this._inflight
+            if (!force && this.items.length > 0 && Date.now() - this.lastFetch < FRESH_MS) return
+
+            if (this.items.length === 0) this.loading = true
             this.error = null
-            try {
-                this.items = await getGruposList()
-            } catch (e) {
-                this.error = e?.response?.data?.message || e?.message || 'Error al listar grupos'
-                showAlerta(this.error, 'error')
-            } finally {
-                this.loading = false
-            }
+
+            this._inflight = getGruposList()
+                .then((data) => {
+                    this.items = data
+                    this.lastFetch = Date.now()
+                })
+                .catch((e) => {
+                    this.error = e?.response?.data?.message || e?.message || 'Error al listar grupos'
+                    showAlerta(this.error, 'error')
+                })
+                .finally(() => {
+                    this.loading = false
+                    this._inflight = null
+                })
+
+            return this._inflight
         },
         async fetchById(id) {
             // Si ya lo tenemos (viene completo del listado), lo devolvemos sin tocar
@@ -234,9 +249,14 @@ export const useGruposStore = defineStore('grupos', {
                 // Llamamos al servicio
                 const response = await generarGruposEquitativos(payload);
 
-                // Como se crearon grupos nuevos en el backend, nuestra lista 'items' 
-                // está desactualizada. Lo mejor es recargarla.
-                await this.fetchAll();
+                // El backend ya devuelve la lista de grupos actualizada: la aplicamos
+                // en memoria en vez de re-descargarla.
+                if (Array.isArray(response?.grupos)) {
+                    this.items = response.grupos;
+                    this.lastFetch = Date.now();
+                } else {
+                    await this.fetchAll({ force: true });
+                }
 
                 return response; // Devolvemos la respuesta para mostrar el mensaje en la vista
             } catch (e) {

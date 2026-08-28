@@ -85,7 +85,8 @@ const loadData = async () => {
 watch(() => props.id, loadData, { immediate: true });
 
 const recargarTabla = async () => {
-    await Promise.all([confirmandosStore.fetchAll(), dashboardStore.fetchMetricas()]);
+    // force: es una recarga explícita tras una mutación, saltamos la ventana de frescura.
+    await Promise.all([confirmandosStore.fetchAll({ force: true }), dashboardStore.fetchMetricas({ force: true })]);
     grupo.value = await gruposStore.fetchById(Number(props.id));
 };
 
@@ -101,7 +102,11 @@ const confirmandosProcesados = computed(() => {
     if (!grupo.value?.confirmandos) return [];
 
     return grupo.value.confirmandos
-        .map(c => confirmandosMap.value.get(c.id) ?? c)
+        // Base: el confirmando embebido en el grupo (trae apoderados, requisitos,
+        // sacramentos). Encima, los campos frescos del store (estado, grupo_id…).
+        // El listado ya no incluye apoderados/requisitos, por eso mergeamos en vez
+        // de reemplazar.
+        .map(c => ({ ...c, ...(confirmandosMap.value.get(c.id) ?? {}) }))
         .filter(c => c.estado !== 'retirado')
         .map(c => {
             const alerta = alertasMap.value.get(c.id);
