@@ -358,8 +358,8 @@ const confirmarRetiroJoven = async (joven) => {
 
       <!-- COLUMNA LATERAL (DERECHA) -->
       <div class="col-xl-4">
-        <!-- MÉTRICAS DE PROGRESO -->
-        <div class="card border-0 shadow-sm rounded-4 p-4 mb-4" v-if="authStore.can('ver confirmandos')">
+        <!-- MÉTRICAS DE PROGRESO (solo coordinador / super-admin) -->
+        <div class="card border-0 shadow-sm rounded-4 p-4 mb-4" v-if="esGestor">
           <h6 class="fw-bold text-muted text-uppercase small mb-3">Estado de Retención</h6>
           <div class="mb-4">
             <div class="d-flex justify-content-between mb-1">
