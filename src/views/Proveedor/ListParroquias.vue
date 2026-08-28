@@ -5,6 +5,9 @@ import { Plus, Check, X, Copy, Building2, KeyRound, Eye, Search, Clock } from 'l
 import { showAlerta, confirmar, slugify } from '@/funciones'
 import { listParroquias, crearParroquia, actualizarParroquia } from '@/services/proveedor'
 import AppPage from '@/components/AppPage.vue'
+import { useMediaQuery } from '@/composables/useMediaQuery'
+
+const esMovil = useMediaQuery('(max-width: 767px)')
 
 const ZONAS = ['America/Lima', 'America/Bogota', 'America/Guayaquil', 'America/La_Paz',
   'America/Santiago', 'America/Argentina/Buenos_Aires', 'America/Mexico_City', 'America/Caracas']
@@ -195,7 +198,37 @@ function copiar(txt) {
       </div>
     </div>
 
-    <div class="surface table-wrap cards-sm">
+    <!-- Tarjetas en celular -->
+    <div v-if="esMovil" class="lp-cards">
+      <p v-if="parroquiasFiltradas.length === 0" class="empty-state">
+        {{ q ? 'Ninguna parroquia coincide con la búsqueda.' : 'Aún no hay parroquias.' }}
+      </p>
+      <article v-for="p in parroquiasFiltradas" :key="p.id" class="lp-card" :class="{ 'lp-card--off': !p.activa }">
+        <div class="lp-card__head">
+          <span class="lp-card__nombre">
+            <Building2 :size="15" class="text-slate-400" /> {{ p.nombre }}
+          </span>
+          <button class="btn-action btn-soft-secondary" title="Ver detalle / configurar" @click="abrirDetalle(p)">
+            <Eye :size="16" />
+          </button>
+        </div>
+        <div class="lp-card__slug">{{ p.slug }}</div>
+        <div class="lp-card__stats">
+          <span><b>{{ p.users_count }}</b> usuarios</span>
+          <span><b>{{ p.grupos_count }}</b> grupos</span>
+          <span><b>{{ p.confirmandos_count }}</b> confirmandos</span>
+        </div>
+        <button
+          class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors"
+          :class="p.activa ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'"
+          @click="cambiarEstado(p)">
+          <Check v-if="p.activa" :size="12" /><X v-else :size="12" />
+          {{ p.activa ? 'Activa' : 'Inactiva' }}
+        </button>
+      </article>
+    </div>
+
+    <div v-else class="surface table-wrap">
       <table class="mb-0">
         <thead>
           <tr>
@@ -452,6 +485,54 @@ function copiar(txt) {
 
 .lp-row--off td { color: #94a3b8; }
 .lp-row--off td:first-child { opacity: 0.75; }
+
+/* ===== Tarjetas (celular) ===== */
+.lp-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.lp-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 0.85rem;
+}
+.lp-card--off { opacity: 0.7; }
+.lp-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.lp-card__nombre {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+.lp-card__slug {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.78rem;
+  color: #64748b;
+  margin: 0.25rem 0 0.6rem;
+}
+.lp-card__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.9rem;
+  font-size: 0.8rem;
+  color: #64748b;
+  margin-bottom: 0.7rem;
+}
+.lp-card__stats b { color: #1e293b; }
+
+@media (max-width: 767px) {
+  .lp-bar { flex-direction: column; align-items: stretch; }
+  .lp-search { width: 100%; }
+  .lp-search input { width: 100%; max-width: none; }
+}
 
 .lp-link {
   font-size: 0.72rem;

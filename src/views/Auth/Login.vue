@@ -35,9 +35,12 @@ const submit = async () => {
     // carga el panel (el backend en Render puede tardar en despertar).
     ui.showOverlay('Preparando tu panel…')
 
-    const redirect = typeof route.query.redirect === 'string'
-        ? route.query.redirect
-        : '/'; // Redirige a la raíz (ruta protegida) por defecto
+    // El proveedor de la plataforma siempre entra al panel de parroquias,
+    // ignorando cualquier ?redirect (no opera el dashboard de una parroquia).
+    const esProveedor = auth.user?.roles?.includes('proveedor')
+    const redirect = esProveedor
+        ? { name: 'parroquias' }
+        : (typeof route.query.redirect === 'string' ? route.query.redirect : '/')
 
     await router.push(redirect)
     // El componente se desmonta; el overlay lo apaga el afterEach del router.
