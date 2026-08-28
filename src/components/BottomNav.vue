@@ -2,15 +2,15 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { UsersRound, ClipboardList, Clipboard, Calendar, Menu, Home } from 'lucide-vue-next'
+import { UsersRound, ClipboardList, Clipboard, Calendar, Home } from 'lucide-vue-next'
 
-const emit = defineEmits(['open-menu'])
 const route = useRoute()
 const authStore = useAuthStore()
 
 const grupoId = computed(() => authStore.user?.grupo_ids?.[0] ?? null)
 
-// Accesos rápidos: pensados para el catequista. Máximo 4 + "Menú".
+// Accesos rápidos: pensados para el catequista. Máximo 4 (el menú completo
+// está en el ☰ de la barra superior).
 const items = computed(() => {
   const out = []
 
@@ -41,11 +41,6 @@ const isActive = (to) => route.name === to.name
       <component :is="it.icon" :size="20" aria-hidden="true" />
       <span>{{ it.label }}</span>
     </RouterLink>
-
-    <button type="button" class="bottomnav__item" @click="emit('open-menu')">
-      <Menu :size="20" aria-hidden="true" />
-      <span>Menú</span>
-    </button>
   </nav>
 </template>
 

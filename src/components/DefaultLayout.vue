@@ -19,7 +19,7 @@
                 <router-view />
             </main>
 
-            <BottomNav v-if="showBottomNav" @open-menu="drawerOpen = true" />
+            <BottomNav v-if="showBottomNav" />
         </div>
     </div>
 </template>
