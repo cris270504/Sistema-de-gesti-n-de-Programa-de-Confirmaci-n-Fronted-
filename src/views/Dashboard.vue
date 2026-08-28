@@ -179,7 +179,7 @@ const confirmarRetiroJoven = async (joven) => {
           <div v-if="loadingDashboard" class="p-3">
             <AppSkeleton skeleton="table" />
           </div>
-          <div v-else-if="!esMovil" class="table-responsive">
+          <div v-else-if="!esMovil" class="table-responsive cards-sm">
             <table class="table table-hover align-middle mb-0">
               <thead class="bg-light text-muted small text-uppercase">
                 <tr>

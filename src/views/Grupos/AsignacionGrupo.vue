@@ -154,7 +154,7 @@ const countEntregados = (requisitos) => requisitos?.filter(r => r.pivot.estado =
                                 Gestionar Inscripción
                             </button>
                         </div>
-                        <div v-if="!esMovil" class="table-responsive">
+                        <div v-if="!esMovil" class="table-responsive cards-sm">
                             <table class="table align-middle mb-0">
                                 <thead class="bg-light text-muted small text-uppercase">
                                     <tr>

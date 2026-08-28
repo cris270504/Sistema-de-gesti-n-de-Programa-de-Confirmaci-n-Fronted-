@@ -285,7 +285,7 @@ const rechazarCumplimientoSwal = async (item) => {
                 </div>
 
                 <!-- Datos: tabla en escritorio -->
-                <div v-else-if="!esMovil" class="table-responsive">
+                <div v-else-if="!esMovil" class="table-responsive cards-sm">
                     <table class="table table-hover align-middle mb-0 text-nowrap">
                         <thead class="bg-light text-uppercase text-secondary" style="font-size: 0.75rem; letter-spacing: 0.5px;">
                             <tr>

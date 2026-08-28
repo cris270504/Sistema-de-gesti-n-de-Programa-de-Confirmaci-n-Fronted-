@@ -271,4 +271,14 @@ const UMBRALES = [
 
 .cfg__bar { position: sticky; bottom: 0; padding: .8rem 0; margin-top: .25rem; display: flex; justify-content: flex-end; background: linear-gradient(transparent, #f9fafb 40%); }
 .cfg__bar .btn-primary { display: inline-flex; align-items: center; gap: .5rem; }
+
+/* En celular la barra no flota (tapaba el formulario): queda al final, sólida. */
+@media (max-width: 767px) {
+  .cfg__bar {
+    position: static;
+    background: none;
+    padding-top: 1rem;
+  }
+  .cfg__bar .btn-primary { width: 100%; justify-content: center; }
+}
 </style>

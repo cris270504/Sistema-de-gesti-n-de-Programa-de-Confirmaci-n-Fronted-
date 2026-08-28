@@ -600,7 +600,7 @@ const formatColDate = (dateStr) => {
                 <div class="card border-0 shadow-sm h-100 border-start border-4 border-success">
                     <div class="card-body p-3">
                         <div class="d-flex align-items-center">
-                            <div class="flex-shrink-0 me-3">
+                            <div class="flex-shrink-0 me-3 d-none d-sm-block">
                                 <div class="bg-success-subtle text-success rounded-circle d-flex align-items-center justify-content-center"
                                     style="width: 48px; height: 48px;">
                                     <Check :size="24" aria-hidden="true" />
@@ -619,7 +619,7 @@ const formatColDate = (dateStr) => {
                 <div class="card border-0 shadow-sm h-100 border-start border-4 border-warning">
                     <div class="card-body p-3">
                         <div class="d-flex align-items-center">
-                            <div class="flex-shrink-0 me-3">
+                            <div class="flex-shrink-0 me-3 d-none d-sm-block">
                                 <div class="bg-warning-subtle text-warning rounded-circle d-flex align-items-center justify-content-center"
                                     style="width: 48px; height: 48px;">
                                     <Clock :size="24" aria-hidden="true" />
@@ -638,7 +638,7 @@ const formatColDate = (dateStr) => {
                 <div class="card border-0 shadow-sm h-100 border-start border-4 border-danger">
                     <div class="card-body p-3">
                         <div class="d-flex align-items-center">
-                            <div class="flex-shrink-0 me-3">
+                            <div class="flex-shrink-0 me-3 d-none d-sm-block">
                                 <div class="bg-danger-subtle text-danger rounded-circle d-flex align-items-center justify-content-center"
                                     style="width: 48px; height: 48px;">
                                     <X :size="24" aria-hidden="true" />
@@ -662,7 +662,7 @@ const formatColDate = (dateStr) => {
                 <div class="card border-0 shadow-sm h-100 border-start border-4 border-primary">
                     <div class="card-body p-3">
                         <div class="d-flex align-items-center">
-                            <div class="flex-shrink-0 me-3">
+                            <div class="flex-shrink-0 me-3 d-none d-sm-block">
                                 <div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center"
                                     style="width: 48px; height: 48px;">
                                     <ChartPie :size="24" aria-hidden="true" />

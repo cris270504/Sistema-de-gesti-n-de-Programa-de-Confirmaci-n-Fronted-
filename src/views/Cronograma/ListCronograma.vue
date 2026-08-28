@@ -560,6 +560,38 @@ onUnmounted(() => {
   padding: 0.5rem;
 }
 
+/* El título del evento en la vista lista: legible (la regla .fc-event-title de
+   arriba lo dejaba blanco sobre fondo blanco). */
+:deep(.fc-list-event-title),
+:deep(.fc-list-event-title a) {
+  color: #1e293b !important;
+  font-weight: 600 !important;
+  text-decoration: none;
+}
+:deep(.fc-list-event-time) { color: #64748b !important; }
+
+/* --- 7. MÓVIL --- */
+@media (max-width: 767px) {
+  :deep(.fc-toolbar) {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: stretch;
+  }
+  :deep(.fc-toolbar-title) {
+    font-size: 1.05rem !important;
+    text-align: center;
+  }
+  :deep(.fc-toolbar-chunk) {
+    display: flex;
+    justify-content: center;
+  }
+  :deep(.fc-button) {
+    padding: 0.3rem 0.7rem !important;
+    font-size: 0.85rem !important;
+  }
+  :deep(.fc-list-event-title) { white-space: normal; }
+}
+
 :deep(.fc-day-today) {
   /* Fondo azul claro más visible (puedes cambiar el color hex si prefieres otro tono) */
   background-color: #e7f1ff !important;

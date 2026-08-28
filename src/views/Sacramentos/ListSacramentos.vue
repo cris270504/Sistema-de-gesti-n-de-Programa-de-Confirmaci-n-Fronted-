@@ -105,7 +105,7 @@ const handleSubmit = async () => {
         </template>
 
         <div class="surface">
-            <div class="table-wrap cards-sm">
+            <div class="table-wrap cards-sm cards-sm--hide-first">
                 <table class="mb-0">
                     <thead>
                         <tr>
