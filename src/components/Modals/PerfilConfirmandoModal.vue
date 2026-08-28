@@ -131,7 +131,7 @@ defineExpose({ abrir });
                             </div>
                         </div>
 
-                        <div class="row mb-4">
+                        <div class="row mb-4 perfil-fila">
                             <div class="col-md-6 mb-3 mb-md-0">
                                 <h6 class="text-uppercase text-muted fw-bold mb-2" style="font-size: 0.75rem;">Contacto / Apoderado</h6>
                                 <div v-if="perfilActivo.apoderado" class="bg-light p-3 rounded-3 border">
@@ -248,6 +248,15 @@ defineExpose({ abrir });
     .mini-dialog section {
         overflow: visible !important;
     }
+}
+
+/* En celular, mismo espacio entre todos los bloques de datos (Contacto,
+   Sacramentos, Historial): la caja de Sacramentos ya no se estira (h-100). */
+@media (max-width: 767px) {
+    /* Gap uniforme de 1rem: entre las dos columnas (mb-3 de la primera) y
+       después de la fila hacia el Historial (mb de la fila). */
+    .perfil-fila { margin-bottom: 1rem !important; }
+    .perfil-fila .h-100 { height: auto !important; }
 }
 
 /* Historial de asistencias en celular: fecha a la izquierda, estado a la
