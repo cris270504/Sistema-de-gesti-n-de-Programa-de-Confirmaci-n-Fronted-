@@ -20,6 +20,10 @@ const esMovil = useMediaQuery('(max-width: 767px)');
 const authStore = useAuthStore();
 const esGestor = authStore.can('ver usuarios');
 
+// Retirar del programa (baja formal) es exclusivo de coordinador / super-admin.
+// El backend ya exige `eliminar confirmandos`; acá ocultamos la UF correspondiente.
+const puedeRetirar = computed(() => authStore.can('eliminar confirmandos'));
+
 const dashboardStore = useDashboardStore();
 const { metricas, alertas, loading: loadingDashboard } = storeToRefs(dashboardStore);
 
@@ -133,7 +137,7 @@ const confirmarRetiroJoven = async (joven) => {
 
         <!-- RESUMEN NUMÉRICO (CARDS MINI) -->
         <div class="row g-3 mb-4">
-          <div v-if="authStore.can('ver confirmandos')" class="col-sm-4">
+          <div v-if="authStore.can('ver todos los confirmandos')" class="col-sm-4">
             <div class="card border-0 shadow-sm rounded-4 text-center p-3">
               <h2 class="fw-bold mb-0 text-info">{{ metricas.cant_confirmandos }}</h2>
               <p class="text-muted small mb-0">Confirmandos</p>
@@ -147,7 +151,7 @@ const confirmarRetiroJoven = async (joven) => {
               <RouterLink :to="{ name: 'users' }" class="stretched-link"></RouterLink>
             </div>
           </div>
-          <div v-if="authStore.can('ver grupos')" class="col-sm-4">
+          <div v-if="authStore.can('ver todos los grupos')" class="col-sm-4">
             <div class="card border-0 shadow-sm rounded-4 text-center p-3">
               <h2 class="fw-bold mb-0 text-warning">{{ metricas.cant_grupos }}</h2>
               <p class="text-muted small mb-0">Grupos</p>
@@ -187,7 +191,7 @@ const confirmarRetiroJoven = async (joven) => {
                   <th>Situación</th>
                   <th>Apoderado / WhatsApp</th>
                   <th
-                    v-if="alertasFiltradas.some(c => c.injustificadas_seguidas >= 3 || c.total_faltas_injustificadas >= 5)">
+                    v-if="puedeRetirar && alertasFiltradas.some(c => c.injustificadas_seguidas >= 3 || c.total_faltas_injustificadas >= 5)">
                     RETIRO</th>
                 </tr>
               </thead>
@@ -238,7 +242,7 @@ const confirmarRetiroJoven = async (joven) => {
                       <MessageCircle class="h-4 w-4 me-1 d-inline-block align-text-bottom" aria-hidden="true" />{{ c.celular_apoderado }}
                     </a>
                   </td>
-                  <td v-if="c.injustificadas_seguidas >= 3 || c.total_faltas_injustificadas >= 5" class="text-center">
+                  <td v-if="puedeRetirar && (c.injustificadas_seguidas >= 3 || c.total_faltas_injustificadas >= 5)" class="text-center">
                     <button type="button" @click="confirmarRetiroJoven(c)"
                       class="btn btn-sm btn-link p-1 rounded-circle hover-danger-btn d-inline-flex align-items-center justify-content-center"
                       style="width: 32px; height: 32px;" title="Dar de baja y retirar del programa">
@@ -282,7 +286,7 @@ const confirmarRetiroJoven = async (joven) => {
                     'text-muted': c.nivel_riesgo === 'BAJO'
                   }">{{ c.motivo_alerta }}</div>
                 </div>
-                <button v-if="c.injustificadas_seguidas >= 3 || c.total_faltas_injustificadas >= 5" type="button"
+                <button v-if="puedeRetirar && (c.injustificadas_seguidas >= 3 || c.total_faltas_injustificadas >= 5)" type="button"
                   @click="confirmarRetiroJoven(c)"
                   class="btn btn-sm btn-link p-1 rounded-circle hover-danger-btn d-inline-flex align-items-center justify-content-center flex-shrink-0"
                   style="width: 32px; height: 32px;" title="Retirar del programa">
