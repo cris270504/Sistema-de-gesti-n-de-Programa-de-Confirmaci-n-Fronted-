@@ -244,31 +244,31 @@ const rechazarCumplimientoSwal = async (item) => {
         </div>
 
         <!-- TABS DE ESTADOS (PILLS MODERNOS) -->
-        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
-            <div class="d-flex gap-2">
-                <button type="button" @click="filtroActual = 'TODOS'" 
-                    class="btn rounded-pill px-4 fw-medium transition-all"
+        <div class="just-tabs mb-4">
+            <div class="just-tabs__pills">
+                <button type="button" @click="filtroActual = 'TODOS'"
+                    class="btn rounded-pill fw-medium transition-all"
                     :class="filtroActual === 'TODOS' ? 'btn-dark shadow-sm' : 'btn-light text-muted border'">
                     Todos
                 </button>
-                <button type="button" @click="filtroActual = 'INJUSTIFICADO'" 
-                    class="btn rounded-pill px-4 fw-medium transition-all"
+                <button type="button" @click="filtroActual = 'INJUSTIFICADO'"
+                    class="btn rounded-pill fw-medium transition-all"
                     :class="filtroActual === 'INJUSTIFICADO' ? 'btn-danger shadow-sm' : 'btn-light text-danger border'">
                     Injustificados
                 </button>
-                <button type="button" @click="filtroActual = 'PENDIENTE'" 
-                    class="btn rounded-pill px-4 fw-medium transition-all"
+                <button type="button" @click="filtroActual = 'PENDIENTE'"
+                    class="btn rounded-pill fw-medium transition-all"
                     :class="filtroActual === 'PENDIENTE' ? 'btn-warning text-dark shadow-sm' : 'btn-light text-warning-emphasis border'">
                     Pendientes
                 </button>
-                <button type="button" @click="filtroActual = 'JUSTIFICADO'" 
-                    class="btn rounded-pill px-4 fw-medium transition-all"
+                <button type="button" @click="filtroActual = 'JUSTIFICADO'"
+                    class="btn rounded-pill fw-medium transition-all"
                     :class="filtroActual === 'JUSTIFICADO' ? 'btn-success shadow-sm' : 'btn-light text-success border'">
                     Justificados
                 </button>
             </div>
 
-            <span class="badge bg-secondary-subtle text-secondary fs-7 px-3 py-2 rounded-pill border">
+            <span class="badge bg-secondary-subtle text-secondary fs-7 px-3 py-2 rounded-pill border just-tabs__count">
                 Mostrando {{ justificacionesFiltradas.length }} registros
             </span>
         </div>
@@ -543,6 +543,40 @@ const rechazarCumplimientoSwal = async (item) => {
 </template>
 
 <style scoped>
+/* ===== Pestañas de estado ===== */
+.just-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    min-width: 0;
+}
+.just-tabs__pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    min-width: 0;
+}
+.just-tabs__pills .btn {
+    padding: 0.4rem 1rem;
+}
+@media (max-width: 767px) {
+    .just-tabs__pills {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        width: 100%;
+        padding-bottom: 0.25rem;
+    }
+    .just-tabs__pills .btn {
+        flex: 0 0 auto;
+        padding: 0.35rem 0.85rem;
+        font-size: 0.85rem;
+    }
+    .just-tabs__count { display: none; }
+}
+
 /* ===== Tarjetas (móvil) ===== */
 .just-cards {
     display: flex;
