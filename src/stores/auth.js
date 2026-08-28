@@ -61,6 +61,27 @@ export const useAuthStore = defineStore('auth', {
     },
 
 
+    /**
+     * Refresca datos y permisos del usuario desde /get-user. Se llama al arrancar
+     * la app: así los permisos nunca quedan desfasados respecto al backend (p. ej.
+     * si cambió un rol) y no se dispara un /403 con datos viejos de localStorage.
+     */
+    async refrescarUsuario() {
+      if (!this.token) return
+      try {
+        const { data } = await api.get('/get-user', { silent: true })
+        this.user = { ...this.user, ...data }
+        localStorage.setItem(LS_USER_KEY, JSON.stringify(this.user))
+        useParroquiaStore().hydrateFromLogin({
+          parroquia: data.parroquia,
+          configuracion: data.configuracion,
+        })
+      } catch {
+        // 401 → el interceptor de api ya cierra la sesión. Otros errores: se
+        // conserva lo que había en localStorage.
+      }
+    },
+
     async updateProfile(payload) {
       if (!this.user || !this.user.id) {
         showAlerta('No estás autenticado', 'error');

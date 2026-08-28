@@ -37,6 +37,18 @@ function hasSession() {
   return true
 }
 
+// No tiene sentido volver a /403 o /login después de loguearse: si esa ruta queda
+// pegada en ?redirect, cada login vuelve a caer ahí. La descartamos.
+export function rutaRedirectSegura(fullPath) {
+  if (!fullPath || typeof fullPath !== 'string') return null
+  if (fullPath === '/403' || fullPath.startsWith('/login') || fullPath === '/') return null
+  return fullPath
+}
+
+// Los permisos se refrescan desde el backend como mucho una vez antes de bloquear
+// con /403 (por si el localStorage traía permisos viejos).
+let permisosYaRefrescados = false
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -210,14 +222,15 @@ const router = createRouter({
   ],
 })
 
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   const logged = hasSession();
   const needsAuth = to.matched.some(r => r.meta?.authenticated);
   const onlyGuests = to.matched.some(r => r.meta?.guest);
   const auth = useAuthStore();
 
   if (needsAuth && !logged) {
-    return { name: 'login', query: { redirect: to.fullPath } };
+    const redirect = rutaRedirectSegura(to.fullPath);
+    return { name: 'login', query: redirect ? { redirect } : {} };
   }
 
   // El proveedor de la plataforma opera el panel de parroquias, no el Dashboard
@@ -231,13 +244,27 @@ router.beforeEach((to) => {
     return { name: 'dashboard' };
   }
 
+  // El proveedor puede entrar a cualquier vista (en el backend hay un Gate::before
+  // que le concede todo). Sin esto, un /parroquias con permisos viejos lo mandaba a /403.
+  if (logged && esProveedor) {
+    return;
+  }
+
   const requiredPerms = to.meta?.permission;
 
-  if (requiredPerms) {
+  if (requiredPerms && logged) {
     const permsArray = Array.isArray(requiredPerms) ? requiredPerms : [requiredPerms];
-    const hasAllPermissions = permsArray.every(p => auth.user?.permissions?.includes(p));
+    let ok = permsArray.every(p => auth.user?.permissions?.includes(p));
 
-    if (!hasAllPermissions) {
+    // Los permisos guardados pueden estar desfasados (cambió un rol, migración nueva…).
+    // Antes de mandar a /403, refrescamos una vez desde el backend y reevaluamos.
+    if (!ok && !permisosYaRefrescados) {
+      permisosYaRefrescados = true;
+      await auth.refrescarUsuario();
+      ok = permsArray.every(p => auth.user?.permissions?.includes(p));
+    }
+
+    if (!ok) {
       return { name: 'forbidden' };
     }
   }

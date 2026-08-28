@@ -1,5 +1,5 @@
 import axios from 'axios';
-import router from '@/router';
+import router, { rutaRedirectSegura } from '@/router';
 import { LS_TOKEN_KEY,LS_USER_KEY } from '@/constants/auth';
 import { API_BASE_URL } from '@/constants/api';
 import { showAlerta } from '@/funciones';
@@ -28,7 +28,8 @@ api.interceptors.response.use(
       localStorage.removeItem(LS_USER_KEY)
       if (router.currentRoute.value.name !== 'login') {
         showAlerta('Tu sesión expiró, vuelve a iniciar sesión', 'info')
-        router.push({ name: 'login', query: { redirect: router.currentRoute.value.fullPath } })
+        const redirect = rutaRedirectSegura(router.currentRoute.value.fullPath)
+        router.push({ name: 'login', query: redirect ? { redirect } : {} })
       }
     } else if (!error.config?.silent && (!status || status >= 500)) {
       // Errores de red (sin respuesta) o 5xx: casi nunca los maneja el componente que

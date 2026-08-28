@@ -3,6 +3,7 @@ import { RouterView } from 'vue-router'
 import { SpeedInsights } from '@vercel/speed-insights/vue';
 import { onMounted, onUnmounted } from 'vue'
 import LoadingOverlay from '@/components/LoadingOverlay.vue'
+import { useAuthStore } from '@/stores/auth'
 
 // Evita que Render suspenda el backend por inactividad (cold start ~50s)
 const HEALTH_URL = import.meta.env.MODE === 'production'
@@ -18,6 +19,11 @@ const pingHealth = () => {
 
 onMounted(() => {
   heartbeatId = setInterval(pingHealth, HEARTBEAT_INTERVAL_MS)
+
+  // Al abrir la app con sesión activa, sincroniza datos y permisos del usuario
+  // con el backend (evita quedarse con permisos viejos de localStorage).
+  const auth = useAuthStore()
+  if (auth.token) auth.refrescarUsuario()
 })
 
 onUnmounted(() => {

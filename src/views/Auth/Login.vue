@@ -3,6 +3,7 @@ import { ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { useUiStore } from '@/stores/ui';
+import { rutaRedirectSegura } from '@/router';
 import { showAlerta } from '@/funciones';
 import PasswordField from '@/components/PasswordField.vue';
 
@@ -38,11 +39,11 @@ const submit = async () => {
     // El proveedor de la plataforma siempre entra al panel de parroquias,
     // ignorando cualquier ?redirect (no opera el dashboard de una parroquia).
     const esProveedor = auth.user?.roles?.includes('proveedor')
-    const redirect = esProveedor
+    const destino = esProveedor
         ? { name: 'parroquias' }
-        : (typeof route.query.redirect === 'string' ? route.query.redirect : '/')
+        : (rutaRedirectSegura(route.query.redirect) || '/')
 
-    await router.push(redirect)
+    await router.push(destino)
     // El componente se desmonta; el overlay lo apaga el afterEach del router.
 }
 </script>
