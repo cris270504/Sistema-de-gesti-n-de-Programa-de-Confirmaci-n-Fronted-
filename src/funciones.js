@@ -1,6 +1,17 @@
 import Swal from "sweetalert2"
 
 /**
+ * Escapa HTML para poder inyectar texto en `html:` de SweetAlert sin riesgo de XSS.
+ * SweetAlert renderiza `title` y `html` como HTML; muchos mensajes vienen del
+ * backend o del contenido que sube el usuario (p. ej. celdas del Excel de import).
+ */
+function escaparHtml(valor) {
+  return String(valor ?? '').replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[c]))
+}
+
+/**
  * Alerta simple reutilizable
  * @param {string} mensaje
  * @param {'success'|'error'|'warning'|'info'|'question'} icono
@@ -12,7 +23,9 @@ export function showAlerta(mensaje, icono = 'info', focoId = '') {
     if (el) el.focus()
   }
   Swal.fire({
-    title: mensaje,
+    // Escapado + saltos de línea preservados. NO usar `title:` con texto dinámico
+    // (lo interpreta como HTML).
+    html: escaparHtml(mensaje).replace(/\n/g, '<br>'),
     icon: icono,
   })
 }
@@ -75,7 +88,9 @@ export function confirmar(opciones = {}) {
   })
 
   return Swal.fire({
-    title: titulo,
+    // `titulo` puede traer contenido dinámico (p. ej. el nombre del registro en
+    // confirmarEliminacion) → escapado. `text` ya lo trata SweetAlert como texto plano.
+    title: escaparHtml(titulo),
     text: texto,
     icon: icono,
     showCancelButton: true,
