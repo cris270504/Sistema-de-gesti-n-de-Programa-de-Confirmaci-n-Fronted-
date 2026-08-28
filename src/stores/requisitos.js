@@ -2,11 +2,15 @@ import { defineStore } from 'pinia'
 import { confirmarEliminacion, showAlerta, showErroresDeValidacion } from '@/funciones'
 import { createRequisito, deleteRequisitoById, getRequisitoById, getRequisitoList, updateRequisito } from '../services/requisitos';
 
+const FRESH_MS = 30_000
+
 export const useRequisitosStore = defineStore('requisitos', {
   state: () => ({
     items: [],
     loading: false,
     error: null,
+    lastFetch: 0,
+    _inflight: null,
   }),
 
   getters: {
@@ -15,16 +19,19 @@ export const useRequisitosStore = defineStore('requisitos', {
   },
 
   actions: {
-    async fetchAll() {
-      this.loading = true;
+    async fetchAll({ force = false } = {}) {
+      if (this._inflight) return this._inflight;
+      if (!force && this.items.length > 0 && Date.now() - this.lastFetch < FRESH_MS) return;
+
+      if (this.items.length === 0) this.loading = true;
       this.error = null;
-      try {
-        this.items = await getRequisitoList();
-      } catch (e) {
-        this.error = e?.message || 'Error al listar requisitos';
-      } finally {
-        this.loading = false;
-      }
+
+      this._inflight = getRequisitoList()
+        .then((data) => { this.items = data; this.lastFetch = Date.now(); })
+        .catch((e) => { this.error = e?.message || 'Error al listar requisitos'; })
+        .finally(() => { this.loading = false; this._inflight = null; });
+
+      return this._inflight;
     },
 
     async fetchById(id) {

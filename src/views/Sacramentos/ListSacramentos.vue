@@ -79,10 +79,10 @@ const handleSubmit = async () => {
         }
 
         // --- SOLUCIÓN AQUÍ ---
-        // Recargamos la lista completa desde el servidor.
-        // Esto asegura que traemos el objeto CON sus relaciones (requisitos) actualizadas
-        // y confirma que lo que vemos en pantalla es lo que realmente hay en la BD.
-        await fetchAll(); 
+        // Recargamos la lista completa desde el servidor (force: saltamos la ventana
+        // de frescura). Esto asegura que traemos el objeto CON sus relaciones
+        // (requisitos) actualizadas.
+        await fetchAll({ force: true });
 
         modalInstance.value?.hide();
         showAlerta('Guardado exitosamente', 'success');

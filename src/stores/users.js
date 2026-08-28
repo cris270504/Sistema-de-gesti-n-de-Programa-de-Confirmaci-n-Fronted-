@@ -3,11 +3,15 @@ import { getUsersList, createUser, updateUser, deleteUserById, getUserById, setU
 import { confirmar, showAlerta, showErroresDeValidacion } from '@/funciones'
 import { useGruposStore } from './grupos';
 
+const FRESH_MS = 30_000
+
 export const useUsersStore = defineStore('users', {
   state: () => ({
     items: [],
     loading: false,
     error: null,
+    lastFetch: 0,
+    _inflight: null,
   }),
 
   getters: {
@@ -16,16 +20,19 @@ export const useUsersStore = defineStore('users', {
   },
 
   actions: {
-    async fetchAll() {
-      this.loading = true;
+    async fetchAll({ force = false } = {}) {
+      if (this._inflight) return this._inflight;
+      if (!force && this.items.length > 0 && Date.now() - this.lastFetch < FRESH_MS) return;
+
+      if (this.items.length === 0) this.loading = true;
       this.error = null;
-      try {
-        this.items = await getUsersList();
-      } catch (e) {
-        this.error = e?.message || 'Error al listar usuarios';
-      } finally {
-        this.loading = false;
-      }
+
+      this._inflight = getUsersList()
+        .then((data) => { this.items = data; this.lastFetch = Date.now(); })
+        .catch((e) => { this.error = e?.message || 'Error al listar usuarios'; })
+        .finally(() => { this.loading = false; this._inflight = null; });
+
+      return this._inflight;
     },
 
     async fetchById(id) {

@@ -3,11 +3,15 @@ import { confirmarEliminacion, showAlerta, showErroresDeValidacion } from '@/fun
 import { useGruposStore } from './grupos';
 import { createSacramento, deleteSacramentoById, getSacramentoById, getSacramentosList, updateSacramento } from '../services/sacramentos';
 
+const FRESH_MS = 30_000
+
 export const useSacramentosStore = defineStore('sacramentos', {
     state: () => ({
         items: [],
         loading: false,
         error: null,
+        lastFetch: 0,
+        _inflight: null,
     }),
 
     getters: {
@@ -16,16 +20,19 @@ export const useSacramentosStore = defineStore('sacramentos', {
     },
 
     actions: {
-        async fetchAll() {
-            this.loading = true;
+        async fetchAll({ force = false } = {}) {
+            if (this._inflight) return this._inflight;
+            if (!force && this.items.length > 0 && Date.now() - this.lastFetch < FRESH_MS) return;
+
+            if (this.items.length === 0) this.loading = true;
             this.error = null;
-            try {
-                this.items = await getSacramentosList();
-            } catch (e) {
-                this.error = e?.message || 'Error al listar sacramentos';
-            } finally {
-                this.loading = false;
-            }
+
+            this._inflight = getSacramentosList()
+                .then((data) => { this.items = data; this.lastFetch = Date.now(); })
+                .catch((e) => { this.error = e?.message || 'Error al listar sacramentos'; })
+                .finally(() => { this.loading = false; this._inflight = null; });
+
+            return this._inflight;
         },
 
         async fetchById(id) {

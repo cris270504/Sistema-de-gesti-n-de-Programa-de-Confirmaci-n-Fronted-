@@ -42,7 +42,7 @@ const abrirEditar = (usuario) => {
 };
 
 const recargarTabla = () => {
-  fetchAllUsers();
+  fetchAllUsers({ force: true });
 }
 
 // Roles con colores sólidos pero profesionales
