@@ -4,6 +4,7 @@ import { SpeedInsights } from '@vercel/speed-insights/vue';
 import { onMounted, onUnmounted } from 'vue'
 import LoadingOverlay from '@/components/LoadingOverlay.vue'
 import { useAuthStore } from '@/stores/auth'
+import { supabase } from '@/lib/supabase'
 
 // Evita que Render suspenda el backend por inactividad (cold start ~50s)
 const HEALTH_URL = import.meta.env.MODE === 'production'
@@ -17,13 +18,24 @@ const pingHealth = () => {
   fetch(HEALTH_URL, { method: 'GET', cache: 'no-store' }).catch(() => {})
 }
 
-onMounted(() => {
+onMounted(async () => {
   heartbeatId = setInterval(pingHealth, HEARTBEAT_INTERVAL_MS)
 
-  // Al abrir la app con sesión activa, sincroniza datos y permisos del usuario
-  // con el backend (evita quedarse con permisos viejos de localStorage).
+  // Fase 1 migración Supabase: mantener el token del store sincronizado con la
+  // sesión de supabase-js (refresco automático, cierre de sesión remoto).
   const auth = useAuthStore()
-  if (auth.token) auth.refrescarUsuario()
+  auth.initAuthListener()
+
+  // Al abrir la app con sesión de Supabase activa, sincroniza datos y permisos
+  // del usuario con el backend (evita quedarse con permisos viejos de localStorage).
+  const { data } = await supabase.auth.getSession()
+  if (data.session) {
+    auth.token = data.session.access_token
+    await auth.refrescarUsuario()
+  } else if (auth.token) {
+    // Espejo viejo sin sesión de Supabase: limpiar.
+    auth.logoutLocal()
+  }
 })
 
 onUnmounted(() => {

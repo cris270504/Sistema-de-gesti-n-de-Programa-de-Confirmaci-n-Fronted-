@@ -22,6 +22,7 @@
     "@fullcalendar/timegrid": "^6.1.19",
     "@fullcalendar/vue3": "^6.1.19",
     "@popperjs/core": "^2.11.8",
+    "@supabase/supabase-js": "^2.112.4",
     "@tailwindcss/vite": "^4.1.13",
     "@tanstack/vue-table": "^8.21.3",
     "@vercel/speed-insights": "^2.0.0",

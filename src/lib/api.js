@@ -5,6 +5,7 @@ import { API_BASE_URL } from '@/constants/api';
 import { showAlerta } from '@/funciones';
 import { logFrontendError } from '@/composables/useErrorLogger';
 import { useUiStore } from '@/stores/ui';
+import { supabase, currentAccessToken } from '@/lib/supabase';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -13,8 +14,14 @@ const api = axios.create({
   }
 });
 
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem(LS_TOKEN_KEY)
+api.interceptors.request.use(async (config) => {
+  // Token vigente de la sesión de Supabase (supabase-js lo refresca solo).
+  // Fallback al espejo en localStorage por si getSession() aún no resolvió.
+  let token
+  try {
+    token = await currentAccessToken()
+  } catch { /* noop */ }
+  token = token || localStorage.getItem(LS_TOKEN_KEY)
   if (token) config.headers.Authorization = `Bearer ${token}`
   return config
 })
@@ -82,6 +89,7 @@ api.interceptors.response.use(
     if (status === 401) {
       localStorage.removeItem(LS_TOKEN_KEY)
       localStorage.removeItem(LS_USER_KEY)
+      supabase.auth.signOut().catch(() => {})
       if (router.currentRoute.value.name !== 'login') {
         showAlerta('Tu sesión expiró, vuelve a iniciar sesión', 'info')
         const redirect = rutaRedirectSegura(router.currentRoute.value.fullPath)
