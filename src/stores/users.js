@@ -131,7 +131,7 @@ export const useUsersStore = defineStore('users', {
         showAlerta(activar ? 'Usuario activado' : 'Usuario desactivado', 'success')
         return true
       } catch (e) {
-        showAlerta(e?.response?.data?.message || 'No se pudo cambiar el estado', 'error')
+        showAlerta(e?.response?.data?.message || e?.message || 'No se pudo cambiar el estado', 'error')
         return false
       }
     },
