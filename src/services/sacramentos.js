@@ -1,4 +1,3 @@
-import api from '@/lib/api'
 import { supabase } from '@/lib/supabase'
 
 // Fase 3 migración Supabase: las LECTURAS del catálogo van directo a PostgREST
@@ -39,14 +38,25 @@ export async function getSacramentoById(id) {
   return aplanar(row)
 }
 
-export function createSacramento(sacramento) {
-  return api.post('/sacramentos', sacramento).then(res => res.data)
+// ── Escrituras: Fase 4, PostgREST directo (RLS: solo privilegiado; trigger fija
+//    parroquia_id; UNIQUE nombre por parroquia). Devuelven la misma forma
+//    `{ sacramento }` / `{ message }` que esperaban los stores.
+export async function createSacramento(sacramento) {
+  const { data, error } = await supabase
+    .from('sacramentos').insert(sacramento).select('id, nombre, clave').single()
+  if (error) throw new Error(error.message)
+  return { sacramento: { ...data, requisitos: [] } }
 }
 
-export function updateSacramento(id, sacramento) {
-  return api.put(`/sacramentos/${id}`, sacramento).then(res => res.data)
+export async function updateSacramento(id, sacramento) {
+  const { data, error } = await supabase
+    .from('sacramentos').update(sacramento).eq('id', Number(id)).select('id, nombre, clave').single()
+  if (error) throw new Error(error.message)
+  return { sacramento: data }
 }
 
-export function deleteSacramentoById(id) {
-  return api.delete(`/sacramentos/${id}`).then(res => res.data)
+export async function deleteSacramentoById(id) {
+  const { error } = await supabase.from('sacramentos').delete().eq('id', Number(id))
+  if (error) throw new Error(error.message)
+  return { message: 'Sacramento eliminado' }
 }

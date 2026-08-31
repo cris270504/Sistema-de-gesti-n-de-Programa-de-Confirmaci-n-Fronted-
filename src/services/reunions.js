@@ -1,8 +1,7 @@
-import api from '@/lib/api'
 import { supabase } from '@/lib/supabase'
 
-// Fase 3: lecturas → PostgREST (RLS por parroquia). Escrituras en Laravel (Fase 4:
-// validación de tipo/fecha por config de parroquia).
+// Fase 3/4: lecturas y escrituras → PostgREST (RLS + CHECK de tipo + trigger
+// de parroquia).
 
 async function unwrap(promise) {
   const { data, error } = await promise
@@ -32,14 +31,23 @@ export function getUpcomingReuniones() {
   )
 }
 
-export function createReunion(reunion) {
-  return api.post('/reuniones', reunion).then(res => res.data)
+// ── Escrituras: Fase 4, PostgREST directo (RLS: solo privilegiado; trigger fija
+//    parroquia_id; CHECK de tipo). ────────────────────────────────────────────
+export async function createReunion(reunion) {
+  const { data, error } = await supabase.from('reunions').insert(reunion).select(COLS).single()
+  if (error) throw new Error(error.message)
+  return { reunion: data }
 }
 
-export function updateReunion(id, reunion) {
-  return api.put(`/reuniones/${id}`, reunion).then(res => res.data)
+export async function updateReunion(id, reunion) {
+  const { data, error } = await supabase
+    .from('reunions').update(reunion).eq('id', Number(id)).select(COLS).single()
+  if (error) throw new Error(error.message)
+  return { reunion: data }
 }
 
-export function deleteReunionById(id) {
-  return api.delete(`/reuniones/${id}`).then(res => res.data)
+export async function deleteReunionById(id) {
+  const { error } = await supabase.from('reunions').delete().eq('id', Number(id))
+  if (error) throw new Error(error.message)
+  return { message: 'Reunión eliminada' }
 }

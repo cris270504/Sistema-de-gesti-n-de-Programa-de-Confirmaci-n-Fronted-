@@ -37,17 +37,27 @@ export async function getGrupoById(id) {
   return aplanar(row)
 }
 
-// ── Escrituras y endpoints con lógica: siguen en Laravel ────────────────────
-export function createGrupo(grupo) {
-  return api.post('/grupos', grupo).then(res => res.data)
+// ── Escrituras del grupo en sí: Fase 4, PostgREST directo. El sync de
+//    catequistas/confirmandos y el reparto equitativo siguen en Laravel. ──────
+const GRUPO_COLS = 'id, nombre, periodo, color, procedencia'
+
+export async function createGrupo(grupo) {
+  const { data, error } = await supabase.from('grupos').insert(grupo).select(GRUPO_COLS).single()
+  if (error) throw new Error(error.message)
+  return { grupo: { ...data, catequistas: [], confirmandos: [] } }
 }
 
-export function updateGrupo(id, grupo) {
-  return api.put(`/grupos/${id}`, grupo).then(res => res.data)
+export async function updateGrupo(id, grupo) {
+  const { data, error } = await supabase
+    .from('grupos').update(grupo).eq('id', Number(id)).select(GRUPO_COLS).single()
+  if (error) throw new Error(error.message)
+  return { grupo: data }
 }
 
-export function deleteGrupoById(id) {
-  return api.delete(`/grupos/${id}`).then(res => res.data)
+export async function deleteGrupoById(id) {
+  const { error } = await supabase.from('grupos').delete().eq('id', Number(id))
+  if (error) throw new Error(error.message)
+  return { message: 'Grupo eliminado' }
 }
 
 export function syncCatequists(grupoId, userIds) {
