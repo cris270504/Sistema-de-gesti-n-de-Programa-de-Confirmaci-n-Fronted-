@@ -6,10 +6,11 @@ import LoadingOverlay from '@/components/LoadingOverlay.vue'
 import { useAuthStore } from '@/stores/auth'
 import { supabase } from '@/lib/supabase'
 
-// Evita que Render suspenda el backend por inactividad (cold start ~50s)
-const HEALTH_URL = import.meta.env.MODE === 'production'
-  ? 'https://sistema-de-gestion-de-programa-de.onrender.com/api/health'
-  : '/api/health'
+// Heartbeat a Supabase mientras alguien tiene la app abierta: mantiene el
+// proyecto (plan Free) "activo" y evita que se pause por inactividad. NO cubre
+// el caso de que nadie abra la app en ~7 días — para eso hay un pinger externo
+// (ver docs/PLAN-MIGRACION-SUPABASE.md, checklist de cutover).
+const HEALTH_URL = `${import.meta.env.VITE_SUPABASE_URL}/auth/v1/health`
 const HEARTBEAT_INTERVAL_MS = 13 * 60 * 1000 // 13 minutos
 
 let heartbeatId = null
