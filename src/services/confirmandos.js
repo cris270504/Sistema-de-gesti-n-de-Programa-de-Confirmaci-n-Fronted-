@@ -1,11 +1,8 @@
-import api from '@/lib/api'
 import { supabase } from '@/lib/supabase'
 
-// Fase 3 migración Supabase: las LECTURAS de confirmandos van directo a PostgREST
-// (la RLS acota por parroquia y por grupo del catequista, igual que hacía el
-// filtro en ConfirmandoController). Las escrituras y lo que necesita lógica
-// (perfil, buscar-apoderados, importar/exportar Excel) siguen en Laravel hasta
-// las Fases 4/5.
+// Confirmandos: todo vía Supabase. Lecturas → PostgREST (RLS por parroquia y
+// grupo). Escrituras y lógica → RPCs (fn_guardar_confirmando, etc.). Import/
+// export Excel → Edge Functions. El perfil lee la vista v_confirmando_perfil.
 
 async function unwrap(promise) {
   const { data, error } = await promise
@@ -167,19 +164,39 @@ export async function retirarConfirmandoById(id) {
   return { status: true, message: 'Confirmando retirado del programa exitosamente.' }
 }
 
-export function importarConfirmandosExcel(formData) {
-  return api.post('/confirmandos/importar', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  }).then((res) => res.data)
+// Import: Edge Function `importar-confirmandos` (parseo del .xlsx en Deno). El
+// error se re-lanza con forma tipo-axios para que el catch de la vista siga
+// distinguiendo `errors` (lista de filas omitidas) de `message`.
+export async function importarConfirmandosExcel(formData) {
+  const { data, error } = await supabase.functions.invoke('importar-confirmandos', { body: formData })
+  if (!error) return data
+  let payload = { message: error.message }
+  try { payload = await error.context.json() } catch { /* sin cuerpo JSON */ }
+  const e = new Error(payload.message || 'Error al importar el archivo.')
+  e.response = { data: payload }
+  throw e
 }
 
-export const exportarConfirmandosExcel = async () => {
-  const response = await api.get('/confirmandos/exportar', { responseType: 'blob' })
-  const url = window.URL.createObjectURL(new Blob([response.data]))
+// Export: Edge Function `exportar-confirmandos` → descarga binaria. Se hace con
+// fetch directo (functions.invoke asume JSON).
+export async function exportarConfirmandosExcel() {
+  const { data: { session } } = await supabase.auth.getSession()
+  const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/exportar-confirmandos`, {
+    headers: {
+      apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${session?.access_token ?? ''}`,
+    },
+  })
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error(body.message || 'No se pudo generar el archivo.')
+  }
+  const url = window.URL.createObjectURL(await res.blob())
   const link = document.createElement('a')
   link.href = url
   link.setAttribute('download', 'Confirmandos_por_Grupos.xlsx')
   document.body.appendChild(link)
   link.click()
   link.remove()
+  window.URL.revokeObjectURL(url)
 }
