@@ -1,10 +1,8 @@
-import api from '@/lib/api'
 import { supabase } from '@/lib/supabase'
 
-// Fase 3: lecturas de grupos → PostgREST (RLS: privilegiado ve su parroquia,
-// catequista solo sus grupos). Fase 4: escrituras del grupo + reparto equitativo
-// (RPC). El sync de catequistas/confirmandos y el listado de apoderados por grupo
-// siguen en Laravel.
+// Grupos: todo vía Supabase. Lecturas → PostgREST (RLS: privilegiado ve su
+// parroquia, catequista solo sus grupos). Escrituras del grupo → PostgREST;
+// reparto equitativo y sync de catequistas/confirmandos → RPC transaccional.
 
 async function unwrap(promise) {
   const { data, error } = await promise
@@ -61,16 +59,42 @@ export async function deleteGrupoById(id) {
   return { message: 'Grupo eliminado' }
 }
 
+// Sync de catequistas / confirmandos de un grupo: RPC transaccional (varias filas,
+// atómico). La función devuelve el grupo_id; re-leemos el detalle para devolver
+// `{ message, grupo }` como consumían assignCatequists / assignConfirmandos.
+async function syncGrupo(rpc, grupoId, arg, key, message) {
+  const { error } = await supabase.rpc(rpc, { p_grupo_id: Number(grupoId), [key]: arg ?? [] })
+  if (error) throw new Error(error.message)
+  return { message, grupo: await getGrupoById(grupoId) }
+}
+
 export function syncCatequists(grupoId, userIds) {
-  return api.post(`/grupos/${grupoId}/sync-catequists`, { users: userIds }).then(res => res.data)
+  return syncGrupo('fn_sync_catequistas_grupo', grupoId, userIds?.map(Number), 'p_user_ids', 'Catequistas actualizados')
 }
 
 export function syncConfirmandos(grupoId, confirmandoIds) {
-  return api.post(`/grupos/${grupoId}/sync-confirmandos`, { confirmandos: confirmandoIds }).then(res => res.data)
+  return syncGrupo('fn_sync_confirmandos_grupo', grupoId, confirmandoIds?.map(Number), 'p_confirmando_ids', 'Confirmandos actualizados')
 }
 
-export function getApoderadosByGrupo(grupoId) {
-  return api.get(`/grupos/${grupoId}/apoderados`).then(res => res.data)
+// Apoderados cuyos confirmandos están en el grupo (con sus confirmandos). RLS de
+// apoderados / confirmando_apoderado acota por parroquia y grupo del catequista.
+export async function getApoderadosByGrupo(grupoId) {
+  const rows = await unwrap(
+    supabase
+      .from('apoderados')
+      .select('id, nombres, apellidos, celular, confirmando_apoderado!inner(confirmandos!inner(id, nombres, apellidos, grupo_id))')
+      .eq('confirmando_apoderado.confirmandos.grupo_id', Number(grupoId)),
+  )
+  return rows.map(a => ({
+    id: a.id,
+    nombres: a.nombres,
+    apellidos: a.apellidos,
+    celular: a.celular,
+    confirmandos: (a.confirmando_apoderado ?? [])
+      .map(link => link.confirmandos)
+      .filter(c => c && c.grupo_id === Number(grupoId))
+      .map(({ id, nombres, apellidos }) => ({ id, nombres, apellidos })),
+  }))
 }
 
 // Reparto equitativo: RPC transaccional. La función hace el firstOrCreate de los
