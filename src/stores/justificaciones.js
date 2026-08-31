@@ -6,7 +6,6 @@ import {
     completeJustificacion,
     rejectJustificacion
 } from '../services/justificaciones';
-import api from '@/lib/api';
 
 export const useJustificacionesStore = defineStore('justificaciones', {
     state: () => ({
@@ -21,8 +20,8 @@ export const useJustificacionesStore = defineStore('justificaciones', {
             this.loading = true;
             this.items = []; // <-- CRUCIAL: Limpiamos los datos residuales de la memoria de Vue
             try {
-                const { data } = await api.get('/justificaciones');
-                this.items = data; // Guardamos la lista fresca traída de TiDB
+                // Fase 3: vista v_justificaciones_pendientes (RLS por parroquia/grupo).
+                this.items = await getJustificacionesPendientes();
             } catch (error) {
                 console.error("Error al traer justificaciones:", error);
                 throw error;

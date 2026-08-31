@@ -2,11 +2,20 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { LS_TOKEN_KEY, LS_USER_KEY } from '@/constants/auth'
 
-// Mockeamos todo lo que auth.js toca hacia afuera: la instancia de axios, el
-// router (evita levantar todas las rutas reales en el test) y las alertas de
-// SweetAlert2 (no nos interesa la UI del toast, solo la transición de estado).
-vi.mock('@/lib/api', () => ({
-  default: { post: vi.fn(), get: vi.fn() },
+// Mockeamos lo que auth.js toca hacia afuera: supabase-js, el router y las
+// alertas. Todo es Supabase: resolver-login + signInWithPassword + fn_get_user.
+vi.mock('@/lib/supabase', () => ({
+  supabase: {
+    functions: { invoke: vi.fn() },
+    rpc: vi.fn(),
+    auth: {
+      signInWithPassword: vi.fn(),
+      signOut: vi.fn().mockResolvedValue({ error: null }),
+      onAuthStateChange: vi.fn(),
+      getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
+    },
+  },
+  currentAccessToken: vi.fn().mockResolvedValue(null),
 }))
 vi.mock('@/router', () => ({
   default: { push: vi.fn(), currentRoute: { value: { name: 'dashboard', fullPath: '/' } } },
@@ -16,37 +25,48 @@ vi.mock('@/funciones', () => ({
   showErroresDeValidacion: vi.fn(),
 }))
 
-import api from '@/lib/api'
+import { supabase } from '@/lib/supabase'
 import router from '@/router'
 import { useAuthStore } from './auth'
+
+function mockLoginOk(user) {
+  supabase.functions.invoke.mockResolvedValueOnce({ data: { email: 'maria@parroquia.com' }, error: null })
+  supabase.auth.signInWithPassword.mockResolvedValueOnce({
+    data: { session: { access_token: 'sb-access-token' } },
+    error: null,
+  })
+  supabase.rpc.mockResolvedValueOnce({ data: user, error: null })
+}
 
 describe('stores/auth', () => {
   beforeEach(() => {
     localStorage.clear()
     setActivePinia(createPinia())
-    vi.mocked(api.post).mockReset()
-    vi.mocked(api.get).mockReset()
-    vi.mocked(router.push).mockClear()
+    vi.clearAllMocks()
   })
 
-  it('login exitoso guarda token/user en el store y en localStorage', async () => {
-    api.post.mockResolvedValueOnce({
-      data: { token: 'token-123', user: { id: 1, name: 'María', grupo_ids: [10] } },
-    })
+  it('login exitoso: resuelve el identificador, entra a Supabase e hidrata con fn_get_user', async () => {
+    mockLoginOk({ id: 1, name: 'María', grupo_ids: [10] })
 
     const auth = useAuthStore()
     const ok = await auth.login({ login: '12345678', password: 'secreta' })
 
     expect(ok).toBe(true)
-    expect(auth.token).toBe('token-123')
+    expect(supabase.functions.invoke).toHaveBeenCalledWith('resolver-login', { body: { login: '12345678' } })
+    expect(supabase.auth.signInWithPassword).toHaveBeenCalledWith({
+      email: 'maria@parroquia.com',
+      password: 'secreta',
+    })
+    expect(auth.token).toBe('sb-access-token')
     expect(auth.user).toEqual({ id: 1, name: 'María', grupo_ids: [10] })
     expect(auth.isAuthenticated).toBe(true)
-    expect(localStorage.getItem(LS_TOKEN_KEY)).toBe('token-123')
+    expect(localStorage.getItem(LS_TOKEN_KEY)).toBe('sb-access-token')
     expect(JSON.parse(localStorage.getItem(LS_USER_KEY))).toEqual({ id: 1, name: 'María', grupo_ids: [10] })
   })
 
   it('login fallido (credenciales inválidas) limpia el estado y devuelve false', async () => {
-    api.post.mockRejectedValueOnce({ response: { status: 401, data: { message: 'Unauthenticated' } } })
+    supabase.functions.invoke.mockResolvedValueOnce({ data: { email: 'x@y.com' }, error: null })
+    supabase.auth.signInWithPassword.mockResolvedValueOnce({ data: { session: null }, error: { message: 'Invalid login credentials' } })
 
     const auth = useAuthStore()
     const ok = await auth.login({ login: 'noexiste@correo.com', password: 'mala' })
@@ -56,13 +76,11 @@ describe('stores/auth', () => {
     expect(auth.user).toBeNull()
     expect(auth.isAuthenticated).toBe(false)
     expect(localStorage.getItem(LS_TOKEN_KEY)).toBeNull()
+    expect(supabase.rpc).not.toHaveBeenCalled()
   })
 
-  it('logout limpia el estado y redirige al login aunque el POST /logout falle', async () => {
-    api.post.mockRejectedValueOnce(new Error('network error')) // logout no debe romperse si esto falla
-
+  it('logout cierra la sesión de Supabase, limpia el estado y redirige al login', async () => {
     const auth = useAuthStore()
-    // Simulamos una sesión ya iniciada
     auth.token = 'token-viejo'
     auth.user = { id: 1, name: 'María' }
     localStorage.setItem(LS_TOKEN_KEY, 'token-viejo')
@@ -70,16 +88,15 @@ describe('stores/auth', () => {
 
     await auth.logout()
 
+    expect(supabase.auth.signOut).toHaveBeenCalled()
     expect(auth.token).toBeNull()
     expect(auth.user).toBeNull()
     expect(localStorage.getItem(LS_TOKEN_KEY)).toBeNull()
     expect(router.push).toHaveBeenCalledWith({ name: 'login' })
   })
 
-  it('can() refleja los permissions del usuario logueado', async () => {
-    api.post.mockResolvedValueOnce({
-      data: { token: 't', user: { id: 1, permissions: ['ver dashboard', 'ver grupos'] } },
-    })
+  it('can() refleja los permissions del usuario hidratado', async () => {
+    mockLoginOk({ id: 1, permissions: ['ver dashboard', 'ver grupos'] })
 
     const auth = useAuthStore()
     await auth.login({ login: '1', password: '1' })

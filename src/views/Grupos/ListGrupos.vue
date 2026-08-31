@@ -6,7 +6,7 @@ import { UserPlus, Pencil, Trash, Plus, Users, Calendar, Download } from 'lucide
 import { useGruposStore } from '../../stores/grupos';
 import GrupoModal from '../../components/Modals/grupoModal.vue';
 import { showAlerta } from '@/funciones'; // Importamos showAlerta
-import api from '@/lib/api';
+import { exportarConfirmandosExcel } from '@/services/confirmandos';
 import AppPage from '@/components/AppPage.vue';
 
 const gruposStore = useGruposStore();
@@ -47,22 +47,11 @@ const exportarDatos = async () => {
 
     isExporting.value = true;
     try {
-        // Pedimos el archivo como 'blob' (formato binario de archivos)
-        const response = await api.get('/confirmandos/exportar', { responseType: 'blob' });
-
-        // Creamos la descarga invisible en el navegador
-        const url = window.URL.createObjectURL(new Blob([response.data]));
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', 'Confirmandos_por_Grupos.xlsx');
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-
+        await exportarConfirmandosExcel();
         showAlerta('Archivo exportado correctamente', 'success');
     } catch (err) {
         console.error("Error al exportar:", err);
-        showAlerta('Ocurrió un error al descargar el archivo', 'error');
+        showAlerta(err?.message || 'Ocurrió un error al descargar el archivo', 'error');
     } finally {
         isExporting.value = false;
     }

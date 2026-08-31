@@ -1,9 +1,26 @@
-import api from '@/lib/api'
+import { supabase } from '@/lib/supabase'
 
-export function getConfiguracion() {
-  return api.get('/parroquia/configuracion').then(res => res.data)
+// Configuración de la parroquia. Lectura → PostgREST sobre
+// parroquia_configuraciones (RLS select + restrictive de parroquia acotan a la
+// fila propia). Escritura → RPC fn_guardar_configuracion, que valida igual que el
+// controller (programa, umbrales 1..99, dominio de tipos_reunion, hex del color)
+// y devuelve { message, configuracion }.
+
+const CONFIG_COLS =
+  'programa_inicio, programa_fin, dias_ventana_justificacion, tipos_reunion,' +
+  ' umbrales_alerta, procedencias, branding, roles_labels'
+
+export async function getConfiguracion() {
+  const { data, error } = await supabase
+    .from('parroquia_configuraciones')
+    .select(CONFIG_COLS)
+    .maybeSingle()
+  if (error) throw new Error(error.message)
+  return data ?? {} // sin fila → el store aplica sus defaults
 }
 
-export function updateConfiguracion(payload) {
-  return api.put('/parroquia/configuracion', payload).then(res => res.data)
+export async function updateConfiguracion(payload) {
+  const { data, error } = await supabase.rpc('fn_guardar_configuracion', { p_config: payload })
+  if (error) throw new Error(error.message)
+  return data // { message, configuracion }
 }

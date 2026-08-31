@@ -1,20 +1,11 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { useUiStore } from '@/stores/ui';
 import { rutaRedirectSegura } from '@/router';
 import { showAlerta } from '@/funciones';
-import api from '@/lib/api';
 import PasswordField from '@/components/PasswordField.vue';
-
-// Warm-up: al abrir el login, "tocamos" el backend sin bloquear nada. El server de
-// Render se duerme a los 15 min; mientras el usuario escribe correo y contraseña
-// (~10–20 s) el servidor ya está despertando, así que al pulsar "Ingresar" suele
-// estar listo. __noWarmup evita que este ping muestre el overlay de "despertando".
-onMounted(() => {
-    api.get('/health', { silent: true, __noWarmup: true }).catch(() => {});
-});
 
 const router = useRouter()
 const route = useRoute()

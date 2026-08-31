@@ -1,5 +1,4 @@
 import { defineStore } from 'pinia'
-import api from '@/lib/api'
 import router from '@/router'
 import { LS_TOKEN_KEY, LS_USER_KEY } from '../constants/auth'
 import { updateUser } from '@/services/users'
@@ -7,6 +6,7 @@ import { useParroquiaStore } from './parroquia'
 import { useUiStore } from './ui'
 import { useDashboardStore } from './dashboard'
 import { showAlerta, showErroresDeValidacion } from '@/funciones'
+import { supabase } from '@/lib/supabase'
 
 function safeParse(json) {
   try { return JSON.parse(json) } catch { return null }
@@ -33,33 +33,59 @@ export const useAuthStore = defineStore('auth', {
   },
 
   actions: {
+    /**
+     * Autenticación 100% Supabase:
+     * 1) `resolver-login` traduce el identificador tecleado (correo O DNI) al
+     *    correo canónico de auth.users.
+     * 2) signInWithPassword contra Supabase (supabase-js persiste la sesión y
+     *    refresca el token solo).
+     * 3) se hidrata roles/permisos/parroquia/config con la RPC `fn_get_user`.
+     */
     async login(credentials) {
       this.loading = true
       this.error = null
       try {
-        // __retryable: si Render está dormido, el interceptor reintenta este POST
-        // con backoff en vez de fallar de una (el login es seguro de reintentar).
-        const { data } = await api.post('/login', credentials, { __retryable: true })
+        const identificador = credentials.login ?? credentials.email ?? credentials.dni ?? ''
 
-        this.token = data.token
-        this.user = data.user
+        const { data: resuelto, error: errResolver } = await supabase.functions.invoke(
+          'resolver-login',
+          { body: { login: identificador } },
+        )
+        if (errResolver || !resuelto?.email) {
+          throw new Error('No se pudo resolver el identificador')
+        }
 
-        localStorage.setItem(LS_TOKEN_KEY, data.token)
-        localStorage.setItem(LS_USER_KEY, JSON.stringify(data.user))
+        const { data: sesion, error: errLogin } = await supabase.auth.signInWithPassword({
+          email: resuelto.email,
+          password: credentials.password,
+        })
+        if (errLogin || !sesion?.session) {
+          this.error = 'Credenciales inválidas'
+          showAlerta('Credenciales inválidas', 'error')
+          this.logoutLocal()
+          return false
+        }
+
+        this.token = sesion.session.access_token
+        localStorage.setItem(LS_TOKEN_KEY, this.token)
+
+        // Hidratar el usuario de la app (roles, permisos, parroquia, config).
+        const { data, error: errUser } = await supabase.rpc('fn_get_user')
+        if (errUser || !data) throw new Error(errUser?.message || 'No se pudo cargar el perfil')
+        this.user = data
+        localStorage.setItem(LS_USER_KEY, JSON.stringify(data))
 
         useParroquiaStore().hydrateFromLogin({
-          parroquia: data.user?.parroquia,
-          configuracion: data.configuracion,
+          parroquia: data?.parroquia,
+          configuracion: data?.configuracion,
         })
 
-        // El backend manda los conteos básicos en el login: el dashboard pinta los
-        // números al instante sin esperar la llamada (más pesada) a /dashboard/metricas.
-        if (data.metricas) useDashboardStore().seedMetricas(data.metricas)
+        if (data?.metricas) useDashboardStore().seedMetricas(data.metricas)
 
         return true
       } catch (e) {
         showAlerta('Credenciales inválidas', 'error')
-        this.error = e?.response?.data?.message || 'Credenciales inválidas'
+        this.error = e?.response?.data?.message || e?.message || 'Credenciales inválidas'
         this.logoutLocal()
         return false
       } finally {
@@ -67,26 +93,38 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
+    /**
+     * Sincroniza el token del store con la sesión de supabase-js (que lo refresca
+     * en segundo plano) y cierra la sesión local si Supabase la invalida. Se
+     * engancha una vez al arrancar la app (App.vue).
+     */
+    initAuthListener() {
+      supabase.auth.onAuthStateChange((event, session) => {
+        if (event === 'SIGNED_OUT' || !session) {
+          this.logoutLocal()
+          return
+        }
+        this.token = session.access_token
+        localStorage.setItem(LS_TOKEN_KEY, session.access_token)
+      })
+    },
+
 
     /**
-     * Refresca datos y permisos del usuario desde /get-user. Se llama al arrancar
-     * la app: así los permisos nunca quedan desfasados respecto al backend (p. ej.
-     * si cambió un rol) y no se dispara un /403 con datos viejos de localStorage.
+     * Refresca datos y permisos del usuario con `fn_get_user`. Se llama al
+     * arrancar la app: así los permisos nunca quedan desfasados (p. ej. si cambió
+     * un rol) — la RPC los relee en vivo, no del claim del JWT.
      */
     async refrescarUsuario() {
       if (!this.token) return
-      try {
-        const { data } = await api.get('/get-user', { silent: true })
-        this.user = { ...this.user, ...data }
-        localStorage.setItem(LS_USER_KEY, JSON.stringify(this.user))
-        useParroquiaStore().hydrateFromLogin({
-          parroquia: data.parroquia,
-          configuracion: data.configuracion,
-        })
-      } catch {
-        // 401 → el interceptor de api ya cierra la sesión. Otros errores: se
-        // conserva lo que había en localStorage.
-      }
+      const { data, error } = await supabase.rpc('fn_get_user')
+      if (error || !data) return // sesión inválida → onAuthStateChange cierra; otros: se conserva localStorage
+      this.user = { ...this.user, ...data }
+      localStorage.setItem(LS_USER_KEY, JSON.stringify(this.user))
+      useParroquiaStore().hydrateFromLogin({
+        parroquia: data.parroquia,
+        configuracion: data.configuracion,
+      })
     },
 
     async updateProfile(payload) {
@@ -121,9 +159,7 @@ export const useAuthStore = defineStore('auth', {
     async logout() {
       const ui = useUiStore()
       ui.showOverlay('Cerrando sesión…')
-      // Revocación del token en el servidor: sin bloquear la salida (el backend en
-      // Render puede tardar en despertar). La sesión local se limpia de inmediato.
-      api.post('/logout').catch(() => { })
+      await supabase.auth.signOut().catch(() => {})
       this.logoutLocal()
       await router.push({ name: 'login' })
       ui.hideOverlay()

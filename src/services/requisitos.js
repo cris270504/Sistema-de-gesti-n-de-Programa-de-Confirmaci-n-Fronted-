@@ -1,21 +1,43 @@
-import api from '@/lib/api'
+import { supabase } from '@/lib/supabase'
+
+// Fase 3/4: lecturas y escrituras del catálogo → PostgREST (RLS por parroquia).
+// PostgREST directo (Fase 4).
+
+async function unwrap(promise) {
+  const { data, error } = await promise
+  if (error) throw new Error(error.message)
+  return data
+}
 
 export function getRequisitoList() {
-  return api.get('/requisitos').then(res => res.data)
+  return unwrap(
+    supabase.from('requisitos').select('id, nombre').order('nombre', { ascending: true }),
+  )
 }
 
 export function getRequisitoById(id) {
-  return api.get(`/requisitos/${id}`).then(res => res.data)
+  return unwrap(
+    supabase.from('requisitos').select('id, nombre').eq('id', Number(id)).single(),
+  )
 }
 
-export function createRequisito(requisito) {
-  return api.post('/requisitos', requisito).then(res => res.data)
+// ── Escrituras: Fase 4, PostgREST directo. ──────────────────────────────────
+export async function createRequisito(requisito) {
+  const { data, error } = await supabase
+    .from('requisitos').insert(requisito).select('id, nombre').single()
+  if (error) throw new Error(error.message)
+  return { requisito: data }
 }
 
-export function updateRequisito(id, requisito) {
-  return api.put(`/requisitos/${id}`, requisito).then(res => res.data)
+export async function updateRequisito(id, requisito) {
+  const { data, error } = await supabase
+    .from('requisitos').update(requisito).eq('id', Number(id)).select('id, nombre').single()
+  if (error) throw new Error(error.message)
+  return { requisito: data }
 }
 
-export function deleteRequisitoById(id) { 
-  return api.delete(`/requisitos/${id}`).then(res => res.data)
+export async function deleteRequisitoById(id) {
+  const { error } = await supabase.from('requisitos').delete().eq('id', Number(id))
+  if (error) throw new Error(error.message)
+  return { message: 'Requisito eliminado' }
 }

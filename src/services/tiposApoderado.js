@@ -1,5 +1,12 @@
-import api from '@/lib/api'
+import { supabase } from '@/lib/supabase'
 
-export function getTiposApoderadoList() {
-    return api.get('/tipos-apoderado').then(res => res.data)
+// Fase 3: solo lectura → PostgREST (RLS por parroquia).
+
+export async function getTiposApoderadoList() {
+  const { data, error } = await supabase
+    .from('tipo_apoderados')
+    .select('id, nombre')
+    .order('nombre', { ascending: true })
+  if (error) throw new Error(error.message)
+  return data
 }
