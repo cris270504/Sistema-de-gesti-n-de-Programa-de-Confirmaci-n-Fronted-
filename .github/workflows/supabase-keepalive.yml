@@ -12,7 +12,7 @@ name: Supabase keep-alive
 # corrida, ~5 días — cómodo bajo los 7.
 #
 # Secrets requeridos en el repo (Settings → Secrets and variables → Actions):
-#   SUPABASE_URL       https://srdccebxlslgomvxrfnu.supabase.co
+#   SUPABASE_URL       https://srdccebxlslgomvxrfnu.supabase.co   (sin barra final)
 #   SUPABASE_ANON_KEY  anon key del proyecto
 #
 # Si nadie abre la app y este job falla, el proyecto se habrá pausado: la
@@ -34,18 +34,21 @@ jobs:
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
           set -uo pipefail
+          base="${SUPABASE_URL%/}"   # sin barra final por si el secret la trae
           fail=0
 
-          # 1) GoTrue health — 200 si el proyecto está activo.
-          code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 60 --retry 3 --retry-delay 20 \
-            "$SUPABASE_URL/auth/v1/health")
+          # 1) GoTrue health — necesita el apikey; 200 si el proyecto está activo.
+          code=$(curl -s -o /dev/null -w '%{http_code}' \
+            --max-time 60 --retry 3 --retry-delay 20 --retry-all-errors \
+            "$base/auth/v1/health" -H "apikey: $SUPABASE_ANON_KEY")
           echo "auth/v1/health -> $code"
           [ "$code" = "200" ] || fail=1
 
           # 2) resolver-login: hace un SELECT en public.users → cuenta como
           #    actividad de base de datos y mantiene la Edge Function caliente.
-          code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 60 --retry 3 --retry-delay 20 \
-            -X POST "$SUPABASE_URL/functions/v1/resolver-login" \
+          code=$(curl -s -o /dev/null -w '%{http_code}' \
+            --max-time 60 --retry 3 --retry-delay 20 --retry-all-errors \
+            -X POST "$base/functions/v1/resolver-login" \
             -H "apikey: $SUPABASE_ANON_KEY" \
             -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
             -H "Content-Type: application/json" \
