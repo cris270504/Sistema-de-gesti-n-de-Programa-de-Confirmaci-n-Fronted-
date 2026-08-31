@@ -9,7 +9,7 @@ import { useAuthStore } from '@/stores/auth';
 import { storeToRefs } from 'pinia';
 import { showAlerta } from '@/funciones';
 import { Modal } from 'bootstrap';
-import api from '@/lib/api';
+import { buscarApoderados } from '@/services/confirmandos';
 import { attachModalFocusReturn } from '@/composables/useModalFocusReturn';
 import { useFieldValidation, validarCelular } from '@/composables/useFieldValidation';
 import {
@@ -75,9 +75,7 @@ const buscarPadresExistentes = async (e, index) => {
   }
 
   try {
-    // Reemplaza 'api' por tu instancia de axios o fetch
-    const { data } = await api.get(`/confirmandos/buscar-apoderados?q=${query}`);
-    draft.value.apoderados[index].sugerencias = data;
+    draft.value.apoderados[index].sugerencias = await buscarApoderados(query);
   } catch (error) {
     console.error("Error buscando apoderados:", error);
   }

@@ -127,6 +127,32 @@ export function updateConfirmando(id, confirmando) {
   return guardarConfirmando(id, confirmando)
 }
 
+// Autocompletado del modal de confirmando: apoderados existentes (con al menos un
+// confirmando) cuyo nombre o apellido contiene `q`. La RLS de apoderados acota por
+// parroquia y grupo. Se de-duplica en cliente (el embed !inner repite fila por
+// cada confirmando ligado).
+export async function buscarApoderados(q) {
+  const termino = (q ?? '').trim()
+  if (termino.length < 3) return []
+  const rows = await unwrap(
+    supabase
+      .from('apoderados')
+      .select('id, nombres, apellidos, celular, confirmando_apoderado!inner(confirmando_id)')
+      .or(`nombres.ilike.*${termino}*,apellidos.ilike.*${termino}*`)
+      .order('apellidos')
+      .limit(24),
+  )
+  const vistos = new Set()
+  const out = []
+  for (const r of rows) {
+    if (vistos.has(r.id)) continue
+    vistos.add(r.id)
+    out.push({ id: r.id, nombres: r.nombres, apellidos: r.apellidos, celular: r.celular })
+    if (out.length === 8) break
+  }
+  return out
+}
+
 export async function deleteConfirmandoById(id) {
   // RLS confirmandos_delete (app_is_privileged) + cascada de los pivotes por FK.
   const { error } = await supabase.from('confirmandos').delete().eq('id', Number(id))
