@@ -61,9 +61,37 @@ export async function getConfirmandoById(id) {
   return aplanarConfirmando(row)
 }
 
-// ── Escrituras y lógica: siguen en Laravel ──────────────────────────────────
+// ── Alta/edición: RPC transaccional fn_guardar_confirmando ──────────────────
+// Reparte el payload plano del modal en los argumentos de la función (datos del
+// confirmando + ruta sacramental + apoderados + requisitos), llama a la RPC y
+// re-lee el detalle para devolver la misma forma que esperaba el controlador
+// (`{ message, confirmando }`).
+async function guardarConfirmando(id, payload) {
+  const {
+    sacramento_faltante_id = null,
+    apoderados,
+    requisitos_actualizar = null,
+    ...datos
+  } = payload
+
+  const { data: nuevoId, error } = await supabase.rpc('fn_guardar_confirmando', {
+    p_id: id ? Number(id) : null,
+    p_datos: datos,
+    p_sacramento_faltante_id: sacramento_faltante_id ? Number(sacramento_faltante_id) : null,
+    // `apoderados` ausente (modal de requisitos) => no se tocan; array (incl. []) => sync
+    p_apoderados: apoderados === undefined ? null : apoderados,
+    p_requisitos: requisitos_actualizar,
+  })
+  if (error) throw new Error(error.message)
+
+  return {
+    message: id ? 'Confirmando actualizado correctamente' : 'Confirmando creado y ruta sacramental asignada',
+    confirmando: await getConfirmandoById(nuevoId),
+  }
+}
+
 export function createConfirmando(confirmando) {
-  return api.post('/confirmandos', confirmando).then((res) => res.data)
+  return guardarConfirmando(null, confirmando)
 }
 
 export async function obtenerPerfilConfirmando(id) {
@@ -96,7 +124,7 @@ export async function obtenerPerfilConfirmando(id) {
 }
 
 export function updateConfirmando(id, confirmando) {
-  return api.put(`/confirmandos/${id}`, confirmando).then((res) => res.data)
+  return guardarConfirmando(id, confirmando)
 }
 
 export function deleteConfirmandoById(id) {
