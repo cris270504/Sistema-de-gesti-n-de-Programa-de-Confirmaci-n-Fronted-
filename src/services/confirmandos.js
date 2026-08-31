@@ -127,12 +127,18 @@ export function updateConfirmando(id, confirmando) {
   return guardarConfirmando(id, confirmando)
 }
 
-export function deleteConfirmandoById(id) {
-  return api.delete(`/confirmandos/${id}`).then((res) => res.data)
+export async function deleteConfirmandoById(id) {
+  // RLS confirmandos_delete (app_is_privileged) + cascada de los pivotes por FK.
+  const { error } = await supabase.from('confirmandos').delete().eq('id', Number(id))
+  if (error) throw new Error(error.message)
+  return { message: 'Confirmando eliminado correctamente' }
 }
 
-export function retirarConfirmandoById(id) {
-  return api.put(`/confirmandos/${id}/retirar`).then((res) => res.data)
+export async function retirarConfirmandoById(id) {
+  const { error } = await supabase
+    .from('confirmandos').update({ estado: 'retirado' }).eq('id', Number(id))
+  if (error) throw new Error(error.message)
+  return { status: true, message: 'Confirmando retirado del programa exitosamente.' }
 }
 
 export function importarConfirmandosExcel(formData) {
