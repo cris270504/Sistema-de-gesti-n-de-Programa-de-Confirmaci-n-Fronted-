@@ -33,6 +33,8 @@ export default defineConfig(({ mode }) => {
     test: {
       environment: 'jsdom',
       globals: true,
+      // No escanear worktrees de agentes ni checkouts anidados.
+      exclude: ['**/node_modules/**', '**/dist/**', '**/.claude/**', '**/.git/**'],
     }
   }
 })

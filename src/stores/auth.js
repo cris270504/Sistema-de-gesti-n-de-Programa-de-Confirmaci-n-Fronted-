@@ -1,5 +1,4 @@
 import { defineStore } from 'pinia'
-import api from '@/lib/api'
 import router from '@/router'
 import { LS_TOKEN_KEY, LS_USER_KEY } from '../constants/auth'
 import { updateUser } from '@/services/users'
@@ -35,13 +34,12 @@ export const useAuthStore = defineStore('auth', {
 
   actions: {
     /**
-     * Fase 1 migración Supabase: la autenticación la hace Supabase Auth.
+     * Autenticación 100% Supabase:
      * 1) `resolver-login` traduce el identificador tecleado (correo O DNI) al
      *    correo canónico de auth.users.
      * 2) signInWithPassword contra Supabase (supabase-js persiste la sesión y
      *    refresca el token solo).
-     * 3) se hidratan roles/permisos/parroquia desde Laravel (/get-user), que
-     *    sigue sirviendo los datos validando el token de Supabase.
+     * 3) se hidrata roles/permisos/parroquia/config con la RPC `fn_get_user`.
      */
     async login(credentials) {
       this.loading = true
@@ -72,7 +70,8 @@ export const useAuthStore = defineStore('auth', {
         localStorage.setItem(LS_TOKEN_KEY, this.token)
 
         // Hidratar el usuario de la app (roles, permisos, parroquia, config).
-        const { data } = await api.get('/get-user', { __retryable: true })
+        const { data, error: errUser } = await supabase.rpc('fn_get_user')
+        if (errUser || !data) throw new Error(errUser?.message || 'No se pudo cargar el perfil')
         this.user = data
         localStorage.setItem(LS_USER_KEY, JSON.stringify(data))
 
@@ -112,24 +111,20 @@ export const useAuthStore = defineStore('auth', {
 
 
     /**
-     * Refresca datos y permisos del usuario desde /get-user. Se llama al arrancar
-     * la app: así los permisos nunca quedan desfasados respecto al backend (p. ej.
-     * si cambió un rol) y no se dispara un /403 con datos viejos de localStorage.
+     * Refresca datos y permisos del usuario con `fn_get_user`. Se llama al
+     * arrancar la app: así los permisos nunca quedan desfasados (p. ej. si cambió
+     * un rol) — la RPC los relee en vivo, no del claim del JWT.
      */
     async refrescarUsuario() {
       if (!this.token) return
-      try {
-        const { data } = await api.get('/get-user', { silent: true })
-        this.user = { ...this.user, ...data }
-        localStorage.setItem(LS_USER_KEY, JSON.stringify(this.user))
-        useParroquiaStore().hydrateFromLogin({
-          parroquia: data.parroquia,
-          configuracion: data.configuracion,
-        })
-      } catch {
-        // 401 → el interceptor de api ya cierra la sesión. Otros errores: se
-        // conserva lo que había en localStorage.
-      }
+      const { data, error } = await supabase.rpc('fn_get_user')
+      if (error || !data) return // sesión inválida → onAuthStateChange cierra; otros: se conserva localStorage
+      this.user = { ...this.user, ...data }
+      localStorage.setItem(LS_USER_KEY, JSON.stringify(this.user))
+      useParroquiaStore().hydrateFromLogin({
+        parroquia: data.parroquia,
+        configuracion: data.configuracion,
+      })
     },
 
     async updateProfile(payload) {

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 
-vi.mock('@/lib/api', () => ({ default: { get: vi.fn(), put: vi.fn() } }))
+vi.mock('@/lib/supabase', () => ({ supabase: { from: vi.fn(), rpc: vi.fn(), functions: { invoke: vi.fn() } } }))
 vi.mock('@/funciones', () => ({ showAlerta: vi.fn(), showErroresDeValidacion: vi.fn() }))
 
 import { useParroquiaStore, CONFIG_DEFAULTS } from './parroquia'

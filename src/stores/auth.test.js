@@ -2,15 +2,12 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { LS_TOKEN_KEY, LS_USER_KEY } from '@/constants/auth'
 
-// Mockeamos lo que auth.js toca hacia afuera: axios, supabase-js, el router y las
-// alertas. Fase 1: la autenticación la hace Supabase (resolver-login +
-// signInWithPassword); Laravel /get-user solo hidrata roles/permisos.
-vi.mock('@/lib/api', () => ({
-  default: { post: vi.fn(), get: vi.fn() },
-}))
+// Mockeamos lo que auth.js toca hacia afuera: supabase-js, el router y las
+// alertas. Todo es Supabase: resolver-login + signInWithPassword + fn_get_user.
 vi.mock('@/lib/supabase', () => ({
   supabase: {
     functions: { invoke: vi.fn() },
+    rpc: vi.fn(),
     auth: {
       signInWithPassword: vi.fn(),
       signOut: vi.fn().mockResolvedValue({ error: null }),
@@ -28,7 +25,6 @@ vi.mock('@/funciones', () => ({
   showErroresDeValidacion: vi.fn(),
 }))
 
-import api from '@/lib/api'
 import { supabase } from '@/lib/supabase'
 import router from '@/router'
 import { useAuthStore } from './auth'
@@ -39,7 +35,7 @@ function mockLoginOk(user) {
     data: { session: { access_token: 'sb-access-token' } },
     error: null,
   })
-  api.get.mockResolvedValueOnce({ data: user })
+  supabase.rpc.mockResolvedValueOnce({ data: user, error: null })
 }
 
 describe('stores/auth', () => {
@@ -49,7 +45,7 @@ describe('stores/auth', () => {
     vi.clearAllMocks()
   })
 
-  it('login exitoso: resuelve el identificador, entra a Supabase e hidrata desde /get-user', async () => {
+  it('login exitoso: resuelve el identificador, entra a Supabase e hidrata con fn_get_user', async () => {
     mockLoginOk({ id: 1, name: 'María', grupo_ids: [10] })
 
     const auth = useAuthStore()
@@ -80,7 +76,7 @@ describe('stores/auth', () => {
     expect(auth.user).toBeNull()
     expect(auth.isAuthenticated).toBe(false)
     expect(localStorage.getItem(LS_TOKEN_KEY)).toBeNull()
-    expect(api.get).not.toHaveBeenCalled()
+    expect(supabase.rpc).not.toHaveBeenCalled()
   })
 
   it('logout cierra la sesión de Supabase, limpia el estado y redirige al login', async () => {
