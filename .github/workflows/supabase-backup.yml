@@ -1,0 +1,66 @@
+name: Supabase backup (pg_dump)
+
+# Backup diario de los schemas `public` + `auth` (el plan Free NO trae backups
+# gestionados). El .dump queda como artifact de la corrida, retención 30 días.
+#
+# ⚠️ Para recuperación de desastres de verdad conviene copiar los .dump a un
+# storage externo (S3 / Cloudflare R2 / Drive) — un artifact de GitHub no es
+# almacenamiento durable y caduca.
+#
+# Secret requerido (Settings → Secrets and variables → Actions):
+#   SUPABASE_DB_URL   Connection string "URI" del dashboard
+#                     (Settings → Database → Connection string → URI, modo directo:
+#                      postgresql://postgres:PASS@db.<ref>.supabase.co:5432/postgres)
+#
+# Restore:  pg_restore --clean --if-exists --no-owner --no-privileges \
+#             -d "$SUPABASE_DB_URL" confirmacion-<ts>.dump
+
+on:
+  schedule:
+    - cron: '23 3 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Instalar pg_dump 17 (pgdg)
+        run: |
+          set -euo pipefail
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+            | sudo gpg --dearmor -o /usr/share/keyrings/pgdg.gpg
+          echo "deb [signed-by=/usr/share/keyrings/pgdg.gpg] http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-17
+          pg_dump --version
+
+      - name: pg_dump public + auth
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          ts=$(date -u +%Y%m%dT%H%M%SZ)
+          pg_dump "$SUPABASE_DB_URL" \
+            --no-owner --no-privileges --no-comments \
+            --schema=public --schema=auth \
+            --exclude-table-data='public.cache' \
+            --exclude-table-data='public.cache_locks' \
+            --exclude-table-data='public.jobs' \
+            --exclude-table-data='public.job_batches' \
+            --exclude-table-data='public.failed_jobs' \
+            --exclude-table-data='public.sessions' \
+            --exclude-table-data='public.frontend_error_logs' \
+            --exclude-table-data='auth.audit_log_entries' \
+            --exclude-table-data='auth.flow_state' \
+            -Fc -f "confirmacion-$ts.dump"
+          ls -lh confirmacion-*.dump
+
+      - name: Subir artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: supabase-backup-${{ github.run_id }}
+          path: confirmacion-*.dump
+          retention-days: 30
+          if-no-files-found: error
