@@ -18,6 +18,9 @@ export function saveAsistenciasBulk(reunionId, asistenciasData) {
     return api.post(`/reuniones/${reunionId}/asistencias`, { asistencias: asistenciasData }).then(res => res.data);
 }
 
+// Se queda en Laravel: es dinámica (tipo = Confirmandos | Catequistas | Apoderados),
+// cruza personas × reuniones, y la variante Catequistas necesita los roles de
+// Spatie (bloqueados de PostgREST). Vista de administración, poco tráfico.
 export function getAsistenciaMatrix(tipo, fecha) {
     return api.get('/asistencias/matriz', { params: { tipo, fecha } }).then(res => res.data);
 }
