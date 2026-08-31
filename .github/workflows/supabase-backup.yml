@@ -8,9 +8,14 @@ name: Supabase backup (pg_dump)
 # almacenamiento durable y caduca.
 #
 # Secret requerido (Settings → Secrets and variables → Actions):
-#   SUPABASE_DB_URL   Connection string "URI" del dashboard
-#                     (Settings → Database → Connection string → URI, modo directo:
-#                      postgresql://postgres:PASS@db.<ref>.supabase.co:5432/postgres)
+#   SUPABASE_DB_URL
+#     Los runners de GitHub son IPv4-only y la conexión DIRECTA de Supabase
+#     (db.<ref>.supabase.co) es IPv6-only → hay que usar el **Session pooler**:
+#       Dashboard → Settings → Database → Connection string → "Session pooler"
+#       postgresql://postgres.<ref>:<PASSWORD>@aws-0-<region>.pooler.supabase.com:5432/postgres
+#     (el de este proyecto: aws-0-sa-east-1.pooler.supabase.com:5432,
+#      usuario postgres.srdccebxlslgomvxrfnu)
+#     NO el "Transaction pooler" (:6543) — pg_dump no funciona ahí.
 #
 # Restore:  pg_restore --clean --if-exists --no-owner --no-privileges \
 #             -d "$SUPABASE_DB_URL" confirmacion-<ts>.dump
@@ -36,26 +41,41 @@ jobs:
           sudo apt-get install -y -qq postgresql-client-17
           pg_dump --version
 
-      - name: pg_dump public + auth
+      - name: Verificar conexión
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: psql "$SUPABASE_DB_URL" -tAc "select 'ok', now();"
+
+      - name: pg_dump
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
           set -euo pipefail
           ts=$(date -u +%Y%m%dT%H%M%SZ)
-          pg_dump "$SUPABASE_DB_URL" \
-            --no-owner --no-privileges --no-comments \
-            --schema=public --schema=auth \
-            --exclude-table-data='public.cache' \
-            --exclude-table-data='public.cache_locks' \
-            --exclude-table-data='public.jobs' \
-            --exclude-table-data='public.job_batches' \
-            --exclude-table-data='public.failed_jobs' \
-            --exclude-table-data='public.sessions' \
-            --exclude-table-data='public.frontend_error_logs' \
-            --exclude-table-data='auth.audit_log_entries' \
-            --exclude-table-data='auth.flow_state' \
-            -Fc -f "confirmacion-$ts.dump"
-          ls -lh confirmacion-*.dump
+          out="confirmacion-$ts.dump"
+
+          common=(
+            --no-owner --no-privileges --no-comments
+            --exclude-table-data='public.cache'
+            --exclude-table-data='public.cache_locks'
+            --exclude-table-data='public.jobs'
+            --exclude-table-data='public.job_batches'
+            --exclude-table-data='public.failed_jobs'
+            --exclude-table-data='public.sessions'
+            --exclude-table-data='public.frontend_error_logs'
+            --exclude-table-data='auth.audit_log_entries'
+            --exclude-table-data='auth.flow_state'
+          )
+
+          # Intento 1: public + auth. Si auth da permiso denegado, cae a public solo.
+          if pg_dump "$SUPABASE_DB_URL" "${common[@]}" -n public -n auth -Fc -f "$out"; then
+            echo "dump: public + auth"
+          else
+            echo "::warning::pg_dump de 'auth' falló; se hace solo 'public'."
+            pg_dump "$SUPABASE_DB_URL" "${common[@]}" -n public -Fc -f "$out"
+            echo "dump: solo public"
+          fi
+          ls -lh "$out"
 
       - name: Subir artifact
         uses: actions/upload-artifact@v4
