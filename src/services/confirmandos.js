@@ -66,8 +66,33 @@ export function createConfirmando(confirmando) {
   return api.post('/confirmandos', confirmando).then((res) => res.data)
 }
 
-export function obtenerPerfilConfirmando(id) {
-  return api.get(`/confirmandos/${id}/perfil`).then((res) => res.data)
+export async function obtenerPerfilConfirmando(id) {
+  // Fase 3: lee la vista v_confirmando_perfil (stats + historial ya calculados en
+  // SQL) y la re-arma con la forma que espera PerfilConfirmandoModal.
+  const { data, error } = await supabase
+    .from('v_confirmando_perfil')
+    .select('*')
+    .eq('id', Number(id))
+    .single()
+  if (error) throw new Error(error.message)
+
+  return {
+    status: true,
+    joven: {
+      nombres: data.nombres,
+      apellidos: data.apellidos,
+      grupo: data.grupo,
+      sacramentos_faltantes: data.sacramentos_faltantes,
+    },
+    apoderado: data.apoderado,
+    estadisticas: {
+      asistencias: data.stat_asistencias,
+      tardanzas: data.stat_tardanzas,
+      justificadas: data.stat_justificadas,
+      injustificadas: data.stat_injustificadas,
+    },
+    historial_asistencias: data.historial_asistencias ?? [],
+  }
 }
 
 export function updateConfirmando(id, confirmando) {
