@@ -14,8 +14,15 @@ export async function getAsistenciasList(reunionId) {
     return data;
 }
 
-export function saveAsistenciasBulk(reunionId, asistenciasData) {
-    return api.post(`/reuniones/${reunionId}/asistencias`, { asistencias: asistenciasData }).then(res => res.data);
+export async function saveAsistenciasBulk(reunionId, asistenciasData) {
+    // Fase 4: upsert masivo vía RPC (transacción en Postgres). El array llega con
+    // { asistente_id, asistente_type, estado, nota } — misma forma que espera la fn.
+    const { data, error } = await supabase.rpc('fn_guardar_asistencias', {
+        p_reunion_id: Number(reunionId),
+        p_filas: asistenciasData,
+    });
+    if (error) throw new Error(error.message);
+    return { message: 'Asistencia guardada correctamente', ...data };
 }
 
 // Se queda en Laravel: es dinámica (tipo = Confirmandos | Catequistas | Apoderados),
