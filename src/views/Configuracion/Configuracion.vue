@@ -1,6 +1,6 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { useParroquiaStore, CONFIG_DEFAULTS } from '@/stores/parroquia'
+import { useParroquiaStore, CONFIG_DEFAULTS, DASHBOARD_KPIS } from '@/stores/parroquia'
 import { Save, RotateCcw, Image as ImageIcon } from 'lucide-vue-next'
 import AppPage from '@/components/AppPage.vue'
 
@@ -16,6 +16,13 @@ const ROLES_INTERNOS = [
   ['catequista', 'Catequista'],
 ]
 
+// Etiqueta + permiso que además hace falta para que el KPI aparezca en el panel.
+const KPI_META = {
+  confirmandos: ['Confirmandos', 'ver todos los confirmandos'],
+  usuarios: ['Usuarios', 'ver usuarios'],
+  grupos: ['Grupos', 'ver todos los grupos'],
+}
+
 function estructuraVacia() {
   return {
     programa_inicio: '',
@@ -26,6 +33,7 @@ function estructuraVacia() {
     procedencias: '',
     branding: { nombre_publico: '', logo_url: '', color_primario: '#2563eb' },
     roles_labels: {},
+    ui_dashboard_kpis: [...CONFIG_DEFAULTS.ui.dashboard_kpis],
   }
 }
 
@@ -38,6 +46,7 @@ function cargarDesdeStore() {
   form.umbrales_alerta = { ...CONFIG_DEFAULTS.umbrales_alerta, ...(c.umbrales_alerta ?? {}) }
   form.procedencias = (c.procedencias ?? CONFIG_DEFAULTS.procedencias).join(', ')
   form.roles_labels = { ...(c.roles_labels ?? {}) }
+  form.ui_dashboard_kpis = [...(c.ui?.dashboard_kpis ?? CONFIG_DEFAULTS.ui.dashboard_kpis)]
   form.branding = {
     nombre_publico: c.branding?.nombre_publico ?? '',
     logo_url: c.branding?.logo_url ?? '',
@@ -68,6 +77,9 @@ async function guardar() {
       nombre_publico: form.branding.nombre_publico || null,
       logo_url: form.branding.logo_url || null,
       color_primario: form.branding.color_primario,
+    },
+    ui: {
+      dashboard_kpis: DASHBOARD_KPIS.filter(k => form.ui_dashboard_kpis.includes(k)),
     },
   }
   await parroquiaStore.save(payload)
@@ -165,6 +177,24 @@ const UMBRALES = [
           <div v-for="[rol, ph] in ROLES_INTERNOS" :key="rol" class="field">
             <label>{{ ph }}</label>
             <input v-model="form.roles_labels[rol]" type="text" maxlength="60" :placeholder="ph" class="inp" />
+          </div>
+        </div>
+      </section>
+
+      <!-- Panel de control -->
+      <section class="card">
+        <h3 class="card__title">Panel de control</h3>
+        <p class="card__hint">Qué tarjetas KPI se muestran. Cada una aparece solo si además tienes el permiso para verla.</p>
+        <div class="card__body">
+          <div class="field">
+            <div class="chips">
+              <label v-for="[key, [label]] in Object.entries(KPI_META)" :key="key" class="chip"
+                :class="{ 'chip--on': form.ui_dashboard_kpis.includes(key) }">
+                <input type="checkbox" :value="key" v-model="form.ui_dashboard_kpis" />
+                {{ label }}
+              </label>
+            </div>
+            <small v-if="form.ui_dashboard_kpis.length === 0">Sin ninguna marcada, el panel no muestra tarjetas KPI.</small>
           </div>
         </div>
       </section>

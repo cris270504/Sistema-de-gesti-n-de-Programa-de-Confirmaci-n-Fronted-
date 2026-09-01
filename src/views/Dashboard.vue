@@ -3,6 +3,7 @@ import { storeToRefs } from 'pinia';
 import { onMounted, computed, ref, watch } from 'vue';
 
 import { useAuthStore } from '@/stores/auth';
+import { useParroquiaStore } from '@/stores/parroquia';
 import { useDashboardStore } from '../stores/dashboard';
 import { useReunionesStore } from '../stores/reunions';
 import { useConfirmandosStore } from '../stores/confirmandos';
@@ -18,7 +19,12 @@ const esMovil = useMediaQuery('(max-width: 767px)');
 
 // 1. Instancias
 const authStore = useAuthStore();
+const parroquiaStore = useParroquiaStore();
 const esGestor = authStore.can('ver usuarios');
+
+// Un KPI se muestra si el usuario tiene el permiso Y la parroquia lo dejó activo
+// en Configuración (parroquiaStore.dashboardKpis). La config puede ocultar, nunca revelar.
+const verKpi = (clave, permiso) => authStore.can(permiso) && parroquiaStore.dashboardKpis.includes(clave);
 
 // Retirar del programa (baja formal) es exclusivo de coordinador / super-admin.
 // El backend ya exige `eliminar confirmandos`; acá ocultamos la UF correspondiente.
@@ -138,21 +144,21 @@ const confirmarRetiroJoven = async (joven) => {
 
         <!-- RESUMEN NUMÉRICO (CARDS MINI) -->
         <div class="row g-3 mb-4">
-          <div v-if="authStore.can('ver todos los confirmandos')" class="col-sm-4">
+          <div v-if="verKpi('confirmandos', 'ver todos los confirmandos')" class="col-sm-4">
             <div class="card border-0 shadow-sm rounded-4 text-center p-3">
               <h2 class="fw-bold mb-0 text-info">{{ metricas.activos }}</h2>
               <p class="text-muted small mb-0">Confirmandos</p>
               <RouterLink :to="{ name: 'confirmandos' }" class="stretched-link"></RouterLink>
             </div>
           </div>
-          <div v-if="authStore.can('ver usuarios')" class="col-sm-4">
+          <div v-if="verKpi('usuarios', 'ver usuarios')" class="col-sm-4">
             <div class="card border-0 shadow-sm rounded-4 text-center p-3">
               <h2 class="fw-bold mb-0 text-success">{{ metricas.cant_users }}</h2>
               <p class="text-muted small mb-0">Usuarios</p>
               <RouterLink :to="{ name: 'users' }" class="stretched-link"></RouterLink>
             </div>
           </div>
-          <div v-if="authStore.can('ver todos los grupos')" class="col-sm-4">
+          <div v-if="verKpi('grupos', 'ver todos los grupos')" class="col-sm-4">
             <div class="card border-0 shadow-sm rounded-4 text-center p-3">
               <h2 class="fw-bold mb-0 text-warning">{{ metricas.cant_grupos }}</h2>
               <p class="text-muted small mb-0">Grupos</p>

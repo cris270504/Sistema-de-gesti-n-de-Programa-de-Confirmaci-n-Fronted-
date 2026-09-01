@@ -19,7 +19,16 @@ export const CONFIG_DEFAULTS = {
   procedencias: ['sede', 'caserio'],
   branding: { nombre_publico: null, logo_url: null, color_primario: '#2563eb' },
   roles_labels: {},
+  // Personalización de interfaz. Ausente/incompleto ⇒ se cae a estos defaults.
+  ui: {
+    // Tarjetas KPI del panel. Filtro de layout: un KPI se ve solo si además el
+    // usuario tiene el permiso correspondiente.
+    dashboard_kpis: ['confirmandos', 'usuarios', 'grupos'],
+  },
 }
+
+// KPIs válidos del dashboard (espejo de la lista blanca de fn_guardar_configuracion).
+export const DASHBOARD_KPIS = ['confirmandos', 'usuarios', 'grupos']
 
 // Etiqueta por defecto de un rol interno cuando la parroquia no definió una.
 const ROLES_DEFAULT = {
@@ -59,6 +68,7 @@ export const useParroquiaStore = defineStore('parroquia', {
     procedencias: (s) => s.configuracion?.procedencias ?? CONFIG_DEFAULTS.procedencias,
     nombreApp: (s) => s.configuracion?.branding?.nombre_publico || s.parroquia?.nombre || 'SGPC',
     roleLabel: (s) => (rol) => (s.configuracion?.roles_labels?.[rol]) || prettify(rol),
+    dashboardKpis: (s) => s.configuracion?.ui?.dashboard_kpis ?? CONFIG_DEFAULTS.ui.dashboard_kpis,
   },
 
   actions: {
