@@ -264,13 +264,22 @@ const UMBRALES = [
   background: #f8fafc;
 }
 
-/* Columna centrada y acotada: legible en laptop, idéntica en celular. */
+/* En laptop, 2 columnas que aprovechan el ancho (multicolumna: reparte las
+   tarjetas por altura, sin huecos muertos). En celular, una sola columna. */
 .cfg__form {
-  max-width: 820px;
+  max-width: 1120px;
   margin-inline: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+}
+
+@media (min-width: 1000px) {
+  .cfg__form {
+    column-count: 2;
+    column-gap: 1.25rem;
+  }
+
+  .cfg__bar {
+    column-span: all;
+  }
 }
 
 .card {
@@ -278,7 +287,9 @@ const UMBRALES = [
   border-radius: 14px;
   background: #fff;
   padding: 1.15rem 1.35rem 1.3rem;
+  margin-bottom: 1.25rem;
   box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+  break-inside: avoid;
 }
 
 .card__head {
@@ -494,17 +505,11 @@ const UMBRALES = [
   color: color-mix(in srgb, var(--parroquia-color, #6366f1) 75%, #1e293b);
 }
 
-/* Umbrales: lista en 2 columnas en laptop, 1 en celular. */
+/* Umbrales: 2 columnas si la tarjeta es ancha, 1 si es angosta. */
 .umbral-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
   column-gap: 2rem;
-}
-
-@media (max-width: 620px) {
-  .umbral-grid {
-    grid-template-columns: 1fr;
-  }
 }
 
 .umbral {
