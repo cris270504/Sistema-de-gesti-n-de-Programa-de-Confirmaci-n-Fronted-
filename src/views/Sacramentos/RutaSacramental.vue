@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue';
 import { storeToRefs } from 'pinia';
-import { Check, Plus, Pencil, Trash2, X } from 'lucide-vue-next';
+import { Check, Plus, Pencil, Trash2, X, FileCheck } from 'lucide-vue-next';
 import { useSacramentosStore } from '@/stores/sacramentos';
 import { useRequisitosStore } from '@/stores/requisitos';
 import { useAuthStore } from '@/stores/auth';
@@ -27,6 +27,10 @@ const sacramentos = computed(() =>
 const requisitos = computed(() =>
   [...requisitosRaw.value].sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '', 'es')));
 
+// Inicial de cada sacramento (para las etiquetas de la lista de documentos).
+const inicial = (nombre) => (nombre || '?').trim().charAt(0).toUpperCase();
+const sacramentosDe = (reqId) => sacramentos.value.filter(s => (s.requisitos ?? []).some(r => r.id === reqId));
+
 onMounted(async () => {
   await Promise.all([
     sacramentosStore.fetchAll({ force: true }),
@@ -34,7 +38,7 @@ onMounted(async () => {
   ]);
 });
 
-// ── Matriz ─────────────────────────────────────────────────────────────────
+// ── Vínculo requisito ↔ sacramento ─────────────────────────────────────────
 const tiene = (sac, reqId) => (sac.requisitos ?? []).some(r => r.id === reqId);
 
 const guardando = ref(new Set());
@@ -64,7 +68,7 @@ async function toggle(sac, req) {
 }
 
 // ── Alta ───────────────────────────────────────────────────────────────────
-const nuevo = ref({ tipo: null, valor: '' }); // tipo: 'req' | 'sac'
+const nuevo = ref({ tipo: null, valor: '' }); // 'req' | 'sac'
 const nuevoInput = ref(null);
 
 const abrirNuevo = async (tipo) => {
@@ -120,87 +124,93 @@ async function guardarEdicion() {
   }
 }
 
-// ── Borrar ─────────────────────────────────────────────────────────────────
 const borrarRequisito = (req) => requisitosStore.remove(req.id, req.nombre);
 const borrarSacramento = (sac) => sacramentosStore.remove(sac.id, sac.nombre);
 </script>
 
 <template>
-  <AppPage title="Ruta sacramental" subtitle="Sacramentos y los requisitos que pide cada uno" :loading="loading">
+  <AppPage title="Ruta sacramental" subtitle="Qué documentos pide cada sacramento" :loading="loading">
     <template v-if="puedeEditar" #actions>
       <button class="rs-add" @click="abrirNuevo('sac')"><Plus :size="15" /> Sacramento</button>
-      <button class="rs-add" @click="abrirNuevo('req')"><Plus :size="15" /> Requisito</button>
+      <button class="rs-add" @click="abrirNuevo('req')"><Plus :size="15" /> Documento</button>
     </template>
 
     <div v-if="nuevo.tipo" class="rs-newbar">
-      <span>{{ nuevo.tipo === 'sac' ? 'Nuevo sacramento' : 'Nuevo requisito' }}:</span>
-      <input ref="nuevoInput" v-model="nuevo.valor" class="rs-input" placeholder="Nombre…"
-        @keyup.enter="crearNuevo" @keyup.esc="cancelarNuevo" />
+      <span>{{ nuevo.tipo === 'sac' ? 'Nuevo sacramento' : 'Nuevo documento' }}:</span>
+      <input ref="nuevoInput" v-model="nuevo.valor" class="rs-input" placeholder="Nombre…" @keyup.enter="crearNuevo"
+        @keyup.esc="cancelarNuevo" />
       <button class="rs-newbar__ok" @click="crearNuevo">Agregar</button>
       <button class="rs-newbar__x" @click="cancelarNuevo" aria-label="Cancelar"><X :size="15" /></button>
     </div>
 
     <div v-if="sacramentos.length === 0 && requisitos.length === 0" class="surface empty-state">
-      Aún no hay sacramentos ni requisitos. Agregá uno con los botones de arriba.
+      Aún no hay sacramentos ni documentos. Agregá uno con los botones de arriba.
     </div>
 
-    <div v-else class="surface mx-wrap">
-      <table class="mx">
-        <thead>
-          <tr>
-            <th class="mx__corner">Sacramento</th>
-            <th v-for="req in requisitos" :key="req.id" class="mx__rq" :title="req.nombre">
-              <div v-if="editando?.tipo === 'req' && editando.id === req.id" class="mx__rq-edit">
-                <input ref="editInput" v-model="editando.valor" class="rs-input" @keyup.enter="guardarEdicion"
-                  @keyup.esc="editando = null" @blur="guardarEdicion" />
-              </div>
-              <div v-else class="mx__rq-lbl" :class="{ 'is-clickable': puedeEditar }">
-                <span class="mx__rq-txt" @click="abrirEdicion('req', req)">{{ req.nombre }}</span>
-                <button v-if="puedeEditar" class="mx__rq-del" title="Eliminar requisito"
-                  @click.stop="borrarRequisito(req)"><Trash2 :size="12" /></button>
-              </div>
-            </th>
-            <th v-if="requisitos.length === 0" class="mx__rq-none">Sin requisitos todavía</th>
-          </tr>
-        </thead>
+    <template v-else>
+      <!-- Tarjetas por sacramento -->
+      <div class="rs-grid">
+        <section v-for="sac in sacramentos" :key="sac.id" class="rs-card">
+          <header class="rs-card__head">
+            <span class="rs-card__ico"><FileCheck :size="16" /></span>
+            <template v-if="editando?.tipo === 'sac' && editando.id === sac.id">
+              <input ref="editInput" v-model="editando.valor" class="rs-input rs-input--sm"
+                @keyup.enter="guardarEdicion" @keyup.esc="editando = null" @blur="guardarEdicion" />
+            </template>
+            <template v-else>
+              <h3 class="rs-card__title" :class="{ 'is-clickable': puedeEditar }" @click="abrirEdicion('sac', sac)">
+                {{ sac.nombre }}
+              </h3>
+              <span class="rs-card__count">{{ (sac.requisitos ?? []).length }}/{{ requisitos.length }}</span>
+              <span v-if="puedeEditar" class="rs-card__actions">
+                <button class="rs-ico" title="Renombrar" @click="abrirEdicion('sac', sac)"><Pencil :size="13" /></button>
+                <button class="rs-ico rs-ico--danger" title="Eliminar sacramento"
+                  @click="borrarSacramento(sac)"><Trash2 :size="13" /></button>
+              </span>
+            </template>
+          </header>
 
-        <tbody>
-          <tr v-for="sac in sacramentos" :key="sac.id">
-            <th class="mx__sc">
-              <div class="mx__sc-inner">
-                <template v-if="editando?.tipo === 'sac' && editando.id === sac.id">
-                  <input ref="editInput" v-model="editando.valor" class="rs-input" @keyup.enter="guardarEdicion"
-                    @keyup.esc="editando = null" @blur="guardarEdicion" />
-                </template>
-                <template v-else>
-                  <span class="mx__sc-name" :class="{ 'is-clickable': puedeEditar }"
-                    @click="abrirEdicion('sac', sac)">{{ sac.nombre }}</span>
-                  <span v-if="puedeEditar" class="mx__sc-actions">
-                    <button class="mx__ico" title="Renombrar" @click="abrirEdicion('sac', sac)"><Pencil :size="13" /></button>
-                    <button class="mx__ico mx__ico--danger" title="Eliminar sacramento"
-                      @click="borrarSacramento(sac)"><Trash2 :size="13" /></button>
-                  </span>
-                </template>
-              </div>
-            </th>
+          <ul class="rs-check">
+            <li v-if="requisitos.length === 0" class="rs-check__empty">Todavía no hay documentos.</li>
+            <li v-for="req in requisitos" :key="req.id">
+              <label class="rs-check__item" :class="{ 'is-on': tiene(sac, req.id), disabled: !puedeEditar }">
+                <input type="checkbox" :checked="tiene(sac, req.id)" :disabled="!puedeEditar"
+                  @change="toggle(sac, req)" />
+                <span class="rs-check__box"><Check :size="13" /></span>
+                <span class="rs-check__txt">{{ req.nombre }}</span>
+              </label>
+            </li>
+          </ul>
+        </section>
+      </div>
 
-            <td v-for="req in requisitos" :key="req.id" class="mx__cell"
-              :class="{ 'is-on': tiene(sac, req.id), 'is-clickable': puedeEditar }" @click="toggle(sac, req)">
-              <Check v-if="tiene(sac, req.id)" :size="16" class="mx__check" />
-            </td>
-            <td v-if="requisitos.length === 0"></td>
-          </tr>
-
-          <tr v-if="sacramentos.length === 0">
-            <td :colspan="Math.max(requisitos.length, 1) + 1" class="mx__none">No hay sacramentos todavía.</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <p v-if="puedeEditar && sacramentos.length" class="mx__hint">
-      Tocá una celda para marcar que ese requisito se pide para ese sacramento. Los nombres se editan haciendo clic.
-    </p>
+      <!-- Documentos: definiciones (renombrar / eliminar / ver dónde se usa) -->
+      <section v-if="requisitos.length" class="surface rs-docs">
+        <h3 class="rs-docs__title">Documentos ({{ requisitos.length }})</h3>
+        <ul class="rs-docs__list">
+          <li v-for="req in requisitos" :key="req.id" class="rs-doc">
+            <template v-if="editando?.tipo === 'req' && editando.id === req.id">
+              <input ref="editInput" v-model="editando.valor" class="rs-input rs-input--sm" @keyup.enter="guardarEdicion"
+                @keyup.esc="editando = null" @blur="guardarEdicion" />
+            </template>
+            <template v-else>
+              <span class="rs-doc__name" :class="{ 'is-clickable': puedeEditar }"
+                @click="abrirEdicion('req', req)">{{ req.nombre }}</span>
+              <span class="rs-doc__tags">
+                <span v-for="s in sacramentosDe(req.id)" :key="s.id" class="rs-doc__tag" :title="s.nombre">{{
+                  inicial(s.nombre) }}</span>
+                <span v-if="sacramentosDe(req.id).length === 0" class="rs-doc__tag rs-doc__tag--none">sin uso</span>
+              </span>
+              <span v-if="puedeEditar" class="rs-doc__actions">
+                <button class="rs-ico" title="Renombrar" @click="abrirEdicion('req', req)"><Pencil :size="13" /></button>
+                <button class="rs-ico rs-ico--danger" title="Eliminar documento"
+                  @click="borrarRequisito(req)"><Trash2 :size="13" /></button>
+              </span>
+            </template>
+          </li>
+        </ul>
+      </section>
+    </template>
   </AppPage>
 </template>
 
@@ -227,7 +237,7 @@ const borrarSacramento = (sac) => sacramentosStore.remove(sac.id, sac.nombre);
   border: 1px solid #c7d2fe;
   border-radius: 10px;
   padding: 0.5rem 0.75rem;
-  margin-bottom: 0.9rem;
+  margin-bottom: 1rem;
   font-size: 0.85rem;
   color: #3730a3;
   flex-wrap: wrap;
@@ -246,106 +256,158 @@ const borrarSacramento = (sac) => sacramentosStore.remove(sac.id, sac.nombre);
 .rs-input {
   border: 1px solid #cbd5e1;
   border-radius: 7px;
-  padding: 0.35rem 0.55rem;
-  font-size: 0.86rem;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.88rem;
   min-width: 200px;
+  flex: 1;
 }
+.rs-input--sm { min-width: 120px; padding: 0.3rem 0.5rem; font-size: 0.85rem; }
 .rs-input:focus { outline: 2px solid #c7d2fe; outline-offset: -1px; border-color: #6366f1; }
 
-/* ── Matriz ─────────────────────────────────────────────────────────────── */
-.mx-wrap { overflow-x: auto; }
-
-.mx {
-  border-collapse: separate;
-  border-spacing: 0;
-  width: max-content;
-  font-size: 0.88rem;
+/* ── Tarjetas por sacramento ───────────────────────────────────────────── */
+.rs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  align-items: start;
 }
 
-.mx th,
-.mx td {
-  border-bottom: 1px solid #eef2f6;
-  border-right: 1px solid #eef2f6;
-  padding: 0;
-}
-
-/* Cabecera: nombres de requisito, verticales */
-.mx thead th {
-  background: #f8fafc;
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  vertical-align: bottom;
-}
-
-.mx__rq {
-  height: 200px;
-  width: 46px;
-  min-width: 46px;
-}
-.mx__rq-lbl {
-  display: flex;
-  flex-direction: column-reverse;
-  align-items: center;
-  height: 100%;
-  padding: 8px 0;
-}
-.mx__rq-txt {
-  writing-mode: vertical-rl;
-  transform: rotate(180deg);
-  white-space: nowrap;
-  max-height: 176px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-weight: 500;
-  color: #334155;
-}
-.mx__rq-lbl.is-clickable .mx__rq-txt { cursor: text; }
-.mx__rq-del {
-  border: 0;
-  background: transparent;
-  color: #cbd5e1;
-  line-height: 0;
-  margin-bottom: 4px;
-  opacity: 0;
-  transition: opacity 0.12s;
-}
-.mx__rq:hover .mx__rq-del { opacity: 1; }
-.mx__rq-del:hover { color: #ef4444; }
-.mx__rq-edit { padding: 6px; height: 100%; display: flex; align-items: flex-end; }
-.mx__rq-edit .rs-input { min-width: 150px; }
-.mx__rq-none { padding: 1rem; color: #94a3b8; font-style: italic; white-space: nowrap; }
-
-/* Esquina + primera columna (sacramentos), fija */
-.mx__corner,
-.mx__sc {
-  position: sticky;
-  left: 0;
+.rs-card {
+  border: 1px solid #e6eaf0;
+  border-radius: 14px;
   background: #fff;
-  z-index: 1;
-  text-align: left;
-  min-width: 210px;
-  border-right: 2px solid #e5e7eb;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  overflow: hidden;
 }
-.mx__corner {
-  z-index: 3;
-  background: #f8fafc;
-  padding: 0 0.9rem 0.6rem;
+
+.rs-card__head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid #f1f5f9;
+  background: #fbfcfe;
+}
+.rs-card__ico {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: #eef2ff;
+  color: #4f46e5;
+  flex-shrink: 0;
+}
+.rs-card__title {
+  margin: 0;
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: #1f2937;
+  flex: 1;
+  min-width: 0;
+}
+.rs-card__title.is-clickable { cursor: text; }
+.rs-card__count {
   font-size: 0.72rem;
+  font-weight: 700;
+  color: #64748b;
+  background: #eef2f6;
+  border-radius: 999px;
+  padding: 0.1rem 0.5rem;
+  flex-shrink: 0;
+}
+.rs-card__actions { display: inline-flex; gap: 0.1rem; opacity: 0; transition: opacity 0.12s; flex-shrink: 0; }
+.rs-card:hover .rs-card__actions { opacity: 1; }
+
+.rs-check { list-style: none; margin: 0; padding: 0.4rem; }
+.rs-check__empty { padding: 1rem; text-align: center; color: #94a3b8; font-style: italic; font-size: 0.85rem; }
+
+.rs-check__item {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: #64748b;
+  transition: background 0.12s, color 0.12s;
+}
+.rs-check__item:hover { background: #f8fafc; }
+.rs-check__item.disabled { cursor: default; }
+.rs-check__item input { opacity: 0; width: 0; height: 0; margin: 0; }
+
+.rs-check__box {
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: transparent;
+  flex-shrink: 0;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+.rs-check__item.is-on { color: #0f766e; }
+.rs-check__item.is-on .rs-check__box { background: #10b981; border-color: #10b981; color: #fff; }
+.rs-check__txt { min-width: 0; }
+
+/* ── Documentos ────────────────────────────────────────────────────────── */
+.rs-docs { padding: 1rem 1.15rem 1.25rem; }
+.rs-docs__title {
+  margin: 0 0 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: #64748b;
-  font-weight: 700;
-  vertical-align: bottom;
 }
-.mx__sc { padding: 0.7rem 0.9rem; }
-.mx__sc-inner { display: flex; align-items: center; gap: 0.5rem; }
-.mx__sc-name { flex: 1; min-width: 0; font-weight: 600; color: #1f2937; }
-.mx__sc-name.is-clickable { cursor: text; }
-.mx__sc-actions { display: inline-flex; gap: 0.15rem; opacity: 0; transition: opacity 0.12s; flex-shrink: 0; }
-.mx__sc:hover .mx__sc-actions { opacity: 1; }
+.rs-docs__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 0.35rem 1rem;
+}
+.rs-doc {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.15rem;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.86rem;
+}
+.rs-doc__name { flex: 1; min-width: 0; color: #334155; }
+.rs-doc__name.is-clickable { cursor: text; }
+.rs-doc__tags { display: inline-flex; gap: 0.2rem; flex-shrink: 0; }
+.rs-doc__tag {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  background: #e0e7ff;
+  color: #4338ca;
+  font-size: 0.66rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.rs-doc__tag--none {
+  width: auto;
+  padding: 0 0.4rem;
+  background: #f1f5f9;
+  color: #94a3b8;
+  font-weight: 500;
+  font-style: italic;
+  text-transform: none;
+}
+.rs-doc__actions { display: inline-flex; gap: 0.1rem; opacity: 0; transition: opacity 0.12s; flex-shrink: 0; }
+.rs-doc:hover .rs-doc__actions { opacity: 1; }
 
-.mx__ico {
+.rs-ico {
   border: 0;
   background: transparent;
   color: #94a3b8;
@@ -354,24 +416,11 @@ const borrarSacramento = (sac) => sacramentosStore.remove(sac.id, sac.nombre);
   cursor: pointer;
   line-height: 0;
 }
-.mx__ico:hover { background: #f1f5f9; color: #475569; }
-.mx__ico--danger:hover { background: #fef2f2; color: #ef4444; }
+.rs-ico:hover { background: #f1f5f9; color: #475569; }
+.rs-ico--danger:hover { background: #fef2f2; color: #ef4444; }
 
-/* Celdas */
-.mx__cell {
-  width: 46px;
-  min-width: 46px;
-  height: 46px;
-  text-align: center;
-  vertical-align: middle;
+@media (max-width: 767px) {
+  .rs-card__actions,
+  .rs-doc__actions { opacity: 1; }
 }
-.mx__cell.is-clickable { cursor: pointer; }
-.mx__cell.is-clickable:hover { background: #eff6ff; }
-.mx__cell.is-on { background: #ecfdf5; }
-.mx__cell.is-on:hover { background: #d1fae5; }
-.mx__check { color: #059669; }
-
-.mx__none { padding: 1.5rem; text-align: center; color: #94a3b8; font-style: italic; }
-
-.mx__hint { margin-top: 0.75rem; font-size: 0.78rem; color: #94a3b8; }
 </style>
