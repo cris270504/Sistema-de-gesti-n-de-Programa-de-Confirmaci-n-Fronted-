@@ -100,10 +100,11 @@ export async function getApoderadosByGrupo(grupoId) {
 // Reparto equitativo: RPC transaccional. La función hace el firstOrCreate de los
 // grupos + round-robin por género en un UPDATE; acá solo se arma el mensaje
 // "Caso A/B/C" (presentación) con los contadores que devuelve.
-export async function generarGruposEquitativos({ nombres_grupos, periodo }) {
+export async function generarGruposEquitativos({ nombres_grupos, periodo, estrategia = 'genero' }) {
   const { data, error } = await supabase.rpc('fn_generar_grupos_equitativo', {
     p_nombres: nombres_grupos.map(n => n.trim()),
     p_periodo: periodo,
+    p_estrategia: estrategia,
   })
   if (error) throw new Error(error.message)
 

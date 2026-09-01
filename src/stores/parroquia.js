@@ -30,6 +30,8 @@ export const CONFIG_DEFAULTS = {
     modulos_ocultos: [],
     // Filtro de estado con el que arranca la lista de Confirmandos.
     confirmandos_estado_default: 'en_preparacion',
+    // Campos que la parroquia exige al registrar un confirmando. Vacío = ninguno.
+    confirmando_obligatorios: [],
   },
 }
 
@@ -40,6 +42,8 @@ export const DASHBOARD_PANELES = ['seguimiento_critico', 'proximos_encuentros', 
 // Módulos que se pueden ocultar (nombre de ruta). El resto es núcleo y no se toca.
 export const MODULOS_OCULTABLES = ['cronograma', 'cumpleanos', 'sacramentos', 'requisitos']
 export const CONFIRMANDOS_ESTADOS = ['en_preparacion', 'confirmado', 'retirado', 'todos']
+// Campos opcionales del confirmando que la parroquia puede volver obligatorios.
+export const CONFIRMANDO_CAMPOS = ['celular', 'fecha_nacimiento', 'genero']
 
 // Cada cuánto, como mucho, se chequea si la config cambió (al enfocar la app).
 const REFRESH_MIN_MS = 30_000
@@ -103,6 +107,9 @@ export const useParroquiaStore = defineStore('parroquia', {
     moduloOculto: (s) => (nombreRuta) => (s.configuracion?.ui?.modulos_ocultos ?? []).includes(nombreRuta),
     confirmandosEstadoDefault: (s) =>
       s.configuracion?.ui?.confirmandos_estado_default ?? CONFIG_DEFAULTS.ui.confirmandos_estado_default,
+    confirmandoObligatorios: (s) => s.configuracion?.ui?.confirmando_obligatorios ?? [],
+    confirmandoEsObligatorio: (s) => (campo) =>
+      (s.configuracion?.ui?.confirmando_obligatorios ?? []).includes(campo),
   },
 
   actions: {

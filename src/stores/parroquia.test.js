@@ -86,6 +86,14 @@ describe('stores/parroquia', () => {
     expect(s.configuracion.ui.dashboard_kpis).toEqual(CONFIG_DEFAULTS.ui.dashboard_kpis) // deep merge intacto
   })
 
+  it('confirmandoEsObligatorio refleja ui.confirmando_obligatorios', () => {
+    const s = useParroquiaStore()
+    s.hydrateFromLogin({ parroquia: { id: 1, nombre: 'X' }, configuracion: { ...CONFIG_DEFAULTS, ui: { confirmando_obligatorios: ['celular'] } } })
+    expect(s.confirmandoEsObligatorio('celular')).toBe(true)
+    expect(s.confirmandoEsObligatorio('genero')).toBe(false)
+    expect(s.confirmandoObligatorios).toEqual(['celular'])
+  })
+
   it('clear vuelve a defaults y limpia localStorage', () => {
     const s = useParroquiaStore()
     s.hydrateFromLogin({ parroquia: { id: 1, nombre: 'X' }, configuracion: { dias_ventana_justificacion: 5 } })

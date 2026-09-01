@@ -2,11 +2,11 @@
 import { ref, reactive, onMounted } from 'vue'
 import {
   useParroquiaStore, CONFIG_DEFAULTS,
-  DASHBOARD_KPIS, DASHBOARD_PANELES, MODULOS_OCULTABLES, CONFIRMANDOS_ESTADOS,
+  DASHBOARD_KPIS, DASHBOARD_PANELES, MODULOS_OCULTABLES, CONFIRMANDOS_ESTADOS, CONFIRMANDO_CAMPOS,
 } from '@/stores/parroquia'
 import {
   Save, RotateCcw, Image as ImageIcon,
-  Palette, CalendarRange, Users, Tag, LayoutDashboard, TriangleAlert, Check, PanelLeft, ListFilter,
+  Palette, CalendarRange, Users, Tag, LayoutDashboard, TriangleAlert, Check, PanelLeft, ListFilter, UserCheck,
 } from 'lucide-vue-next'
 import AppPage from '@/components/AppPage.vue'
 
@@ -45,6 +45,11 @@ const ESTADO_META = {
   retirado: 'Retirados',
   todos: 'Todos',
 }
+const CAMPO_META = {
+  celular: 'Celular',
+  fecha_nacimiento: 'Fecha de nacimiento',
+  genero: 'Género',
+}
 
 function estructuraVacia() {
   return {
@@ -60,6 +65,7 @@ function estructuraVacia() {
     ui_dashboard_paneles: [...CONFIG_DEFAULTS.ui.dashboard_paneles],
     ui_modulos_visibles: [...MODULOS_OCULTABLES],
     ui_confirmandos_estado_default: CONFIG_DEFAULTS.ui.confirmandos_estado_default,
+    ui_confirmando_obligatorios: [...CONFIG_DEFAULTS.ui.confirmando_obligatorios],
   }
 }
 
@@ -82,6 +88,8 @@ function cargarDesdeStore() {
     CONFIRMANDOS_ESTADOS.includes(c.ui?.confirmandos_estado_default)
       ? c.ui.confirmandos_estado_default
       : CONFIG_DEFAULTS.ui.confirmandos_estado_default
+  form.ui_confirmando_obligatorios =
+    CONFIRMANDO_CAMPOS.filter(campo => (c.ui?.confirmando_obligatorios ?? []).includes(campo))
   form.branding = {
     nombre_publico: c.branding?.nombre_publico ?? '',
     logo_url: c.branding?.logo_url ?? '',
@@ -118,6 +126,7 @@ async function guardar() {
       dashboard_paneles: DASHBOARD_PANELES.filter(k => form.ui_dashboard_paneles.includes(k)),
       modulos_ocultos: MODULOS_OCULTABLES.filter(m => !form.ui_modulos_visibles.includes(m)),
       confirmandos_estado_default: form.ui_confirmandos_estado_default,
+      confirmando_obligatorios: CONFIRMANDO_CAMPOS.filter(c => form.ui_confirmando_obligatorios.includes(c)),
     },
   }
   await parroquiaStore.save(payload)
@@ -280,6 +289,27 @@ const UMBRALES = [
             <select v-model="form.ui_confirmandos_estado_default" class="inp inp--md">
               <option v-for="[key, label] in Object.entries(ESTADO_META)" :key="key" :value="key">{{ label }}</option>
             </select>
+          </div>
+        </div>
+      </section>
+
+      <!-- Datos del confirmando -->
+      <section class="card">
+        <header class="card__head">
+          <h3 class="card__title"><UserCheck :size="15" class="card__ico" /> Datos del confirmando</h3>
+          <p class="card__hint">Campos que se exigen al registrar o editar un confirmando. Nombres y apellidos siempre
+            son obligatorios.</p>
+        </header>
+        <div class="card__body">
+          <div class="field">
+            <label>Exigir</label>
+            <div class="chips">
+              <label v-for="[key, label] in Object.entries(CAMPO_META)" :key="key" class="chip"
+                :class="{ 'chip--on': form.ui_confirmando_obligatorios.includes(key) }">
+                <input type="checkbox" :value="key" v-model="form.ui_confirmando_obligatorios" />
+                <Check v-if="form.ui_confirmando_obligatorios.includes(key)" :size="13" class="chip__check" /> {{ label }}
+              </label>
+            </div>
           </div>
         </div>
       </section>

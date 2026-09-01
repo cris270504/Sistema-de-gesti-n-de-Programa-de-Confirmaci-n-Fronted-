@@ -235,6 +235,14 @@ const groupNames = ref(['']);
 const stats = ref({ hombres: 0, mujeres: 0, total: 0 });
 const periodoActual = '2026';
 
+// Criterio del reparto (por corrida, no config persistente).
+const estrategiaGrupos = ref('genero');
+const ESTRATEGIAS = [
+    ['genero', 'Por género'],
+    ['edad', 'Por edad'],
+    ['ninguno', 'Sin criterio'],
+];
+
 let detachGeneradorFocusReturn = () => {};
 
 const initGeneradorModal = () => {
@@ -274,7 +282,11 @@ const generarGruposApi = async () => {
 
     loadingGenerador.value = true;
     try {
-        const response = await gruposStore.generateGroups({ nombres_grupos: groupNames.value, periodo: periodoActual });
+        const response = await gruposStore.generateGroups({
+            nombres_grupos: groupNames.value,
+            periodo: periodoActual,
+            estrategia: estrategiaGrupos.value,
+        });
         showAlerta(response.message, 'success');
         generadorModalInstance.value?.hide();
         // El backend devuelve el mapa de asignaciones: parcheamos la lista en memoria
@@ -726,7 +738,7 @@ onUnmounted(() => {
                         <div>
                             <h5 id="generadorGruposModalLabel" class="fw-bold text-dark mb-1">Generador Automático de
                                 Grupos</h5>
-                            <p class="text-muted small mb-0">Distribución equitativa por género y edad.</p>
+                            <p class="text-muted small mb-0">Reparte los confirmandos sin grupo de forma pareja.</p>
                         </div>
                         <button type="button" class="btn-close" aria-label="Cerrar" data-bs-dismiss="modal"></button>
                     </header>
@@ -746,6 +758,16 @@ onUnmounted(() => {
                                 <h5 class="fw-bold text-dark mb-0">{{ stats.mujeres }}</h5>
                                 <small class="text-muted" style="font-size: 0.75rem;">Mujeres</small>
                             </div>
+                        </div>
+
+                        <label class="form-label fw-bold small text-uppercase text-secondary mb-2">Criterio del
+                            reparto</label>
+                        <div class="btn-group w-100 mb-3" role="group" aria-label="Criterio del reparto">
+                            <template v-for="[val, label] in ESTRATEGIAS" :key="val">
+                                <input type="radio" class="btn-check" :id="`estrat-${val}`" name="estrategiaGrupos"
+                                    :value="val" v-model="estrategiaGrupos" :disabled="loadingGenerador">
+                                <label class="btn btn-outline-primary btn-sm" :for="`estrat-${val}`">{{ label }}</label>
+                            </template>
                         </div>
 
                         <label id="gruposNombresLabel"
@@ -780,7 +802,8 @@ onUnmounted(() => {
                             </div>
                             <p class="mb-0 small text-dark lh-sm">
                                 ~{{ prediccion.total }} confirmandos por grupo
-                                <span class="text-muted">({{ prediccion.hombres }}H / {{ prediccion.mujeres }}M)</span>.
+                                <span v-if="estrategiaGrupos === 'genero'" class="text-muted">({{ prediccion.hombres }}H /
+                                    {{ prediccion.mujeres }}M)</span>.
                             </p>
                         </div>
                     </div>

@@ -5,6 +5,7 @@ import { useGruposStore } from '../../stores/grupos';
 import { useSacramentosStore } from '../../stores/sacramentos';
 import { useTiposApoderadoStore } from '../../stores/tiposApoderado';
 import { useAuthStore } from '@/stores/auth';
+import { useParroquiaStore } from '@/stores/parroquia';
 
 import { storeToRefs } from 'pinia';
 import { showAlerta } from '@/funciones';
@@ -25,6 +26,10 @@ const gruposStore = useGruposStore();
 const sacramentosStore = useSacramentosStore();
 const tiposApoderadoStore = useTiposApoderadoStore();
 const authStore = useAuthStore()
+const parroquiaStore = useParroquiaStore()
+
+// Campos que la parroquia volvió obligatorios (Configuración → Datos del confirmando).
+const obligatorio = (campo) => parroquiaStore.confirmandoEsObligatorio(campo)
 
 const { items: availableGrupos } = storeToRefs(gruposStore);
 const { items: availableSacramentos } = storeToRefs(sacramentosStore);
@@ -223,6 +228,11 @@ async function submitUpdate() {
   if (!payload.nombres) return showAlerta('Faltan Nombres', 'warning');
   if (!payload.apellidos) return showAlerta('Faltan Apellidos', 'warning');
 
+  // Campos obligatorios según la configuración de la parroquia.
+  if (obligatorio('celular') && !payload.celular) return showAlerta('El celular es obligatorio.', 'warning');
+  if (obligatorio('fecha_nacimiento') && !payload.fecha_nacimiento) return showAlerta('La fecha de nacimiento es obligatoria.', 'warning');
+  if (obligatorio('genero') && !payload.genero) return showAlerta('El género es obligatorio.', 'warning');
+
   // Validación de edad solo si la fecha cambió o es nuevo
   if (payload.fecha_nacimiento > maxDate.value) return showAlerta('Debe tener al menos 14 años.', 'warning');
 
@@ -307,23 +317,26 @@ async function submitUpdate() {
               </div>
 
               <div class="col-md-5">
-                <label class="form-label fw-bold text-secondary small text-uppercase">Fecha Nacimiento </label>
+                <label class="form-label fw-bold text-secondary small text-uppercase">Fecha Nacimiento
+                  <span v-if="obligatorio('fecha_nacimiento')" class="text-danger">*</span></label>
                 <div class="input-group">
                   <span class="input-group-text bg-blue-soft text-primary border-end-0">
                     <CalendarDays class="h-4 w-4" aria-hidden="true" />
                   </span>
                   <input v-model="draft.fecha_nacimiento" :max="maxDate" type="date" class="form-control border-start-0"
-                    aria-label="Fecha de nacimiento" :disabled="saving">
+                    :required="obligatorio('fecha_nacimiento')" aria-label="Fecha de nacimiento" :disabled="saving">
                 </div>
               </div>
 
               <div class="col-md-3">
-                <label class="form-label fw-bold text-secondary small text-uppercase">Celular</label>
+                <label class="form-label fw-bold text-secondary small text-uppercase">Celular
+                  <span v-if="obligatorio('celular')" class="text-danger">*</span></label>
                 <div class="input-group">
                   <span class="input-group-text bg-blue-soft text-primary border-end-0">
                     <Smartphone class="h-4 w-4" aria-hidden="true" />
                   </span>
                   <input v-model="draft.celular" type="tel" class="form-control border-start-0" maxlength="9"
+                    :required="obligatorio('celular')"
                     :class="{ 'is-invalid': errores.celular }" @blur="marcarTocado('celular')"
                     aria-label="Celular del confirmando" :disabled="saving">
                   <div v-if="errores.celular" class="invalid-feedback">{{ errores.celular }}</div>
@@ -331,14 +344,15 @@ async function submitUpdate() {
               </div>
 
               <div class="col-md-4">
-                <label class="form-label fw-bold text-secondary small text-uppercase">Género</label>
+                <label class="form-label fw-bold text-secondary small text-uppercase">Género
+                  <span v-if="obligatorio('genero')" class="text-danger">*</span></label>
                 <div class="input-group">
                   <span class="input-group-text bg-blue-soft text-primary border-end-0">
                     <User class="h-4 w-4" aria-hidden="true" />
                   </span>
 
                   <select v-model="draft.genero" class="form-select border-start-0" aria-label="Género del confirmando"
-                    :disabled="saving">
+                    :required="obligatorio('genero')" :disabled="saving">
                     <option :value="null">-- Sin asignar --</option>
                     <option value="m">Masculino</option>
                     <option value="f">Femenino</option>
