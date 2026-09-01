@@ -40,7 +40,8 @@ export const CONFIG_DEFAULTS = {
 export const DASHBOARD_KPIS = ['confirmandos', 'usuarios', 'grupos']
 export const DASHBOARD_PANELES = ['seguimiento_critico', 'proximos_encuentros', 'retencion']
 // Módulos que se pueden ocultar (nombre de ruta). El resto es núcleo y no se toca.
-export const MODULOS_OCULTABLES = ['cronograma', 'cumpleanos', 'sacramentos', 'requisitos']
+// 'sacramentos' cubre la Ruta sacramental (sacramentos + requisitos, fusionados).
+export const MODULOS_OCULTABLES = ['cronograma', 'cumpleanos', 'sacramentos']
 export const CONFIRMANDOS_ESTADOS = ['en_preparacion', 'confirmado', 'retirado', 'todos']
 // Campos opcionales del confirmando que la parroquia puede volver obligatorios.
 export const CONFIRMANDO_CAMPOS = ['celular', 'fecha_nacimiento', 'genero']

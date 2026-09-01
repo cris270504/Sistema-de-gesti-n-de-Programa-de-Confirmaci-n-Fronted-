@@ -36,8 +36,7 @@ const PANEL_META = {
 const MODULO_META = {
   cronograma: 'Cronograma',
   cumpleanos: 'Cumpleaños',
-  sacramentos: 'Sacramentos',
-  requisitos: 'Requisitos',
+  sacramentos: 'Ruta sacramental',
 }
 const ESTADO_META = {
   en_preparacion: 'En preparación',

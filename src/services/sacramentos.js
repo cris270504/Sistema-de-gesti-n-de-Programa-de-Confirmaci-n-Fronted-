@@ -39,18 +39,23 @@ export async function getSacramentoById(id) {
 }
 
 // ── Escrituras: Fase 4, PostgREST directo (RLS: solo privilegiado; trigger fija
-//    parroquia_id; UNIQUE nombre por parroquia). Devuelven la misma forma
-//    `{ sacramento }` / `{ message }` que esperaban los stores.
+//    parroquia_id; UNIQUE nombre por parroquia). El vínculo con requisitos va
+//    aparte, celda por celda, vía fn_sacramento_requisito_set.
+const soloSacramento = ({ nombre, clave } = {}) => ({
+  ...(nombre !== undefined ? { nombre } : {}),
+  ...(clave !== undefined ? { clave } : {}),
+})
+
 export async function createSacramento(sacramento) {
   const { data, error } = await supabase
-    .from('sacramentos').insert(sacramento).select('id, nombre, clave').single()
+    .from('sacramentos').insert(soloSacramento(sacramento)).select('id, nombre, clave').single()
   if (error) throw new Error(error.message)
   return { sacramento: { ...data, requisitos: [] } }
 }
 
 export async function updateSacramento(id, sacramento) {
   const { data, error } = await supabase
-    .from('sacramentos').update(sacramento).eq('id', Number(id)).select('id, nombre, clave').single()
+    .from('sacramentos').update(soloSacramento(sacramento)).eq('id', Number(id)).select('id, nombre, clave').single()
   if (error) throw new Error(error.message)
   return { sacramento: data }
 }
@@ -59,4 +64,14 @@ export async function deleteSacramentoById(id) {
   const { error } = await supabase.from('sacramentos').delete().eq('id', Number(id))
   if (error) throw new Error(error.message)
   return { message: 'Sacramento eliminado' }
+}
+
+// Vincula (o desvincula) un requisito con un sacramento — una celda de la matriz.
+export async function setSacramentoRequisito(sacramentoId, requisitoId, activo) {
+  const { error } = await supabase.rpc('fn_sacramento_requisito_set', {
+    p_sacramento_id: Number(sacramentoId),
+    p_requisito_id: Number(requisitoId),
+    p_activo: !!activo,
+  })
+  if (error) throw new Error(error.message)
 }

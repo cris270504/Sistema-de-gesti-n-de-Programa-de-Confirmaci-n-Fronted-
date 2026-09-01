@@ -226,8 +226,7 @@ const menuSections = computed(() => {
   sections.push({
     title: 'Catequesis',
     items: [
-      { name: 'Sacramentos', to: { name: 'sacramentos' }, icon: Flame, permission: 'ver todos los sacramentos' },
-      { name: 'Requisitos', to: { name: 'requisitos' }, icon: Wallet, permission: 'ver todos los requisitos' },
+      { name: 'Ruta sacramental', to: { name: 'sacramentos' }, icon: Flame, permission: 'ver todos los sacramentos' },
     ]
   });
 

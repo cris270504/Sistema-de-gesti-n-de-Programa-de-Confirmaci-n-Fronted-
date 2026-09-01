@@ -18,8 +18,7 @@ const ListGrupos = () => import('../views/Grupos/ListGrupos.vue')
 const AsignacionGrupo = () => import('../views/Grupos/AsignacionGrupo.vue')
 const Dashboard = () => import('../views/Dashboard.vue')
 const ListCronograma = () => import('../views/Cronograma/ListCronograma.vue')
-const ListSacramentos = () => import('../views/Sacramentos/ListSacramentos.vue')
-const ListRequisitos = () => import('../views/Requisitos/ListRequisitos.vue')
+const RutaSacramental = () => import('../views/Sacramentos/RutaSacramental.vue')
 const Listcumpleanos = () => import('../views/Cumpleanos/listCumpleanos.vue')
 const ListJustificaciones = () => import('../views/Justificaciones/ListJustificaciones.vue')
 const Configuracion = () => import('../views/Configuracion/Configuracion.vue')
@@ -159,12 +158,17 @@ const router = createRouter({
           meta: { title: 'Justificaciones', permission: 'ver asistencias' }
         },
 
-        //SACRAMENTOS
+        //RUTA SACRAMENTAL (sacramentos + requisitos en una matriz)
         {
           path: '/sacramentos',
           name: 'sacramentos',
-          component: ListSacramentos,
-          meta: { title: 'Lista de sacramentos', permission: 'ver todos los sacramentos', modulo: 'sacramentos' }
+          component: RutaSacramental,
+          meta: { title: 'Ruta sacramental', permission: 'ver todos los sacramentos', modulo: 'sacramentos' }
+        },
+        // /requisitos quedó fusionado en /sacramentos (matriz). Enlaces viejos → ahí.
+        {
+          path: '/requisitos',
+          redirect: { name: 'sacramentos' },
         },
 
         //cumpleanos
@@ -173,13 +177,6 @@ const router = createRouter({
           name: 'cumpleanos',
           component: Listcumpleanos,
           meta: { title: 'Lista de cumpleanos', modulo: 'cumpleanos' }
-        },
-        //REQUISITOS
-        {
-          path: '/requisitos',
-          name: 'requisitos',
-          component: ListRequisitos,
-          meta: { title: 'Lista de requisitos', permission: 'ver todos los requisitos', modulo: 'requisitos' }
         },
 
         //ROLES
