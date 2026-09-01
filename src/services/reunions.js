@@ -11,6 +11,12 @@ async function unwrap(promise) {
 
 const COLS = 'id, nombre_tema, fecha, descripcion, tipo, created_at, updated_at'
 
+// Columnas que el cliente puede escribir. Filtra `id` y cualquier campo suelto del
+// draft (mandar `id: null` en el insert rompía el NOT NULL de la PK).
+const WRITE_COLS = ['nombre_tema', 'fecha', 'descripcion', 'tipo']
+const soloEscribibles = (obj) =>
+  Object.fromEntries(WRITE_COLS.filter(k => obj?.[k] !== undefined).map(k => [k, obj[k]]))
+
 export function getReunionsList() {
   return unwrap(supabase.from('reunions').select(COLS).order('fecha', { ascending: true }))
 }
@@ -34,14 +40,15 @@ export function getUpcomingReuniones() {
 // ── Escrituras: Fase 4, PostgREST directo (RLS: solo privilegiado; trigger fija
 //    parroquia_id; CHECK de tipo). ────────────────────────────────────────────
 export async function createReunion(reunion) {
-  const { data, error } = await supabase.from('reunions').insert(reunion).select(COLS).single()
+  const { data, error } = await supabase
+    .from('reunions').insert(soloEscribibles(reunion)).select(COLS).single()
   if (error) throw new Error(error.message)
   return { reunion: data }
 }
 
 export async function updateReunion(id, reunion) {
   const { data, error } = await supabase
-    .from('reunions').update(reunion).eq('id', Number(id)).select(COLS).single()
+    .from('reunions').update(soloEscribibles(reunion)).eq('id', Number(id)).select(COLS).single()
   if (error) throw new Error(error.message)
   return { reunion: data }
 }

@@ -156,12 +156,13 @@ const handleDateClick = (info) => {
   }
   // -----------------------
 
-  // Limpiar el resto del formulario
+  // Limpiar el resto del formulario. El tipo arranca en el primer tipo activo
+  // de la parroquia (antes 'Catequesis', que ni siquiera es un tipo válido).
   draft.value = {
     id: null,
     nombre_tema: '',
     descripcion: '',
-    tipo: 'Catequesis'
+    tipo: tiposReunion.value[0] || 'Confirmandos'
   };
 
   formModalInstance.value?.show();
@@ -217,6 +218,9 @@ const handleSubmit = async () => {
 
   // Asignamos la fecha combinada al draft
   draft.value.fecha = fechaFinal;
+
+  // Con un solo tipo activo el campo es de solo lectura: forzamos el valor.
+  if (tiposReunion.value.length === 1) draft.value.tipo = tiposReunion.value[0];
 
   saving.value = true;
   try {
@@ -392,8 +396,25 @@ onUnmounted(() => {
                 </div>
               </div>
               <div class="mb-3">
-                <label class="form-label">Tipo</label>
-                <select v-model="draft.tipo" class="form-select" :disabled="saving">
+                <label class="form-label d-block">Tipo</label>
+
+                <!-- 1 tipo: solo lectura -->
+                <div v-if="tiposReunion.length <= 1" class="fw-semibold text-dark py-1">
+                  {{ tiposReunion[0] || '—' }}
+                </div>
+
+                <!-- 2-3 tipos: botones -->
+                <div v-else-if="tiposReunion.length <= 3" class="btn-group w-100" role="group"
+                  aria-label="Tipo de reunión">
+                  <template v-for="t in tiposReunion" :key="t">
+                    <input type="radio" class="btn-check" :id="`tipo-${t}`" name="tipoReunion" :value="t"
+                      v-model="draft.tipo" :disabled="saving">
+                    <label class="btn btn-outline-primary" :for="`tipo-${t}`">{{ t }}</label>
+                  </template>
+                </div>
+
+                <!-- 4+ tipos: selector -->
+                <select v-else v-model="draft.tipo" class="form-select" :disabled="saving">
                   <option v-for="t in tiposReunion" :key="t" :value="t">{{ t }}</option>
                 </select>
               </div>
