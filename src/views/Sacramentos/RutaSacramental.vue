@@ -27,10 +27,6 @@ const sacramentos = computed(() =>
 const requisitos = computed(() =>
   [...requisitosRaw.value].sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '', 'es')));
 
-// Inicial de cada sacramento (para las etiquetas de la lista de documentos).
-const inicial = (nombre) => (nombre || '?').trim().charAt(0).toUpperCase();
-const sacramentosDe = (reqId) => sacramentos.value.filter(s => (s.requisitos ?? []).some(r => r.id === reqId));
-
 onMounted(async () => {
   await Promise.all([
     sacramentosStore.fetchAll({ force: true }),
@@ -132,19 +128,18 @@ const borrarSacramento = (sac) => sacramentosStore.remove(sac.id, sac.nombre);
   <AppPage title="Ruta sacramental" subtitle="Qué documentos pide cada sacramento" :loading="loading">
     <template v-if="puedeEditar" #actions>
       <button class="rs-add" @click="abrirNuevo('sac')"><Plus :size="15" /> Sacramento</button>
-      <button class="rs-add" @click="abrirNuevo('req')"><Plus :size="15" /> Documento</button>
     </template>
 
-    <div v-if="nuevo.tipo" class="rs-newbar">
-      <span>{{ nuevo.tipo === 'sac' ? 'Nuevo sacramento' : 'Nuevo documento' }}:</span>
+    <div v-if="nuevo.tipo === 'sac'" class="rs-newbar">
+      <span>Nuevo sacramento:</span>
       <input ref="nuevoInput" v-model="nuevo.valor" class="rs-input" placeholder="Nombre…" @keyup.enter="crearNuevo"
         @keyup.esc="cancelarNuevo" />
       <button class="rs-newbar__ok" @click="crearNuevo">Agregar</button>
       <button class="rs-newbar__x" @click="cancelarNuevo" aria-label="Cancelar"><X :size="15" /></button>
     </div>
 
-    <div v-if="sacramentos.length === 0 && requisitos.length === 0" class="surface empty-state">
-      Aún no hay sacramentos ni documentos. Agregá uno con los botones de arriba.
+    <div v-if="sacramentos.length === 0" class="surface empty-state">
+      Aún no hay sacramentos. Agregá uno con el botón de arriba.
     </div>
 
     <template v-else>
@@ -184,10 +179,22 @@ const borrarSacramento = (sac) => sacramentosStore.remove(sac.id, sac.nombre);
         </section>
       </div>
 
-      <!-- Documentos: definiciones (renombrar / eliminar / ver dónde se usa) -->
-      <section v-if="requisitos.length" class="surface rs-docs">
-        <h3 class="rs-docs__title">Documentos ({{ requisitos.length }})</h3>
-        <ul class="rs-docs__list">
+      <!-- Documentos: definiciones (renombrar / eliminar / agregar) -->
+      <section class="surface rs-docs">
+        <div class="rs-docs__head">
+          <h3 class="rs-docs__title">Documentos ({{ requisitos.length }})</h3>
+          <button v-if="puedeEditar && nuevo.tipo !== 'req'" class="rs-add rs-add--sm" @click="abrirNuevo('req')">
+            <Plus :size="14" /> Documento
+          </button>
+          <span v-else-if="puedeEditar" class="rs-docs__new">
+            <input ref="nuevoInput" v-model="nuevo.valor" class="rs-input rs-input--sm" placeholder="Nombre del documento…"
+              @keyup.enter="crearNuevo" @keyup.esc="cancelarNuevo" />
+            <button class="rs-newbar__ok" @click="crearNuevo">Agregar</button>
+            <button class="rs-newbar__x" @click="cancelarNuevo" aria-label="Cancelar"><X :size="15" /></button>
+          </span>
+        </div>
+
+        <ul v-if="requisitos.length" class="rs-docs__list">
           <li v-for="req in requisitos" :key="req.id" class="rs-doc">
             <template v-if="editando?.tipo === 'req' && editando.id === req.id">
               <input ref="editInput" v-model="editando.valor" class="rs-input rs-input--sm" @keyup.enter="guardarEdicion"
@@ -196,11 +203,6 @@ const borrarSacramento = (sac) => sacramentosStore.remove(sac.id, sac.nombre);
             <template v-else>
               <span class="rs-doc__name" :class="{ 'is-clickable': puedeEditar }"
                 @click="abrirEdicion('req', req)">{{ req.nombre }}</span>
-              <span class="rs-doc__tags">
-                <span v-for="s in sacramentosDe(req.id)" :key="s.id" class="rs-doc__tag" :title="s.nombre">{{
-                  inicial(s.nombre) }}</span>
-                <span v-if="sacramentosDe(req.id).length === 0" class="rs-doc__tag rs-doc__tag--none">sin uso</span>
-              </span>
               <span v-if="puedeEditar" class="rs-doc__actions">
                 <button class="rs-ico" title="Renombrar" @click="abrirEdicion('req', req)"><Pencil :size="13" /></button>
                 <button class="rs-ico rs-ico--danger" title="Eliminar documento"
@@ -209,6 +211,7 @@ const borrarSacramento = (sac) => sacramentosStore.remove(sac.id, sac.nombre);
             </template>
           </li>
         </ul>
+        <p v-else class="rs-docs__empty">Todavía no hay documentos.</p>
       </section>
     </template>
   </AppPage>
@@ -356,14 +359,25 @@ const borrarSacramento = (sac) => sacramentosStore.remove(sac.id, sac.nombre);
 
 /* ── Documentos ────────────────────────────────────────────────────────── */
 .rs-docs { padding: 1rem 1.15rem 1.25rem; }
+.rs-docs__head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
 .rs-docs__title {
-  margin: 0 0 0.75rem;
+  margin: 0;
   font-size: 0.78rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: #64748b;
 }
+.rs-add--sm { padding: 0.3rem 0.6rem; font-size: 0.78rem; }
+.rs-docs__new { display: inline-flex; align-items: center; gap: 0.4rem; flex: 1; min-width: 240px; }
+.rs-docs__empty { color: #94a3b8; font-style: italic; font-size: 0.86rem; margin: 0; }
+
 .rs-docs__list {
   list-style: none;
   margin: 0;
@@ -382,28 +396,6 @@ const borrarSacramento = (sac) => sacramentosStore.remove(sac.id, sac.nombre);
 }
 .rs-doc__name { flex: 1; min-width: 0; color: #334155; }
 .rs-doc__name.is-clickable { cursor: text; }
-.rs-doc__tags { display: inline-flex; gap: 0.2rem; flex-shrink: 0; }
-.rs-doc__tag {
-  width: 18px;
-  height: 18px;
-  border-radius: 5px;
-  background: #e0e7ff;
-  color: #4338ca;
-  font-size: 0.66rem;
-  font-weight: 700;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-.rs-doc__tag--none {
-  width: auto;
-  padding: 0 0.4rem;
-  background: #f1f5f9;
-  color: #94a3b8;
-  font-weight: 500;
-  font-style: italic;
-  text-transform: none;
-}
 .rs-doc__actions { display: inline-flex; gap: 0.1rem; opacity: 0; transition: opacity 0.12s; flex-shrink: 0; }
 .rs-doc:hover .rs-doc__actions { opacity: 1; }
 
