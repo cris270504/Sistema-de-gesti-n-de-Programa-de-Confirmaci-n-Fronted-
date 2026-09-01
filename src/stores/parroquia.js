@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { LS_PARROQUIA_KEY } from '@/constants/auth'
-import { getConfiguracion, updateConfiguracion } from '@/services/parroquia'
+import { getConfiguracion, getConfiguracionUpdatedAt, updateConfiguracion } from '@/services/parroquia'
 import { showAlerta, showErroresDeValidacion } from '@/funciones'
 
 // Valores por defecto (espejo de App\Tenancy\TenantConfig::DEFAULTS del backend).
@@ -28,15 +28,21 @@ export const CONFIG_DEFAULTS = {
     dashboard_paneles: ['seguimiento_critico', 'proximos_encuentros', 'retencion'],
     // Módulos del menú que la parroquia oculta (por nombre de ruta). Vacío = ninguno.
     modulos_ocultos: [],
+    // Filtro de estado con el que arranca la lista de Confirmandos.
+    confirmandos_estado_default: 'en_preparacion',
   },
 }
 
-// Listas blancas (espejo de fn_guardar_configuracion). El frontend es dueño de
+// Listas blancas (espejo de _ui_procesar en el backend). El frontend es dueño de
 // estas listas; una clave desconocida guardada es inofensiva (se ignora acá).
 export const DASHBOARD_KPIS = ['confirmandos', 'usuarios', 'grupos']
 export const DASHBOARD_PANELES = ['seguimiento_critico', 'proximos_encuentros', 'retencion']
 // Módulos que se pueden ocultar (nombre de ruta). El resto es núcleo y no se toca.
 export const MODULOS_OCULTABLES = ['cronograma', 'cumpleanos', 'sacramentos', 'requisitos']
+export const CONFIRMANDOS_ESTADOS = ['en_preparacion', 'confirmado', 'retirado', 'todos']
+
+// Cada cuánto, como mucho, se chequea si la config cambió (al enfocar la app).
+const REFRESH_MIN_MS = 30_000
 
 // Etiqueta por defecto de un rol interno cuando la parroquia no definió una.
 const ROLES_DEFAULT = {
@@ -78,6 +84,8 @@ export const useParroquiaStore = defineStore('parroquia', {
       parroquia: saved.parroquia ?? null,
       configuracion: mergeConfig(saved.configuracion),
       loading: false,
+      _lastRefreshCheck: 0,
+      _refreshing: false,
     }
   },
 
@@ -93,6 +101,8 @@ export const useParroquiaStore = defineStore('parroquia', {
     usaProcedencia: (s) => (s.configuracion?.procedencias ?? CONFIG_DEFAULTS.procedencias).length > 1,
     // true si la parroquia ocultó ese módulo del menú (por nombre de ruta).
     moduloOculto: (s) => (nombreRuta) => (s.configuracion?.ui?.modulos_ocultos ?? []).includes(nombreRuta),
+    confirmandosEstadoDefault: (s) =>
+      s.configuracion?.ui?.confirmandos_estado_default ?? CONFIG_DEFAULTS.ui.confirmandos_estado_default,
   },
 
   actions: {
@@ -115,10 +125,29 @@ export const useParroquiaStore = defineStore('parroquia', {
       }
     },
 
+    // Al enfocar la app: si otro usuario (o uno mismo en otra pestaña) cambió la
+    // config, la traemos sin esperar al re-login. Barato: pide solo `updated_at`.
+    async refreshIfStale() {
+      if (!this.parroquia || this._refreshing) return
+      const ahora = Date.now()
+      if (ahora - this._lastRefreshCheck < REFRESH_MIN_MS) return
+      this._lastRefreshCheck = ahora
+      this._refreshing = true
+      try {
+        const remoto = await getConfiguracionUpdatedAt()
+        const local = this.configuracion?.updated_at ?? null
+        if (remoto && remoto !== local) await this.fetchConfiguracion()
+      } catch { /* silencioso: no bloquea la app */ }
+      finally { this._refreshing = false }
+    },
+
     async save(payload) {
       try {
         const { configuracion } = await updateConfiguracion(payload)
         this.configuracion = mergeConfig(configuracion)
+        // El RPC no devuelve updated_at; lo marcamos para que refreshIfStale no
+        // dispare un fetch redundante enseguida (se corrige solo si difiere).
+        this.configuracion.updated_at = new Date().toISOString()
         persist(this)
         showAlerta('Configuración guardada', 'success')
         return true
@@ -131,6 +160,7 @@ export const useParroquiaStore = defineStore('parroquia', {
     clear() {
       this.parroquia = null
       this.configuracion = mergeConfig()
+      this._lastRefreshCheck = 0
       localStorage.removeItem(LS_PARROQUIA_KEY)
     },
   },

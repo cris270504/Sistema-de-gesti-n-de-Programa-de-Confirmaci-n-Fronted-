@@ -74,10 +74,10 @@ watch(modalRef, (instance) => {
     }
 });
 
-// Objeto central de filtros
+// Objeto central de filtros. El estado inicial lo define la parroquia en Configuración.
 const filtros = ref({
     search: '',
-    estado: 'en_preparacion',
+    estado: parroquiaStore.confirmandosEstadoDefault,
     grupo: 'todos',
     procedencia: 'todos'
 });

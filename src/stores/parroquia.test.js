@@ -79,6 +79,13 @@ describe('stores/parroquia', () => {
     expect(s.moduloOculto('dashboard')).toBe(false)
   })
 
+  it('confirmandosEstadoDefault: config válida gana, inválida cae al default', () => {
+    const s = useParroquiaStore()
+    s.hydrateFromLogin({ parroquia: { id: 1, nombre: 'X' }, configuracion: { ...CONFIG_DEFAULTS, ui: { confirmandos_estado_default: 'todos' } } })
+    expect(s.confirmandosEstadoDefault).toBe('todos')
+    expect(s.configuracion.ui.dashboard_kpis).toEqual(CONFIG_DEFAULTS.ui.dashboard_kpis) // deep merge intacto
+  })
+
   it('clear vuelve a defaults y limpia localStorage', () => {
     const s = useParroquiaStore()
     s.hydrateFromLogin({ parroquia: { id: 1, nombre: 'X' }, configuracion: { dias_ventana_justificacion: 5 } })

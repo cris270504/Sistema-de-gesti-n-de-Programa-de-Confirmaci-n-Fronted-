@@ -2,11 +2,11 @@
 import { ref, reactive, onMounted } from 'vue'
 import {
   useParroquiaStore, CONFIG_DEFAULTS,
-  DASHBOARD_KPIS, DASHBOARD_PANELES, MODULOS_OCULTABLES,
+  DASHBOARD_KPIS, DASHBOARD_PANELES, MODULOS_OCULTABLES, CONFIRMANDOS_ESTADOS,
 } from '@/stores/parroquia'
 import {
   Save, RotateCcw, Image as ImageIcon,
-  Palette, CalendarRange, Users, Tag, LayoutDashboard, TriangleAlert, Check, PanelLeft,
+  Palette, CalendarRange, Users, Tag, LayoutDashboard, TriangleAlert, Check, PanelLeft, ListFilter,
 } from 'lucide-vue-next'
 import AppPage from '@/components/AppPage.vue'
 
@@ -39,6 +39,12 @@ const MODULO_META = {
   sacramentos: 'Sacramentos',
   requisitos: 'Requisitos',
 }
+const ESTADO_META = {
+  en_preparacion: 'En preparación',
+  confirmado: 'Confirmados',
+  retirado: 'Retirados',
+  todos: 'Todos',
+}
 
 function estructuraVacia() {
   return {
@@ -53,6 +59,7 @@ function estructuraVacia() {
     ui_dashboard_kpis: [...CONFIG_DEFAULTS.ui.dashboard_kpis],
     ui_dashboard_paneles: [...CONFIG_DEFAULTS.ui.dashboard_paneles],
     ui_modulos_visibles: [...MODULOS_OCULTABLES],
+    ui_confirmandos_estado_default: CONFIG_DEFAULTS.ui.confirmandos_estado_default,
   }
 }
 
@@ -71,6 +78,10 @@ function cargarDesdeStore() {
     const ocultos = c.ui?.modulos_ocultos ?? []
     form.ui_modulos_visibles = MODULOS_OCULTABLES.filter(m => !ocultos.includes(m))
   }
+  form.ui_confirmandos_estado_default =
+    CONFIRMANDOS_ESTADOS.includes(c.ui?.confirmandos_estado_default)
+      ? c.ui.confirmandos_estado_default
+      : CONFIG_DEFAULTS.ui.confirmandos_estado_default
   form.branding = {
     nombre_publico: c.branding?.nombre_publico ?? '',
     logo_url: c.branding?.logo_url ?? '',
@@ -106,6 +117,7 @@ async function guardar() {
       dashboard_kpis: DASHBOARD_KPIS.filter(k => form.ui_dashboard_kpis.includes(k)),
       dashboard_paneles: DASHBOARD_PANELES.filter(k => form.ui_dashboard_paneles.includes(k)),
       modulos_ocultos: MODULOS_OCULTABLES.filter(m => !form.ui_modulos_visibles.includes(m)),
+      confirmandos_estado_default: form.ui_confirmandos_estado_default,
     },
   }
   await parroquiaStore.save(payload)
@@ -253,6 +265,21 @@ const UMBRALES = [
                 <Check v-if="form.ui_modulos_visibles.includes(key)" :size="13" class="chip__check" /> {{ label }}
               </label>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Listado de confirmandos -->
+      <section class="card">
+        <header class="card__head">
+          <h3 class="card__title"><ListFilter :size="15" class="card__ico" /> Listado de confirmandos</h3>
+        </header>
+        <div class="card__body">
+          <div class="field">
+            <label>Filtro de estado al abrir la lista</label>
+            <select v-model="form.ui_confirmandos_estado_default" class="inp inp--md">
+              <option v-for="[key, label] in Object.entries(ESTADO_META)" :key="key" :value="key">{{ label }}</option>
+            </select>
           </div>
         </div>
       </section>

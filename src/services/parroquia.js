@@ -8,7 +8,7 @@ import { supabase } from '@/lib/supabase'
 
 const CONFIG_COLS =
   'programa_inicio, programa_fin, dias_ventana_justificacion, tipos_reunion,' +
-  ' umbrales_alerta, procedencias, branding, roles_labels, ui'
+  ' umbrales_alerta, procedencias, branding, roles_labels, ui, updated_at'
 
 export async function getConfiguracion() {
   const { data, error } = await supabase
@@ -17,6 +17,16 @@ export async function getConfiguracion() {
     .maybeSingle()
   if (error) throw new Error(error.message)
   return data ?? {} // sin fila → el store aplica sus defaults
+}
+
+// Solo el timestamp: para detectar si la config cambió sin traerla entera.
+export async function getConfiguracionUpdatedAt() {
+  const { data, error } = await supabase
+    .from('parroquia_configuraciones')
+    .select('updated_at')
+    .maybeSingle()
+  if (error) throw new Error(error.message)
+  return data?.updated_at ?? null
 }
 
 export async function updateConfiguracion(payload) {

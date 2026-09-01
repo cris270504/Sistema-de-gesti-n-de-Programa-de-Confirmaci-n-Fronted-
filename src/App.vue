@@ -4,6 +4,7 @@ import { SpeedInsights } from '@vercel/speed-insights/vue';
 import { onMounted, onUnmounted } from 'vue'
 import LoadingOverlay from '@/components/LoadingOverlay.vue'
 import { useAuthStore } from '@/stores/auth'
+import { useParroquiaStore } from '@/stores/parroquia'
 import { supabase } from '@/lib/supabase'
 
 // Heartbeat a Supabase mientras alguien tiene la app abierta: mantiene el
@@ -19,8 +20,15 @@ const pingHealth = () => {
   fetch(HEALTH_URL, { method: 'GET', cache: 'no-store' }).catch(() => {})
 }
 
+// Al volver a la pestaña, traer la config de la parroquia si cambió (otro
+// coordinador la editó). refreshIfStale se auto-limita a un chequeo cada 30s.
+const onVisible = () => {
+  if (document.visibilityState === 'visible') useParroquiaStore().refreshIfStale()
+}
+
 onMounted(async () => {
   heartbeatId = setInterval(pingHealth, HEARTBEAT_INTERVAL_MS)
+  document.addEventListener('visibilitychange', onVisible)
 
   // Fase 1 migración Supabase: mantener el token del store sincronizado con la
   // sesión de supabase-js (refresco automático, cierre de sesión remoto).
@@ -41,6 +49,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   clearInterval(heartbeatId)
+  document.removeEventListener('visibilitychange', onVisible)
 })
 </script>
 
