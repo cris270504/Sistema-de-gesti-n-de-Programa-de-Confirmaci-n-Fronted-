@@ -1,9 +1,12 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { useParroquiaStore, CONFIG_DEFAULTS, DASHBOARD_KPIS, DASHBOARD_PANELES } from '@/stores/parroquia'
+import {
+  useParroquiaStore, CONFIG_DEFAULTS,
+  DASHBOARD_KPIS, DASHBOARD_PANELES, MODULOS_OCULTABLES,
+} from '@/stores/parroquia'
 import {
   Save, RotateCcw, Image as ImageIcon,
-  Palette, CalendarRange, Users, Tag, LayoutDashboard, TriangleAlert, Check,
+  Palette, CalendarRange, Users, Tag, LayoutDashboard, TriangleAlert, Check, PanelLeft,
 } from 'lucide-vue-next'
 import AppPage from '@/components/AppPage.vue'
 
@@ -30,6 +33,12 @@ const PANEL_META = {
   proximos_encuentros: 'Próximos encuentros',
   retencion: 'Estado de retención',
 }
+const MODULO_META = {
+  cronograma: 'Cronograma',
+  cumpleanos: 'Cumpleaños',
+  sacramentos: 'Sacramentos',
+  requisitos: 'Requisitos',
+}
 
 function estructuraVacia() {
   return {
@@ -43,6 +52,7 @@ function estructuraVacia() {
     roles_labels: {},
     ui_dashboard_kpis: [...CONFIG_DEFAULTS.ui.dashboard_kpis],
     ui_dashboard_paneles: [...CONFIG_DEFAULTS.ui.dashboard_paneles],
+    ui_modulos_visibles: [...MODULOS_OCULTABLES],
   }
 }
 
@@ -57,6 +67,10 @@ function cargarDesdeStore() {
   form.roles_labels = { ...(c.roles_labels ?? {}) }
   form.ui_dashboard_kpis = [...(c.ui?.dashboard_kpis ?? CONFIG_DEFAULTS.ui.dashboard_kpis)]
   form.ui_dashboard_paneles = [...(c.ui?.dashboard_paneles ?? CONFIG_DEFAULTS.ui.dashboard_paneles)]
+  {
+    const ocultos = c.ui?.modulos_ocultos ?? []
+    form.ui_modulos_visibles = MODULOS_OCULTABLES.filter(m => !ocultos.includes(m))
+  }
   form.branding = {
     nombre_publico: c.branding?.nombre_publico ?? '',
     logo_url: c.branding?.logo_url ?? '',
@@ -91,6 +105,7 @@ async function guardar() {
     ui: {
       dashboard_kpis: DASHBOARD_KPIS.filter(k => form.ui_dashboard_kpis.includes(k)),
       dashboard_paneles: DASHBOARD_PANELES.filter(k => form.ui_dashboard_paneles.includes(k)),
+      modulos_ocultos: MODULOS_OCULTABLES.filter(m => !form.ui_modulos_visibles.includes(m)),
     },
   }
   await parroquiaStore.save(payload)
@@ -216,6 +231,26 @@ const UMBRALES = [
                 :class="{ 'chip--on': form.ui_dashboard_paneles.includes(key) }">
                 <input type="checkbox" :value="key" v-model="form.ui_dashboard_paneles" />
                 <Check v-if="form.ui_dashboard_paneles.includes(key)" :size="13" class="chip__check" /> {{ label }}
+              </label>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Módulos del menú -->
+      <section class="card">
+        <header class="card__head">
+          <h3 class="card__title"><PanelLeft :size="15" class="card__ico" /> Módulos del menú</h3>
+          <p class="card__hint">Qué secciones aparecen en el menú lateral. No cambia los permisos: solo oculta el
+            acceso a las parroquias que no usan ese módulo.</p>
+        </header>
+        <div class="card__body">
+          <div class="field">
+            <div class="chips">
+              <label v-for="[key, label] in Object.entries(MODULO_META)" :key="key" class="chip"
+                :class="{ 'chip--on': form.ui_modulos_visibles.includes(key) }">
+                <input type="checkbox" :value="key" v-model="form.ui_modulos_visibles" />
+                <Check v-if="form.ui_modulos_visibles.includes(key)" :size="13" class="chip__check" /> {{ label }}
               </label>
             </div>
           </div>

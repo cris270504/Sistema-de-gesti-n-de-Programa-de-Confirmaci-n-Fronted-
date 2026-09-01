@@ -249,6 +249,8 @@ const filteredSections = computed(() => {
   return menuSections.value.map(section => {
     // Filtramos los items internos de cada sección
     const allowedItems = section.items.filter(item => {
+      // Módulo ocultado por la parroquia en Configuración (cosmético, no seguridad).
+      if (parroquiaStore.moduloOculto(item.to?.name)) return false;
       if (!item.permission) return true;
       return Array.isArray(item.permission)
         ? authStore.canAll(item.permission)

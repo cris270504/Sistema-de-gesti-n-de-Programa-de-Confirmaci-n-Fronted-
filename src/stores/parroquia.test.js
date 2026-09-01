@@ -68,6 +68,17 @@ describe('stores/parroquia', () => {
     expect(s.usaProcedencia).toBe(true)
   })
 
+  it('moduloOculto refleja ui.modulos_ocultos', () => {
+    const s = useParroquiaStore()
+    s.hydrateFromLogin({
+      parroquia: { id: 1, nombre: 'X' },
+      configuracion: { ...CONFIG_DEFAULTS, ui: { modulos_ocultos: ['cumpleanos'] } },
+    })
+    expect(s.moduloOculto('cumpleanos')).toBe(true)
+    expect(s.moduloOculto('cronograma')).toBe(false)
+    expect(s.moduloOculto('dashboard')).toBe(false)
+  })
+
   it('clear vuelve a defaults y limpia localStorage', () => {
     const s = useParroquiaStore()
     s.hydrateFromLogin({ parroquia: { id: 1, nombre: 'X' }, configuracion: { dias_ventana_justificacion: 5 } })

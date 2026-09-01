@@ -26,6 +26,8 @@ export const CONFIG_DEFAULTS = {
     dashboard_kpis: ['confirmandos', 'usuarios', 'grupos'],
     // Bloques del panel.
     dashboard_paneles: ['seguimiento_critico', 'proximos_encuentros', 'retencion'],
+    // Módulos del menú que la parroquia oculta (por nombre de ruta). Vacío = ninguno.
+    modulos_ocultos: [],
   },
 }
 
@@ -33,6 +35,8 @@ export const CONFIG_DEFAULTS = {
 // estas listas; una clave desconocida guardada es inofensiva (se ignora acá).
 export const DASHBOARD_KPIS = ['confirmandos', 'usuarios', 'grupos']
 export const DASHBOARD_PANELES = ['seguimiento_critico', 'proximos_encuentros', 'retencion']
+// Módulos que se pueden ocultar (nombre de ruta). El resto es núcleo y no se toca.
+export const MODULOS_OCULTABLES = ['cronograma', 'cumpleanos', 'sacramentos', 'requisitos']
 
 // Etiqueta por defecto de un rol interno cuando la parroquia no definió una.
 const ROLES_DEFAULT = {
@@ -87,6 +91,8 @@ export const useParroquiaStore = defineStore('parroquia', {
     dashboardPaneles: (s) => s.configuracion?.ui?.dashboard_paneles ?? CONFIG_DEFAULTS.ui.dashboard_paneles,
     // La procedencia (sede/caserío) solo aporta si la parroquia usa más de una.
     usaProcedencia: (s) => (s.configuracion?.procedencias ?? CONFIG_DEFAULTS.procedencias).length > 1,
+    // true si la parroquia ocultó ese módulo del menú (por nombre de ruta).
+    moduloOculto: (s) => (nombreRuta) => (s.configuracion?.ui?.modulos_ocultos ?? []).includes(nombreRuta),
   },
 
   actions: {

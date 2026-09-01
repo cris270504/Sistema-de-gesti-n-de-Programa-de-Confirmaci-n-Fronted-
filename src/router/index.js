@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { LS_TOKEN_KEY, LS_USER_KEY } from '@/constants/auth'
+import { LS_TOKEN_KEY, LS_USER_KEY, LS_PARROQUIA_KEY } from '@/constants/auth'
 import { useAuthStore } from '@/stores/auth'
 import { useUiStore } from '@/stores/ui'
 
@@ -48,6 +48,15 @@ export function rutaRedirectSegura(fullPath) {
 // Los permisos se refrescan desde el backend como mucho una vez antes de bloquear
 // con /403 (por si el localStorage traía permisos viejos).
 let permisosYaRefrescados = false
+
+// Módulos que la parroquia ocultó (Configuración → Módulos del menú). Se lee de
+// localStorage directo para no acoplar el router al store de parroquia.
+function modulosOcultos() {
+  try {
+    const ocultos = JSON.parse(localStorage.getItem(LS_PARROQUIA_KEY))?.configuracion?.ui?.modulos_ocultos
+    return Array.isArray(ocultos) ? ocultos : []
+  } catch { return [] }
+}
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -113,7 +122,7 @@ const router = createRouter({
           path: '/cronograma',
           name: 'cronograma',
           component: ListCronograma,
-          meta: { title: 'Cronograma', permission: ['ver cronograma'] }
+          meta: { title: 'Cronograma', permission: ['ver cronograma'], modulo: 'cronograma' }
         },
 
         //ASISTENCIAS
@@ -155,7 +164,7 @@ const router = createRouter({
           path: '/sacramentos',
           name: 'sacramentos',
           component: ListSacramentos,
-          meta: { title: 'Lista de sacramentos', permission: 'ver todos los sacramentos' }
+          meta: { title: 'Lista de sacramentos', permission: 'ver todos los sacramentos', modulo: 'sacramentos' }
         },
 
         //cumpleanos
@@ -163,14 +172,14 @@ const router = createRouter({
           path: '/cumpleanos',
           name: 'cumpleanos',
           component: Listcumpleanos,
-          meta: { title: 'Lista de cumpleanos' }
+          meta: { title: 'Lista de cumpleanos', modulo: 'cumpleanos' }
         },
         //REQUISITOS
         {
           path: '/requisitos',
           name: 'requisitos',
           component: ListRequisitos,
-          meta: { title: 'Lista de requisitos', permission: 'ver todos los requisitos' }
+          meta: { title: 'Lista de requisitos', permission: 'ver todos los requisitos', modulo: 'requisitos' }
         },
 
         //ROLES
@@ -255,6 +264,12 @@ router.beforeEach(async (to) => {
   }
 
   if (onlyGuests && logged) {
+    return { name: 'dashboard' };
+  }
+
+  // Módulo desactivado por la parroquia en Configuración. Cosmético (los permisos
+  // siguen mandando): un enlace guardado o escrito a mano cae al Dashboard.
+  if (logged && to.meta?.modulo && modulosOcultos().includes(to.meta.modulo)) {
     return { name: 'dashboard' };
   }
 
