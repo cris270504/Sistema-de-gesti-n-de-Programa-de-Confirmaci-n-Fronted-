@@ -140,7 +140,7 @@ const confirmarRetiroJoven = async (joven) => {
         <div class="row g-3 mb-4">
           <div v-if="authStore.can('ver todos los confirmandos')" class="col-sm-4">
             <div class="card border-0 shadow-sm rounded-4 text-center p-3">
-              <h2 class="fw-bold mb-0 text-info">{{ metricas.cant_confirmandos }}</h2>
+              <h2 class="fw-bold mb-0 text-info">{{ metricas.activos }}</h2>
               <p class="text-muted small mb-0">Confirmandos</p>
               <RouterLink :to="{ name: 'confirmandos' }" class="stretched-link"></RouterLink>
             </div>
