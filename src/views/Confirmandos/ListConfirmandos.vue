@@ -262,7 +262,9 @@ const abrirGenerador = async () => {
     } else {
         groupNames.value = ['Grupo Nuevo 1'];
     }
-    const sinGrupo = confirmandos.value.filter(c => !c.grupo_id);
+    // El reparto solo considera confirmandos EN PREPARACIÓN sin grupo (igual que
+    // fn_generar_grupos_equitativo). No cuenta retirados ni confirmados.
+    const sinGrupo = confirmandos.value.filter(c => !c.grupo_id && c.estado === 'en_preparacion');
     stats.value = {
         total: sinGrupo.length,
         hombres: sinGrupo.filter(c => c.genero === 'm' || c.genero === 'M').length,
