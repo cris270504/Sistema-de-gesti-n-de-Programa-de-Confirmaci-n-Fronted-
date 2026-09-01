@@ -8,6 +8,7 @@ import {
     Wand2, Trash2, Save, Upload, Eye, Search, X, ArrowRight, Info,
 } from 'lucide-vue-next';
 import { useAuthStore } from '@/stores/auth';
+import { useParroquiaStore } from '@/stores/parroquia';
 import { Modal } from 'bootstrap';
 import { showAlerta } from '@/funciones';
 import { attachModalFocusReturn } from '@/composables/useModalFocusReturn';
@@ -52,6 +53,7 @@ const abrirPerfil = (id) => {
 const confirmandosStore = useConfirmandosStore();
 const gruposStore = useGruposStore();
 const authStore = useAuthStore();
+const parroquiaStore = useParroquiaStore();
 
 // NOTA: Como Laravel ahora devuelve "get()", items trae todo el array.
 const { items: confirmandos, loading, error } = storeToRefs(confirmandosStore);
@@ -464,7 +466,7 @@ onUnmounted(() => {
                     </div>
 
                     <!-- Selector de Procedencia (Reducido) -->
-                    <select v-model="filtros.procedencia" class="form-select shadow-sm"
+                    <select v-if="parroquiaStore.usaProcedencia" v-model="filtros.procedencia" class="form-select shadow-sm"
                         style="width: 130px; flex-shrink: 0;" aria-label="Filtrar por procedencia" :disabled="loading">
                         <option value="todos">Todos</option>
                         <option value="sede">Sede</option>

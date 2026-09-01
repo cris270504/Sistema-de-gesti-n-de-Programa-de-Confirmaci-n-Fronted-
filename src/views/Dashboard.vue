@@ -26,6 +26,9 @@ const esGestor = authStore.can('ver usuarios');
 // en Configuración (parroquiaStore.dashboardKpis). La config puede ocultar, nunca revelar.
 const verKpi = (clave, permiso) => authStore.can(permiso) && parroquiaStore.dashboardKpis.includes(clave);
 
+// Ídem para los bloques del panel (combinar con el gate de rol donde exista).
+const verPanel = (clave) => parroquiaStore.dashboardPaneles.includes(clave);
+
 // Retirar del programa (baja formal) es exclusivo de coordinador / super-admin.
 // El backend ya exige `eliminar confirmandos`; acá ocultamos la UF correspondiente.
 const puedeRetirar = computed(() => authStore.can('eliminar confirmandos'));
@@ -168,7 +171,7 @@ const confirmarRetiroJoven = async (joven) => {
         </div>
 
         <!-- TABLA DE ALERTAS -->
-        <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+        <div v-if="verPanel('seguimiento_critico')" class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
           <div class="card-header bg-white py-3 border-0 d-flex flex-wrap align-items-center justify-content-between gap-2">
             <div class="d-flex align-items-center">
               <TriangleAlert class="h-5 w-5 text-danger me-2" aria-hidden="true" />
@@ -315,7 +318,7 @@ const confirmarRetiroJoven = async (joven) => {
           </div>
         </div>
 
-        <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
+        <div v-if="verPanel('proximos_encuentros')" class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
           <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
             <h6 class="mb-0 fw-bold d-flex align-items-center">
               <Calendar class="h-5 w-5 text-primary me-2" aria-hidden="true" />Próximos Encuentros
@@ -366,7 +369,7 @@ const confirmarRetiroJoven = async (joven) => {
       <!-- COLUMNA LATERAL (DERECHA) -->
       <div class="col-xl-4">
         <!-- MÉTRICAS DE PROGRESO (solo coordinador / super-admin) -->
-        <div class="card border-0 shadow-sm rounded-4 p-4 mb-4" v-if="esGestor">
+        <div class="card border-0 shadow-sm rounded-4 p-4 mb-4" v-if="esGestor && verPanel('retencion')">
           <h6 class="fw-bold text-muted text-uppercase small mb-3">Estado de Retención</h6>
           <div class="mb-4">
             <div class="d-flex justify-content-between mb-1">

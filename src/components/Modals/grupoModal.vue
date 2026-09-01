@@ -47,9 +47,14 @@ onUnmounted(() => {
 });
 
 // --- FUNCIÓN PÚBLICA OPEN ---
+// Si la parroquia usa una sola procedencia, el grupo la toma automáticamente
+// (el campo se oculta) para no romper la validación de "procedencia obligatoria".
+const procedenciaPorDefecto = () =>
+  parroquiaStore.usaProcedencia ? null : (parroquiaStore.procedencias[0] ?? null);
+
 const open = async (id = null) => {
   // 1. Resetear
-  draft.value = { id: id, nombre: '', periodo: '', color: '#2563eb', procedencia: null };
+  draft.value = { id: id, nombre: '', periodo: '', color: '#2563eb', procedencia: procedenciaPorDefecto() };
 
   modalInstance.value.show();
 
@@ -76,7 +81,7 @@ async function loadData(id) {
         nombre: grupo.nombre ?? '',
         periodo: grupo.periodo ?? '',
         color: grupo.color ?? '#2563eb',
-        procedencia: grupo.procedencia ?? '',
+        procedencia: grupo.procedencia ?? procedenciaPorDefecto() ?? '',
       };
     } else {
       showAlerta(`Grupo no encontrado`, 'warning');
@@ -161,7 +166,7 @@ async function submitUpdate() {
                 </div>
               </div>
 
-              <div class="col-12">
+              <div v-if="parroquiaStore.usaProcedencia" class="col-12">
                 <label for="grupoProcedencia"
                   class="form-label fw-bold text-secondary small text-uppercase">Procedencia</label>
                 <div class="input-group">

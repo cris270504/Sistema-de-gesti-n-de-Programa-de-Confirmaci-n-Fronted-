@@ -4,12 +4,14 @@ import { onMounted, ref, watch } from 'vue'; // Agregamos watch
 import { RouterLink } from 'vue-router';
 import { UserPlus, Pencil, Trash, Plus, Users, Calendar, Download } from 'lucide-vue-next';
 import { useGruposStore } from '../../stores/grupos';
+import { useParroquiaStore } from '@/stores/parroquia';
 import GrupoModal from '../../components/Modals/grupoModal.vue';
 import { showAlerta } from '@/funciones'; // Importamos showAlerta
 import { exportarConfirmandosExcel } from '@/services/confirmandos';
 import AppPage from '@/components/AppPage.vue';
 
 const gruposStore = useGruposStore();
+const parroquiaStore = useParroquiaStore();
 const { items: grupos, loading, error } = storeToRefs(gruposStore);
 const { fetchAll, remove } = gruposStore;
 
@@ -99,7 +101,7 @@ onMounted(() => {
                                     <div>
                                         <div class="fw-bold text-dark fs-6 lh-sm">{{ g.nombre }}</div>
                                         <div class="text-muted mt-1 small d-flex align-items-center">
-                                            <Calendar :size="12" class="me-1" /> {{ g.periodo }} - {{ g.procedencia }}
+                                            <Calendar :size="12" class="me-1" /> {{ g.periodo }}<template v-if="parroquiaStore.usaProcedencia && g.procedencia"> - {{ g.procedencia }}</template>
                                         </div>
                                     </div>
                                 </div>

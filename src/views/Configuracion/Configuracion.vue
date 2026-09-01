@@ -1,6 +1,6 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { useParroquiaStore, CONFIG_DEFAULTS, DASHBOARD_KPIS } from '@/stores/parroquia'
+import { useParroquiaStore, CONFIG_DEFAULTS, DASHBOARD_KPIS, DASHBOARD_PANELES } from '@/stores/parroquia'
 import {
   Save, RotateCcw, Image as ImageIcon,
   Palette, CalendarRange, Users, Tag, LayoutDashboard, TriangleAlert, Check,
@@ -19,11 +19,16 @@ const ROLES_INTERNOS = [
   ['catequista', 'Catequista'],
 ]
 
-// Etiqueta + permiso que además hace falta para que el KPI aparezca en el panel.
+// Etiquetas para los toggles del panel de control.
 const KPI_META = {
-  confirmandos: ['Confirmandos', 'ver todos los confirmandos'],
-  usuarios: ['Usuarios', 'ver usuarios'],
-  grupos: ['Grupos', 'ver todos los grupos'],
+  confirmandos: 'Confirmandos',
+  usuarios: 'Usuarios',
+  grupos: 'Grupos',
+}
+const PANEL_META = {
+  seguimiento_critico: 'Seguimiento crítico',
+  proximos_encuentros: 'Próximos encuentros',
+  retencion: 'Estado de retención',
 }
 
 function estructuraVacia() {
@@ -37,6 +42,7 @@ function estructuraVacia() {
     branding: { nombre_publico: '', logo_url: '', color_primario: '#2563eb' },
     roles_labels: {},
     ui_dashboard_kpis: [...CONFIG_DEFAULTS.ui.dashboard_kpis],
+    ui_dashboard_paneles: [...CONFIG_DEFAULTS.ui.dashboard_paneles],
   }
 }
 
@@ -50,6 +56,7 @@ function cargarDesdeStore() {
   form.procedencias = (c.procedencias ?? CONFIG_DEFAULTS.procedencias).join(', ')
   form.roles_labels = { ...(c.roles_labels ?? {}) }
   form.ui_dashboard_kpis = [...(c.ui?.dashboard_kpis ?? CONFIG_DEFAULTS.ui.dashboard_kpis)]
+  form.ui_dashboard_paneles = [...(c.ui?.dashboard_paneles ?? CONFIG_DEFAULTS.ui.dashboard_paneles)]
   form.branding = {
     nombre_publico: c.branding?.nombre_publico ?? '',
     logo_url: c.branding?.logo_url ?? '',
@@ -83,6 +90,7 @@ async function guardar() {
     },
     ui: {
       dashboard_kpis: DASHBOARD_KPIS.filter(k => form.ui_dashboard_kpis.includes(k)),
+      dashboard_paneles: DASHBOARD_PANELES.filter(k => form.ui_dashboard_paneles.includes(k)),
     },
   }
   await parroquiaStore.save(payload)
@@ -187,19 +195,29 @@ const UMBRALES = [
       <section class="card">
         <header class="card__head">
           <h3 class="card__title"><LayoutDashboard :size="15" class="card__ico" /> Panel de control</h3>
-          <p class="card__hint">Qué tarjetas KPI se muestran. Cada una aparece solo si además tienes el permiso para
-            verla.</p>
+          <p class="card__hint">Qué se muestra en el dashboard. Cada opción aparece solo si además tienes el permiso
+            para verla.</p>
         </header>
         <div class="card__body">
           <div class="field">
+            <label>Tarjetas KPI</label>
             <div class="chips">
-              <label v-for="[key, [label]] in Object.entries(KPI_META)" :key="key" class="chip"
+              <label v-for="[key, label] in Object.entries(KPI_META)" :key="key" class="chip"
                 :class="{ 'chip--on': form.ui_dashboard_kpis.includes(key) }">
                 <input type="checkbox" :value="key" v-model="form.ui_dashboard_kpis" />
                 <Check v-if="form.ui_dashboard_kpis.includes(key)" :size="13" class="chip__check" /> {{ label }}
               </label>
             </div>
-            <small v-if="form.ui_dashboard_kpis.length === 0">Sin ninguna marcada, el panel no muestra tarjetas KPI.</small>
+          </div>
+          <div class="field">
+            <label>Bloques</label>
+            <div class="chips">
+              <label v-for="[key, label] in Object.entries(PANEL_META)" :key="key" class="chip"
+                :class="{ 'chip--on': form.ui_dashboard_paneles.includes(key) }">
+                <input type="checkbox" :value="key" v-model="form.ui_dashboard_paneles" />
+                <Check v-if="form.ui_dashboard_paneles.includes(key)" :size="13" class="chip__check" /> {{ label }}
+              </label>
+            </div>
           </div>
         </div>
       </section>

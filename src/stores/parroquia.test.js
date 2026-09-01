@@ -48,6 +48,26 @@ describe('stores/parroquia', () => {
     expect(s.nombreApp).toBe('Otra')
   })
 
+  it('mergea `ui` en profundidad: una clave parcial no borra las otras', () => {
+    const s = useParroquiaStore()
+    // El backend devuelve solo dashboard_kpis; dashboard_paneles debe caer al default.
+    s.hydrateFromLogin({
+      parroquia: { id: 1, nombre: 'X' },
+      configuracion: { ...CONFIG_DEFAULTS, ui: { dashboard_kpis: ['grupos'] } },
+    })
+
+    expect(s.dashboardKpis).toEqual(['grupos'])
+    expect(s.dashboardPaneles).toEqual(CONFIG_DEFAULTS.ui.dashboard_paneles)
+  })
+
+  it('usaProcedencia es false con una sola procedencia', () => {
+    const s = useParroquiaStore()
+    s.hydrateFromLogin({ parroquia: { id: 1, nombre: 'X' }, configuracion: { ...CONFIG_DEFAULTS, procedencias: ['sede'] } })
+    expect(s.usaProcedencia).toBe(false)
+    s.hydrateFromLogin({ parroquia: { id: 1, nombre: 'X' }, configuracion: { ...CONFIG_DEFAULTS, procedencias: ['sede', 'caserio'] } })
+    expect(s.usaProcedencia).toBe(true)
+  })
+
   it('clear vuelve a defaults y limpia localStorage', () => {
     const s = useParroquiaStore()
     s.hydrateFromLogin({ parroquia: { id: 1, nombre: 'X' }, configuracion: { dias_ventana_justificacion: 5 } })
