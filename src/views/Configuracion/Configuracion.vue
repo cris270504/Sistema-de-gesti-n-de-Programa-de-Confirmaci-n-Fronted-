@@ -1,7 +1,10 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useParroquiaStore, CONFIG_DEFAULTS, DASHBOARD_KPIS } from '@/stores/parroquia'
-import { Save, RotateCcw, Image as ImageIcon } from 'lucide-vue-next'
+import {
+  Save, RotateCcw, Image as ImageIcon,
+  Palette, CalendarRange, Users, Tag, LayoutDashboard, TriangleAlert, Check,
+} from 'lucide-vue-next'
 import AppPage from '@/components/AppPage.vue'
 
 const parroquiaStore = useParroquiaStore()
@@ -97,7 +100,8 @@ const UMBRALES = [
 </script>
 
 <template>
-  <AppPage title="Configuración" subtitle="Ajustes que aplican a toda la parroquia" :loading="parroquiaStore.loading" skeleton="form">
+  <AppPage title="Configuración" subtitle="Ajustes que aplican a toda la parroquia" :loading="parroquiaStore.loading"
+    skeleton="form">
     <template #actions>
       <button type="button" class="cfg__reset" :disabled="saving" @click="cargarDesdeStore">
         <RotateCcw :size="14" /> Descartar
@@ -107,7 +111,9 @@ const UMBRALES = [
     <form class="cfg__form" @submit.prevent="guardar">
       <!-- Identidad -->
       <section class="card">
-        <h3 class="card__title">Identidad</h3>
+        <header class="card__head">
+          <h3 class="card__title"><Palette :size="15" class="card__ico" /> Identidad</h3>
+        </header>
         <div class="card__body">
           <div class="row-identidad">
             <div class="logo-box">
@@ -126,7 +132,8 @@ const UMBRALES = [
           </div>
           <div class="field">
             <label>URL del logo</label>
-            <input v-model="form.branding.logo_url" type="url" maxlength="500" placeholder="https://…/logo.png" class="inp" />
+            <input v-model="form.branding.logo_url" type="url" maxlength="500" placeholder="https://…/logo.png"
+              class="inp" />
             <small>Súbelo a un hosting de imágenes y pega el enlace.</small>
           </div>
         </div>
@@ -134,29 +141,36 @@ const UMBRALES = [
 
       <!-- Programa -->
       <section class="card">
-        <h3 class="card__title">Programa</h3>
-        <div class="card__body row">
-          <div class="field">
-            <label>Inicio</label>
-            <input v-model="form.programa_inicio" type="date" class="inp inp--date" />
-          </div>
-          <div class="field">
-            <label>Cierre <span class="opt">(opcional)</span></label>
-            <input v-model="form.programa_fin" type="date" :min="form.programa_inicio || undefined" class="inp inp--date" />
+        <header class="card__head">
+          <h3 class="card__title"><CalendarRange :size="15" class="card__ico" /> Programa</h3>
+        </header>
+        <div class="card__body">
+          <div class="grid-fields grid-fields--sm">
+            <div class="field">
+              <label>Inicio</label>
+              <input v-model="form.programa_inicio" type="date" class="inp" />
+            </div>
+            <div class="field">
+              <label>Cierre <span class="opt">(opcional)</span></label>
+              <input v-model="form.programa_fin" type="date" :min="form.programa_inicio || undefined" class="inp" />
+            </div>
           </div>
         </div>
       </section>
 
       <!-- Reuniones y grupos -->
       <section class="card">
-        <h3 class="card__title">Reuniones y grupos</h3>
+        <header class="card__head">
+          <h3 class="card__title"><Users :size="15" class="card__ico" /> Reuniones y grupos</h3>
+        </header>
         <div class="card__body">
           <div class="field">
             <label>Tipos de reunión activos</label>
             <div class="chips">
-              <label v-for="t in TIPOS_REUNION" :key="t" class="chip" :class="{ 'chip--on': form.tipos_reunion.includes(t) }">
+              <label v-for="t in TIPOS_REUNION" :key="t" class="chip"
+                :class="{ 'chip--on': form.tipos_reunion.includes(t) }">
                 <input type="checkbox" :value="t" v-model="form.tipos_reunion" />
-                {{ t }}
+                <Check v-if="form.tipos_reunion.includes(t)" :size="13" class="chip__check" /> {{ t }}
               </label>
             </div>
             <small v-if="form.tipos_reunion.length === 0" class="err">Debe quedar al menos uno.</small>
@@ -169,29 +183,20 @@ const UMBRALES = [
         </div>
       </section>
 
-      <!-- Roles -->
-      <section class="card">
-        <h3 class="card__title">Nombres de los roles</h3>
-        <p class="card__hint">Cómo se muestran en la interfaz (no cambia los permisos).</p>
-        <div class="card__body">
-          <div v-for="[rol, ph] in ROLES_INTERNOS" :key="rol" class="field">
-            <label>{{ ph }}</label>
-            <input v-model="form.roles_labels[rol]" type="text" maxlength="60" :placeholder="ph" class="inp" />
-          </div>
-        </div>
-      </section>
-
       <!-- Panel de control -->
       <section class="card">
-        <h3 class="card__title">Panel de control</h3>
-        <p class="card__hint">Qué tarjetas KPI se muestran. Cada una aparece solo si además tienes el permiso para verla.</p>
+        <header class="card__head">
+          <h3 class="card__title"><LayoutDashboard :size="15" class="card__ico" /> Panel de control</h3>
+          <p class="card__hint">Qué tarjetas KPI se muestran. Cada una aparece solo si además tienes el permiso para
+            verla.</p>
+        </header>
         <div class="card__body">
           <div class="field">
             <div class="chips">
               <label v-for="[key, [label]] in Object.entries(KPI_META)" :key="key" class="chip"
                 :class="{ 'chip--on': form.ui_dashboard_kpis.includes(key) }">
                 <input type="checkbox" :value="key" v-model="form.ui_dashboard_kpis" />
-                {{ label }}
+                <Check v-if="form.ui_dashboard_kpis.includes(key)" :size="13" class="chip__check" /> {{ label }}
               </label>
             </div>
             <small v-if="form.ui_dashboard_kpis.length === 0">Sin ninguna marcada, el panel no muestra tarjetas KPI.</small>
@@ -199,10 +204,28 @@ const UMBRALES = [
         </div>
       </section>
 
+      <!-- Roles -->
+      <section class="card">
+        <header class="card__head">
+          <h3 class="card__title"><Tag :size="15" class="card__ico" /> Nombres de los roles</h3>
+          <p class="card__hint">Cómo se muestran en la interfaz (no cambia los permisos).</p>
+        </header>
+        <div class="card__body">
+          <div class="grid-fields">
+            <div v-for="[rol, ph] in ROLES_INTERNOS" :key="rol" class="field">
+              <label>{{ ph }}</label>
+              <input v-model="form.roles_labels[rol]" type="text" maxlength="60" :placeholder="ph" class="inp" />
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- Alertas -->
-      <section class="card card--wide">
-        <h3 class="card__title">Alertas del dashboard</h3>
-        <p class="card__hint">Un confirmando entra en la alerta al alcanzar estos valores.</p>
+      <section class="card">
+        <header class="card__head">
+          <h3 class="card__title"><TriangleAlert :size="15" class="card__ico" /> Alertas del dashboard</h3>
+          <p class="card__hint">Un confirmando entra en la alerta al alcanzar estos valores.</p>
+        </header>
         <div class="umbral-grid">
           <div class="umbral">
             <span>Días para poder justificar una falta</span>
@@ -225,90 +248,342 @@ const UMBRALES = [
 </template>
 
 <style scoped>
-.cfg__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; }
 .cfg__reset {
-  display: inline-flex; align-items: center; gap: .4rem;
-  border: 1px solid #e2e8f0; border-radius: 8px; padding: .4rem .7rem;
-  font-size: .8rem; color: #475569; background: #fff;
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: .4rem .7rem;
+  font-size: .8rem;
+  color: #475569;
+  background: #fff;
 }
-.cfg__reset:hover { background: #f8fafc; }
 
-/* Grilla que aprovecha todo el ancho: 3 tarjetas por fila en desktop, 2, luego 1. */
+.cfg__reset:hover {
+  background: #f8fafc;
+}
+
+/* Columna centrada y acotada: legible en laptop, idéntica en celular. */
 .cfg__form {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  max-width: 820px;
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
   gap: 1rem;
-  align-items: start;
 }
-.card--wide { grid-column: 1 / -1; }
-.cfg__bar { grid-column: 1 / -1; }
 
-.card { border: 1px solid #e2e8f0; border-radius: 12px; background: #fff; padding: 1.1rem 1.25rem; }
-.card__title { font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: #64748b; margin: 0 0 .85rem; }
-.card__hint { font-size: .78rem; color: #94a3b8; margin: -.6rem 0 .85rem; }
-.card__body { display: flex; flex-direction: column; gap: .85rem; }
-.card__body.row { flex-direction: row; flex-wrap: wrap; gap: .85rem 2rem; }
+.card {
+  border: 1px solid #e6eaf0;
+  border-radius: 14px;
+  background: #fff;
+  padding: 1.15rem 1.35rem 1.3rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+}
 
-.field { display: flex; flex-direction: column; min-width: 0; }
-.field.grow { flex: 1; }
-.field label { font-size: .82rem; color: #475569; margin-bottom: .3rem; }
-.field small { font-size: .72rem; color: #94a3b8; margin-top: .25rem; }
-.field small.err, .err { font-size: .72rem; color: #e11d48; margin-top: .25rem; }
-.opt { color: #94a3b8; }
+.card__head {
+  margin-bottom: 1rem;
+}
+
+.card__title {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  font-size: .82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .045em;
+  color: #334155;
+  margin: 0;
+}
+
+.card__ico {
+  color: var(--parroquia-color, #6366f1);
+  flex-shrink: 0;
+}
+
+.card__hint {
+  font-size: .78rem;
+  color: #94a3b8;
+  margin: .4rem 0 0;
+  line-height: 1.35;
+}
+
+.card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.field.grow {
+  flex: 1;
+}
+
+.field label {
+  font-size: .82rem;
+  font-weight: 500;
+  color: #475569;
+  margin-bottom: .35rem;
+}
+
+.field small {
+  font-size: .72rem;
+  color: #94a3b8;
+  margin-top: .3rem;
+}
+
+.field small.err,
+.err {
+  font-size: .72rem;
+  color: #e11d48;
+  margin-top: .3rem;
+}
+
+.opt {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+/* Sub-grilla de campos: 2-3 por fila en laptop, 1 en celular. */
+.grid-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: .9rem 1.1rem;
+}
+
+.grid-fields--sm {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  max-width: 420px;
+}
 
 .inp {
-  width: 100%; border: 1px solid #cbd5e1; border-radius: 8px;
-  padding: .45rem .6rem; font-size: .88rem; background: #fff;
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 9px;
+  padding: .5rem .65rem;
+  font-size: .88rem;
+  background: #fff;
+  color: #1e293b;
 }
-.inp:focus { outline: 2px solid #c7d2fe; outline-offset: -1px; border-color: #6366f1; }
-.inp--md { max-width: 340px; }
-.inp--date { width: 176px; }
-.inp-color { width: 56px; height: 36px; padding: 2px; border: 1px solid #cbd5e1; border-radius: 8px; cursor: pointer; }
-.inp-num { width: 68px; border: 1px solid #cbd5e1; border-radius: 8px; padding: .4rem; text-align: center; font-size: .88rem; }
 
-.row-identidad { display: flex; align-items: flex-end; gap: 1rem; }
-@media (max-width: 560px) { .row-identidad { flex-wrap: wrap; } .field.grow { flex-basis: 100%; } }
+.inp:focus {
+  outline: 2px solid #c7d2fe;
+  outline-offset: -1px;
+  border-color: #6366f1;
+}
+
+.inp--md {
+  max-width: 340px;
+}
+
+.inp-color {
+  width: 100%;
+  min-width: 48px;
+  height: 38px;
+  padding: 3px;
+  border: 1px solid #cbd5e1;
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+.inp-num {
+  width: 64px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: .4rem;
+  text-align: center;
+  font-size: .88rem;
+  color: #1e293b;
+}
+
+.inp-num:focus {
+  outline: 2px solid #c7d2fe;
+  outline-offset: -1px;
+  border-color: #6366f1;
+}
+
+.row-identidad {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: end;
+  gap: 1rem;
+}
+
+@media (max-width: 520px) {
+  .row-identidad {
+    grid-template-columns: auto 1fr;
+  }
+
+  .row-identidad .field:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .inp-color {
+    max-width: 120px;
+  }
+}
+
 .logo-box {
-  width: 56px; height: 56px; flex-shrink: 0;
-  display: grid; place-items: center; overflow: hidden;
-  border: 1px solid #e2e8f0; border-radius: 10px; background: #f8fafc;
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  border-radius: 11px;
+  background: #f8fafc;
 }
-.logo-box img { width: 100%; height: 100%; object-fit: contain; }
 
-.chips { display: flex; flex-wrap: wrap; gap: .5rem; }
+.logo-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Chips seleccionables */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+
 .chip {
-  display: inline-flex; align-items: center; gap: .45rem; margin: 0;
-  border: 1px solid #e2e8f0; border-radius: 9px; padding: .4rem .7rem;
-  font-size: .84rem; color: #64748b; cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  margin: 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: .45rem .8rem;
+  font-size: .84rem;
+  font-weight: 500;
+  color: #64748b;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color .12s, border-color .12s, color .12s;
 }
-.chip--on { border-color: #c7d2fe; background: #eef2ff; color: #3730a3; }
 
-/* En pantallas anchas los umbrales van en 2-3 columnas para no dejar espacio muerto. */
+.chip:hover {
+  border-color: #cbd5e1;
+}
+
+.chip input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  margin: 0;
+}
+
+.chip__check {
+  flex-shrink: 0;
+}
+
+.chip--on {
+  border-color: #c7d2fe;
+  background: #eef2ff;
+  color: #3730a3;
+  border-color: color-mix(in srgb, var(--parroquia-color, #6366f1) 45%, #e2e8f0);
+  background: color-mix(in srgb, var(--parroquia-color, #6366f1) 9%, #fff);
+  color: color-mix(in srgb, var(--parroquia-color, #6366f1) 75%, #1e293b);
+}
+
+/* Umbrales: lista en 2 columnas en laptop, 1 en celular. */
 .umbral-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
-  gap: 0 2rem;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 2rem;
 }
+
+@media (max-width: 620px) {
+  .umbral-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .umbral {
-  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
-  padding: .55rem 0; border-bottom: 1px solid #f1f5f9; font-size: .86rem; color: #475569;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .6rem 0;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: .85rem;
+  color: #475569;
 }
-.umbral > span { display: inline-flex; align-items: center; gap: .5rem; }
-.tag { font-style: normal; font-size: .62rem; font-weight: 700; border-radius: 4px; padding: .1rem .35rem; }
-.tag--alto { background: #ffe4e6; color: #be123c; }
-.tag--medio { background: #fef3c7; color: #b45309; }
-.tag--bajo { background: #e0f2fe; color: #0369a1; }
 
-.cfg__bar { position: sticky; bottom: 0; padding: .8rem 0; margin-top: .25rem; display: flex; justify-content: flex-end; background: linear-gradient(transparent, #f9fafb 40%); }
-.cfg__bar .btn-primary { display: inline-flex; align-items: center; gap: .5rem; }
+.umbral>span {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  line-height: 1.3;
+}
 
-/* En celular la barra no flota (tapaba el formulario): queda al final, sólida. */
+.tag {
+  font-style: normal;
+  font-size: .6rem;
+  font-weight: 700;
+  letter-spacing: .03em;
+  border-radius: 4px;
+  padding: .12rem .35rem;
+  flex-shrink: 0;
+}
+
+.tag--alto {
+  background: #ffe4e6;
+  color: #be123c;
+}
+
+.tag--medio {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.tag--bajo {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+/* Barra de guardado */
+.cfg__bar {
+  position: sticky;
+  bottom: 0;
+  padding: .9rem 0 .5rem;
+  margin-top: .25rem;
+  display: flex;
+  justify-content: flex-end;
+  background: linear-gradient(transparent, #f8fafc 45%);
+}
+
+.cfg__bar .btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  border-radius: 10px;
+  padding: .6rem 1.2rem;
+}
+
 @media (max-width: 767px) {
+  .card {
+    padding: 1rem 1.05rem 1.1rem;
+    border-radius: 12px;
+  }
+
   .cfg__bar {
     position: static;
     background: none;
-    padding-top: 1rem;
+    padding: 1rem 0 0;
   }
-  .cfg__bar .btn-primary { width: 100%; justify-content: center; }
+
+  .cfg__bar .btn-primary {
+    width: 100%;
+    justify-content: center;
+  }
 }
 </style>
