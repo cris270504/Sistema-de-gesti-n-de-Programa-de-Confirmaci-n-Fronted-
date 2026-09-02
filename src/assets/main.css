@@ -159,12 +159,24 @@ textarea {
 }
 .btn-primary {
   /* Sigue el color de la parroquia (--parroquia-color lo fija DefaultLayout.vue;
-     en Configuración se actualiza en vivo mientras se edita). */
+     en Configuración se actualiza en vivo mientras se edita). El !important es
+     porque bootstrap.min.css se importa DESPUÉS y su `.btn-primary` reasigna
+     --bs-btn-bg a #0d6efd. Cubre tanto los .btn-primary propios como los que
+     además llevan la clase .btn de Bootstrap. */
   @apply text-white focus-visible:ring-indigo-500;
-  background-color: var(--parroquia-color, #2563eb);
+  background-color: var(--parroquia-color, #2563eb) !important;
+  border-color: var(--parroquia-color, #2563eb) !important;
+  --bs-btn-bg: var(--parroquia-color, #2563eb) !important;
+  --bs-btn-border-color: var(--parroquia-color, #2563eb) !important;
+  --bs-btn-hover-bg: color-mix(in srgb, var(--parroquia-color, #2563eb), #000 12%) !important;
+  --bs-btn-hover-border-color: color-mix(in srgb, var(--parroquia-color, #2563eb), #000 12%) !important;
+  --bs-btn-active-bg: color-mix(in srgb, var(--parroquia-color, #2563eb), #000 18%) !important;
+  --bs-btn-active-border-color: color-mix(in srgb, var(--parroquia-color, #2563eb), #000 18%) !important;
+  --bs-btn-disabled-bg: var(--parroquia-color, #2563eb) !important;
+  --bs-btn-disabled-border-color: var(--parroquia-color, #2563eb) !important;
 }
 .btn-primary:hover:not(:disabled) {
-  background-color: color-mix(in srgb, var(--parroquia-color, #2563eb), #000 12%);
+  background-color: color-mix(in srgb, var(--parroquia-color, #2563eb), #000 12%) !important;
 }
 .btn-secondary {
   @apply bg-gray-200 text-gray-800 hover:bg-gray-300;
@@ -463,15 +475,24 @@ tbody tr:hover {
 /* ===== BRANDING POR PARROQUIA =====
    El color de la parroquia se aplica en runtime como estilo inline en <html> desde
    src/lib/tema.js (--parroquia-color, --color-primary, --bs-primary/-rgb) — gana a
-   toda hoja de estilo. Acá solo el fallback de --parroquia-color para el login. */
+   toda hoja de estilo. Acá el fallback de --parroquia-color para el login y los
+   overrides de superficies de Bootstrap que traen el azul #0d6efd literal. */
 :root {
   --parroquia-color: #2563eb;
 }
-.btn-primary {
-  --bs-btn-bg: var(--parroquia-color);
-  --bs-btn-border-color: var(--parroquia-color);
-  --bs-btn-hover-bg: color-mix(in srgb, var(--parroquia-color), black 12%);
-  --bs-btn-hover-border-color: color-mix(in srgb, var(--parroquia-color), black 12%);
-  --bs-btn-active-bg: color-mix(in srgb, var(--parroquia-color), black 18%);
-  --bs-btn-active-border-color: color-mix(in srgb, var(--parroquia-color), black 18%);
+
+/* Casillas / radios marcados de Bootstrap (traen #0d6efd literal). */
+.form-check-input:checked {
+  background-color: var(--parroquia-color, #2563eb) !important;
+  border-color: var(--parroquia-color, #2563eb) !important;
+}
+.form-check-input:focus {
+  border-color: color-mix(in srgb, var(--parroquia-color, #2563eb) 55%, #fff);
+  box-shadow: 0 0 0 .25rem color-mix(in srgb, var(--parroquia-color, #2563eb) 25%, transparent);
+}
+/* Foco de inputs/selects de Bootstrap. */
+.form-control:focus,
+.form-select:focus {
+  border-color: color-mix(in srgb, var(--parroquia-color, #2563eb) 55%, #fff);
+  box-shadow: 0 0 0 .25rem color-mix(in srgb, var(--parroquia-color, #2563eb) 25%, transparent);
 }

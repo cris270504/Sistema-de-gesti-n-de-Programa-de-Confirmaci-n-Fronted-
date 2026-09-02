@@ -71,7 +71,16 @@ export const useAuthStore = defineStore('auth', {
 
         // Hidratar el usuario de la app (roles, permisos, parroquia, config).
         const { data, error: errUser } = await supabase.rpc('fn_get_user')
-        if (errUser || !data) throw new Error(errUser?.message || 'No se pudo cargar el perfil')
+        if (errUser || !data) {
+          // Parroquia desactivada u otro rechazo del backend: cerramos la sesión
+          // de Supabase que sí se creó y mostramos el motivo real.
+          const msg = errUser?.message || 'No se pudo cargar el perfil'
+          await supabase.auth.signOut().catch(() => {})
+          this.logoutLocal()
+          showAlerta(/desactivad|inactiv/i.test(msg) ? msg : 'No se pudo iniciar sesión', 'error')
+          this.error = msg
+          return false
+        }
         this.user = data
         localStorage.setItem(LS_USER_KEY, JSON.stringify(data))
 
@@ -118,7 +127,15 @@ export const useAuthStore = defineStore('auth', {
     async refrescarUsuario() {
       if (!this.token) return
       const { data, error } = await supabase.rpc('fn_get_user')
-      if (error || !data) return // sesión inválida → onAuthStateChange cierra; otros: se conserva localStorage
+      if (error || !data) {
+        // Parroquia desactivada (u otro rechazo explícito): cerrar sesión ahora.
+        // Errores transitorios (red): se conserva localStorage.
+        if (/desactivad|inactiv|no encontrado o inactivo/i.test(error?.message || '')) {
+          showAlerta(error.message, 'error')
+          await this.logout()
+        }
+        return
+      }
       this.user = { ...this.user, ...data }
       localStorage.setItem(LS_USER_KEY, JSON.stringify(this.user))
       useParroquiaStore().hydrateFromLogin({

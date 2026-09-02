@@ -57,14 +57,6 @@ function limpiarLocal() {
   logoLocal.value = ''
 }
 
-// Vista previa del color EN VIVO sobre todo el sistema mientras se edita.
-// Al salir sin guardar (o al Descartar) se restaura el color guardado.
-watch(() => form.branding.color_primario, (hex) => aplicarColorParroquia(hex))
-onBeforeUnmount(() => {
-  limpiarLocal()
-  aplicarColorParroquia(parroquiaStore.branding.color_primario)
-})
-
 async function onLogoFile(e) {
   const file = e.target.files?.[0]
   e.target.value = ''
@@ -148,6 +140,14 @@ async function quitarLogoActual() {
 const TIPOS_REUNION = ['Confirmandos', 'Catequistas', 'Apoderados']
 const saving = ref(false)
 const form = reactive(estructuraVacia())
+
+// Vista previa del color EN VIVO sobre todo el sistema mientras se edita.
+// Al salir sin guardar (o al Descartar) se restaura el color guardado.
+watch(() => form.branding.color_primario, (hex) => aplicarColorParroquia(hex))
+onBeforeUnmount(() => {
+  limpiarLocal()
+  aplicarColorParroquia(parroquiaStore.branding.color_primario)
+})
 
 const ROLES_INTERNOS = [
   ['super-admin', 'Administrador'],
