@@ -19,6 +19,11 @@
                 <router-view />
             </main>
 
+            <footer v-if="showChrome" class="app-footer"
+                :class="{ 'app-footer--with-bottomnav': showBottomNav }">
+                <AppCredit />
+            </footer>
+
             <BottomNav v-if="showBottomNav" />
         </div>
     </div>
@@ -30,6 +35,7 @@ import { useRoute } from 'vue-router'
 import Sidebar from '../components/Sidebar.vue'
 import Navbar from '../components/Navbar.vue'
 import BottomNav from '../components/BottomNav.vue'
+import AppCredit from '../components/AppCredit.vue'
 import { useParroquiaStore } from '@/stores/parroquia'
 import { useAuthStore } from '@/stores/auth'
 import { useMediaQuery } from '@/composables/useMediaQuery'
@@ -90,6 +96,17 @@ onUnmounted(() => { document.body.style.overflow = '' })
 
 .main-content--with-bottomnav {
     padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px) + 0.5rem);
+}
+
+.app-footer {
+    flex-shrink: 0;
+    border-top: 1px solid #eef2f6;
+    background: #fff;
+    padding: 6px 12px;
+}
+
+.app-footer--with-bottomnav {
+    margin-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
 }
 
 /* ===== Móvil / tablet: barra lateral como cajón ===== */

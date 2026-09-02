@@ -6,6 +6,7 @@ import { useUiStore } from '@/stores/ui';
 import { rutaRedirectSegura } from '@/router';
 import { showAlerta } from '@/funciones';
 import PasswordField from '@/components/PasswordField.vue';
+import AppCredit from '@/components/AppCredit.vue';
 
 const router = useRouter()
 const route = useRoute()
@@ -49,7 +50,7 @@ const submit = async () => {
 </script>
 
 <template>
-    <div class="flex items-center justify-center min-h-screen bg-gray-100 px-4 py-12">
+    <div class="flex flex-col items-center justify-center min-h-screen bg-gray-100 px-4 py-12">
         <div class="w-full max-w-md bg-white rounded-lg shadow-md p-6 md:p-8">
             <div class="text-center mb-8">
                 <img src="@/assets/logo.png" alt="Logo App" class="mx-auto h-49 w-auto mb-4" />
@@ -101,5 +102,7 @@ const submit = async () => {
                 </div>
             </form>
         </div>
+
+        <AppCredit class="mt-6 max-w-md" />
     </div>
 </template>
