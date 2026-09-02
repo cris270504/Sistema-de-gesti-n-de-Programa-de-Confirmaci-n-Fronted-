@@ -1,9 +1,10 @@
 <script setup>
-import { ref, reactive, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { Modal } from 'bootstrap'
-import { Plus, Check, X, Copy, Building2, KeyRound, Eye, Search, Clock } from 'lucide-vue-next'
+import { Plus, Check, X, Copy, Building2, KeyRound, Eye, Search, Clock, Upload, Image as ImageIcon } from 'lucide-vue-next'
 import { showAlerta, confirmar, slugify } from '@/funciones'
-import { listParroquias, crearParroquia, actualizarParroquia } from '@/services/proveedor'
+import { listParroquias, crearParroquia, actualizarParroquia, getBrandingParroquia } from '@/services/proveedor'
+import { subirLogo, quitarLogo } from '@/services/branding'
 import AppPage from '@/components/AppPage.vue'
 import { useMediaQuery } from '@/composables/useMediaQuery'
 
@@ -29,6 +30,8 @@ const errores = ref({})
 
 // --- Alta ---
 const form = reactive({ nombre: '', slug: '', zona_horaria: 'America/Lima', admin_nombre: '', admin_email: '', admin_dni: '' })
+const nuevoLogo = ref(null)          // File elegido en el alta (se sube tras crear)
+const nuevoLogoPreview = ref('')     // objectURL
 const slugManual = ref(false)
 const slugPreview = computed(() => (slugManual.value ? form.slug : slugify(form.nombre)))
 watch(() => form.nombre, () => { if (!slugManual.value) form.slug = slugify(form.nombre) })
@@ -38,6 +41,84 @@ const edit = reactive({ id: null, nombre: '', slug: '', zona_horaria: '', activa
 const editSlugManual = ref(false)
 const editErrores = ref({})
 const savingEdit = ref(false)
+
+// Branding en el detalle (ranura 'proveedor').
+const editBranding = reactive({ logo_url: '', logo_url_proveedor: '' })
+const editLogoInput = ref(null)
+const editLogoSubiendo = ref(false)
+const editLogoLocal = ref('')
+const editLogoPreview = computed(() =>
+  editLogoLocal.value || editBranding.logo_url_proveedor || editBranding.logo_url || '')
+
+function limpiarLocales() {
+  if (nuevoLogoPreview.value) URL.revokeObjectURL(nuevoLogoPreview.value)
+  if (editLogoLocal.value) URL.revokeObjectURL(editLogoLocal.value)
+  nuevoLogoPreview.value = ''
+  editLogoLocal.value = ''
+}
+onBeforeUnmount(limpiarLocales)
+
+function onNuevoLogo(e) {
+  const file = e.target.files?.[0]
+  e.target.value = ''
+  if (!file) return
+  if (nuevoLogoPreview.value) URL.revokeObjectURL(nuevoLogoPreview.value)
+  nuevoLogo.value = file
+  nuevoLogoPreview.value = URL.createObjectURL(file)
+}
+
+function quitarNuevoLogo() {
+  if (nuevoLogoPreview.value) URL.revokeObjectURL(nuevoLogoPreview.value)
+  nuevoLogo.value = null
+  nuevoLogoPreview.value = ''
+}
+
+async function onEditLogo(e) {
+  const file = e.target.files?.[0]
+  e.target.value = ''
+  if (!file || !edit.id) return
+  editLogoSubiendo.value = true
+  if (editLogoLocal.value) URL.revokeObjectURL(editLogoLocal.value)
+  editLogoLocal.value = URL.createObjectURL(file)
+  try {
+    const { branding } = await subirLogo({
+      parroquiaId: edit.id, slot: 'proveedor', file, urlAnterior: editBranding.logo_url_proveedor,
+    })
+    editBranding.logo_url = branding?.logo_url ?? ''
+    editBranding.logo_url_proveedor = branding?.logo_url_proveedor ?? ''
+    showAlerta('Logo del proveedor actualizado', 'success')
+  } catch (err) {
+    showAlerta(err.message || 'No se pudo subir el logo', 'error')
+  } finally {
+    if (editLogoLocal.value) URL.revokeObjectURL(editLogoLocal.value)
+    editLogoLocal.value = ''
+    editLogoSubiendo.value = false
+  }
+}
+
+async function quitarEditLogo() {
+  const ok = await confirmar({
+    titulo: '¿Quitar el logo base?',
+    texto: editBranding.logo_url
+      ? 'La parroquia seguirá viendo el logo que subió su administrador.'
+      : 'La parroquia quedará con el logo por defecto del sistema.',
+    icono: 'warning', confirmarTexto: 'Sí, quitar',
+  })
+  if (!ok) return
+  editLogoSubiendo.value = true
+  try {
+    const { branding } = await quitarLogo({
+      parroquiaId: edit.id, slot: 'proveedor', urlAnterior: editBranding.logo_url_proveedor,
+    })
+    editBranding.logo_url = branding?.logo_url ?? ''
+    editBranding.logo_url_proveedor = branding?.logo_url_proveedor ?? ''
+    showAlerta('Logo base quitado', 'success')
+  } catch (err) {
+    showAlerta(err.message || 'No se pudo quitar el logo', 'error')
+  } finally {
+    editLogoSubiendo.value = false
+  }
+}
 
 const resumen = computed(() => ({
   activas: parroquias.value.filter(p => p.activa).length,
@@ -78,6 +159,7 @@ onUnmounted(() => {
 function abrirAlta() {
   errores.value = {}
   slugManual.value = false
+  quitarNuevoLogo()
   Object.assign(form, { nombre: '', slug: '', zona_horaria: 'America/Lima', admin_nombre: '', admin_email: '', admin_dni: '' })
   nextTick(() => {
     formModal ??= new Modal(formModalRef.value, { backdrop: 'static' })
@@ -100,6 +182,17 @@ async function crear() {
     if (form.admin_dni.trim()) payload.admin_dni = form.admin_dni.trim()
 
     const res = await crearParroquia(payload)
+
+    // Logo (opcional): la parroquia ya existe, subimos a la ranura del proveedor.
+    if (nuevoLogo.value && res?.parroquia?.id) {
+      try {
+        await subirLogo({ parroquiaId: res.parroquia.id, slot: 'proveedor', file: nuevoLogo.value })
+      } catch (err) {
+        showAlerta(`Parroquia creada, pero el logo no se pudo subir: ${err.message}`, 'warning')
+      }
+    }
+    quitarNuevoLogo()
+
     formModal?.hide()
     credenciales.value = { parroquia: res.parroquia.nombre, ...res.admin }
     await nextTick()
@@ -114,7 +207,7 @@ async function crear() {
   }
 }
 
-function abrirDetalle(p) {
+async function abrirDetalle(p) {
   editErrores.value = {}
   editSlugManual.value = false
   Object.assign(edit, {
@@ -122,6 +215,14 @@ function abrirDetalle(p) {
     activa: p.activa, created_at: p.created_at,
     users_count: p.users_count, grupos_count: p.grupos_count, confirmandos_count: p.confirmandos_count,
   })
+  editBranding.logo_url = ''
+  editBranding.logo_url_proveedor = ''
+  getBrandingParroquia(p.id)
+    .then((b) => {
+      editBranding.logo_url = b?.logo_url ?? ''
+      editBranding.logo_url_proveedor = b?.logo_url_proveedor ?? ''
+    })
+    .catch(() => { /* sin branding aún */ })
   nextTick(() => {
     detalleModal ??= new Modal(detalleModalRef.value, { backdrop: 'static' })
     detalleModal.show()
@@ -314,6 +415,22 @@ function copiar(txt) {
                     <option v-for="z in ZONAS" :key="z" :value="z">{{ z }}</option>
                   </select>
                 </label>
+                <div class="text-sm sm:col-span-2">
+                  <span class="block mb-1">Logo <span class="text-slate-400">(opcional)</span></span>
+                  <div class="flex items-center gap-3">
+                    <div class="lp-logobox">
+                      <img v-if="nuevoLogoPreview" :src="nuevoLogoPreview" alt="" />
+                      <ImageIcon v-else :size="18" class="text-slate-300" />
+                    </div>
+                    <input ref="nuevoLogoInput" type="file" accept="image/png,image/jpeg,image/webp"
+                      class="lp-file" @change="onNuevoLogo" />
+                    <button type="button" class="btn-outline btn-sm" @click="$refs.nuevoLogoInput.click()">
+                      <Upload :size="14" class="inline" /> Elegir imagen
+                    </button>
+                    <button v-if="nuevoLogo" type="button" class="lp-link" @click="quitarNuevoLogo">Quitar</button>
+                  </div>
+                  <small class="text-slate-400">PNG, JPG o WebP. Se optimiza al subir. El admin podrá reemplazarlo.</small>
+                </div>
               </div>
 
               <p class="mt-4 mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Primer administrador</p>
@@ -389,6 +506,33 @@ function copiar(txt) {
               <p v-if="!edit.activa" class="mt-3 text-xs text-amber-600">
                 Con la parroquia inactiva, sus usuarios no podrán iniciar sesión.
               </p>
+
+              <div class="mt-4 border-t pt-4">
+                <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Logo base</p>
+                <div class="flex items-center gap-3">
+                  <div class="lp-logobox lp-logobox--lg">
+                    <img v-if="editLogoPreview" :src="editLogoPreview" alt="" />
+                    <ImageIcon v-else :size="20" class="text-slate-300" />
+                  </div>
+                  <div class="min-w-0">
+                    <input ref="editLogoInput" type="file" accept="image/png,image/jpeg,image/webp"
+                      class="lp-file" @change="onEditLogo" />
+                    <div class="flex flex-wrap items-center gap-2">
+                      <button type="button" class="btn-outline btn-sm" :disabled="editLogoSubiendo"
+                        @click="$refs.editLogoInput.click()">
+                        <Upload :size="14" class="inline" />
+                        {{ editLogoSubiendo ? 'Subiendo…' : (editBranding.logo_url_proveedor ? 'Cambiar' : 'Subir logo') }}
+                      </button>
+                      <button v-if="editBranding.logo_url_proveedor" type="button" class="lp-link"
+                        :disabled="editLogoSubiendo" @click="quitarEditLogo">Quitar</button>
+                    </div>
+                    <small class="text-slate-400 block mt-1">
+                      <template v-if="editBranding.logo_url">El admin ya subió su propio logo; este solo se ve si lo quita.</template>
+                      <template v-else>Se muestra hasta que el admin de la parroquia suba el suyo.</template>
+                    </small>
+                  </div>
+                </div>
+              </div>
             </div>
             <div class="modal-footer">
               <button type="button" class="btn-outline" data-bs-dismiss="modal" :disabled="savingEdit">Cancelar</button>
@@ -541,6 +685,34 @@ function copiar(txt) {
   background: none;
   border: 0;
   cursor: pointer;
+}
+.lp-link:disabled { opacity: 0.5; }
+
+.lp-file {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.lp-logobox {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+.lp-logobox--lg { width: 56px; height: 56px; }
+.lp-logobox img { width: 100%; height: 100%; object-fit: contain; }
+
+.btn-sm {
+  padding: 0.35rem 0.7rem;
+  font-size: 0.8rem;
 }
 .lp-readonly {
   background: #f8fafc;

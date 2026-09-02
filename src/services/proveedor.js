@@ -28,6 +28,17 @@ export const crearParroquia = async (payload) => {
   return data // { message, parroquia, admin: { email, temp_password } }
 }
 
+// Branding de una parroquia (el proveedor puede leer cualquier fila por RLS).
+export const getBrandingParroquia = async (id) => {
+  const { data, error } = await supabase
+    .from('parroquia_configuraciones')
+    .select('branding')
+    .eq('parroquia_id', Number(id))
+    .maybeSingle()
+  if (error) throw new Error(error.message)
+  return data?.branding ?? {}
+}
+
 export const actualizarParroquia = async (id, payload) => {
   const { data, error } = await supabase
     .from('parroquias')

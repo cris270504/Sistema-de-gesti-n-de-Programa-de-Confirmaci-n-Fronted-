@@ -275,7 +275,7 @@ defineExpose({ toggleSidebar });
     <div
       :class="['mb-2 flex items-center justify-between border-b pb-4', expanded ? 'px-2' : 'px-0 justify-center']">
       <div v-if="expanded" class="inline-flex items-center gap-2">
-        <img :src="parroquiaStore.branding.logo_url || defaultLogo" alt="Logo" class="h-10 w-auto object-contain"
+        <img :src="parroquiaStore.brandingLogo || defaultLogo" alt="Logo" class="h-10 w-auto object-contain"
           @error="e => (e.target.src = defaultLogo)" />
         <h5 class="block text-xl font-bold tracking-tight text-slate-800 truncate max-w-[160px]"
           :title="parroquiaStore.nombreApp">

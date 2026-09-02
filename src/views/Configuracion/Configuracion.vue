@@ -1,16 +1,111 @@
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue'
 import {
   useParroquiaStore, CONFIG_DEFAULTS,
   DASHBOARD_KPIS, DASHBOARD_PANELES, MODULOS_OCULTABLES, CONFIRMANDOS_ESTADOS, CONFIRMANDO_CAMPOS,
 } from '@/stores/parroquia'
 import {
-  Save, RotateCcw, Image as ImageIcon,
+  Save, RotateCcw, Image as ImageIcon, Upload,
   Palette, CalendarRange, Users, Tag, LayoutDashboard, TriangleAlert, Check, PanelLeft, ListFilter, UserCheck,
 } from 'lucide-vue-next'
+import { subirLogo, quitarLogo } from '@/services/branding'
+import { showAlerta, confirmar } from '@/funciones'
 import AppPage from '@/components/AppPage.vue'
 
 const parroquiaStore = useParroquiaStore()
+
+// ── Identidad: logo (Storage) + color en vivo ──────────────────────────────
+const fileInput = ref(null)
+const subiendoLogo = ref(false)
+const logoLocal = ref('') // objectURL de la imagen recién elegida (preview inmediato)
+
+const COLOR_PRESETS = [
+  '#2563eb', '#0ea5e9', '#0d9488', '#16a34a',
+  '#7c3aed', '#db2777', '#dc2626', '#ea580c',
+]
+
+const logoPreview = computed(() =>
+  logoLocal.value || form.branding.logo_url || form.branding.logo_url_proveedor || '')
+
+const usandoLogoProveedor = computed(() =>
+  !form.branding.logo_url && !!form.branding.logo_url_proveedor)
+
+const colorHex = computed({
+  get: () => form.branding.color_primario,
+  set: (v) => {
+    const s = String(v || '').trim().replace(/^#?/, '#')
+    if (/^#[0-9a-fA-F]{6}$/.test(s)) form.branding.color_primario = s.toLowerCase()
+  },
+})
+
+// Contraste del color contra texto blanco (WCAG AA = 4.5). CLAUDE.md §3.
+const contrasteBajo = computed(() => {
+  const m = /^#([0-9a-fA-F]{6})$/.exec(form.branding.color_primario || '')
+  if (!m) return false
+  const n = parseInt(m[1], 16)
+  const lin = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((c) => {
+    const x = c / 255
+    return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4)
+  })
+  const L = 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2]
+  return 1.05 / (L + 0.05) < 4.5
+})
+
+function limpiarLocal() {
+  if (logoLocal.value) URL.revokeObjectURL(logoLocal.value)
+  logoLocal.value = ''
+}
+onBeforeUnmount(limpiarLocal)
+
+async function onLogoFile(e) {
+  const file = e.target.files?.[0]
+  e.target.value = ''
+  if (!file) return
+  const pid = parroquiaStore.parroquia?.id
+  if (!pid) { showAlerta('No se pudo identificar la parroquia.', 'error'); return }
+
+  subiendoLogo.value = true
+  limpiarLocal()
+  logoLocal.value = URL.createObjectURL(file)
+  try {
+    const { branding } = await subirLogo({
+      parroquiaId: pid, slot: 'parroquia', file, urlAnterior: form.branding.logo_url,
+    })
+    parroquiaStore.aplicarBranding(branding)
+    cargarDesdeStore()
+    showAlerta('Logo actualizado', 'success')
+  } catch (err) {
+    showAlerta(err.message || 'No se pudo subir el logo', 'error')
+  } finally {
+    limpiarLocal()
+    subiendoLogo.value = false
+  }
+}
+
+async function quitarLogoActual() {
+  const ok = await confirmar({
+    titulo: '¿Quitar tu logo?',
+    texto: form.branding.logo_url_proveedor
+      ? 'Volverá a mostrarse el logo puesto por el proveedor.'
+      : 'La parroquia quedará con el logo por defecto del sistema.',
+    icono: 'warning',
+    confirmarTexto: 'Sí, quitar',
+  })
+  if (!ok) return
+  subiendoLogo.value = true
+  try {
+    const { branding } = await quitarLogo({
+      parroquiaId: parroquiaStore.parroquia.id, slot: 'parroquia', urlAnterior: form.branding.logo_url,
+    })
+    parroquiaStore.aplicarBranding(branding)
+    cargarDesdeStore()
+    showAlerta('Logo quitado', 'success')
+  } catch (err) {
+    showAlerta(err.message || 'No se pudo quitar el logo', 'error')
+  } finally {
+    subiendoLogo.value = false
+  }
+}
 
 const TIPOS_REUNION = ['Confirmandos', 'Catequistas', 'Apoderados']
 const saving = ref(false)
@@ -58,7 +153,7 @@ function estructuraVacia() {
     tipos_reunion: [],
     umbrales_alerta: { ...CONFIG_DEFAULTS.umbrales_alerta },
     procedencias: '',
-    branding: { nombre_publico: '', logo_url: '', color_primario: '#2563eb' },
+    branding: { nombre_publico: '', logo_url: '', logo_url_proveedor: '', color_primario: '#2563eb' },
     roles_labels: {},
     ui_dashboard_kpis: [...CONFIG_DEFAULTS.ui.dashboard_kpis],
     ui_dashboard_paneles: [...CONFIG_DEFAULTS.ui.dashboard_paneles],
@@ -92,6 +187,7 @@ function cargarDesdeStore() {
   form.branding = {
     nombre_publico: c.branding?.nombre_publico ?? '',
     logo_url: c.branding?.logo_url ?? '',
+    logo_url_proveedor: c.branding?.logo_url_proveedor ?? '',
     color_primario: c.branding?.color_primario ?? '#2563eb',
   }
 }
@@ -158,26 +254,72 @@ const UMBRALES = [
           <h3 class="card__title"><Palette :size="15" class="card__ico" /> Identidad</h3>
         </header>
         <div class="card__body">
-          <div class="row-identidad">
-            <div class="logo-box">
-              <img v-if="form.branding.logo_url" :src="form.branding.logo_url" alt="" />
-              <ImageIcon v-else :size="20" class="text-slate-300" />
-            </div>
-            <div class="field grow">
-              <label>Nombre visible</label>
-              <input v-model="form.branding.nombre_publico" type="text" maxlength="120"
-                placeholder="Parroquia Sagrado Corazón de Jesús" class="inp" />
-            </div>
-            <div class="field">
-              <label>Color</label>
-              <input v-model="form.branding.color_primario" type="color" class="inp-color" />
+          <div class="field">
+            <label>Nombre visible</label>
+            <input v-model="form.branding.nombre_publico" type="text" maxlength="120"
+              placeholder="Parroquia Sagrado Corazón de Jesús" class="inp" />
+          </div>
+
+          <div class="field">
+            <label>Logo</label>
+            <div class="logo-up">
+              <div class="logo-box logo-box--lg">
+                <img v-if="logoPreview" :src="logoPreview" alt="" />
+                <ImageIcon v-else :size="22" class="text-slate-300" />
+              </div>
+              <div class="logo-up__side">
+                <input ref="fileInput" type="file" accept="image/png,image/jpeg,image/webp"
+                  class="sr-file" @change="onLogoFile" />
+                <div class="logo-up__btns">
+                  <button type="button" class="btn-soft" :disabled="subiendoLogo" @click="fileInput?.click()">
+                    <Upload :size="14" />
+                    {{ subiendoLogo ? 'Subiendo…' : (form.branding.logo_url ? 'Cambiar logo' : 'Subir logo') }}
+                  </button>
+                  <button v-if="form.branding.logo_url" type="button" class="btn-quitar" :disabled="subiendoLogo"
+                    @click="quitarLogoActual">Quitar el mío</button>
+                </div>
+                <small v-if="usandoLogoProveedor">Mostrando el logo que puso el proveedor.</small>
+                <small v-else>PNG, JPG o WebP. Se recorta a un cuadrado y se optimiza (máx. 512 px).</small>
+              </div>
             </div>
           </div>
+
           <div class="field">
-            <label>URL del logo</label>
-            <input v-model="form.branding.logo_url" type="url" maxlength="500" placeholder="https://…/logo.png"
-              class="inp" />
-            <small>Súbelo a un hosting de imágenes y pega el enlace.</small>
+            <label>Color principal</label>
+            <div class="color-row">
+              <input v-model="colorHex" type="color" class="inp-color inp-color--sm" />
+              <input v-model="colorHex" type="text" maxlength="7" class="inp inp-hex" placeholder="#2563eb" />
+              <div class="swatches">
+                <button v-for="c in COLOR_PRESETS" :key="c" type="button" class="swatch"
+                  :class="{ 'swatch--on': form.branding.color_primario.toLowerCase() === c }"
+                  :style="{ background: c }" :title="c" @click="form.branding.color_primario = c" />
+              </div>
+            </div>
+            <small v-if="contrasteBajo" class="warn-contraste">
+              <TriangleAlert :size="12" /> El texto blanco sobre este color puede leerse mal (contraste bajo).
+            </small>
+          </div>
+
+          <div class="brand-preview" :style="{ '--pv': form.branding.color_primario }">
+            <span class="bp-tag">Vista previa</span>
+            <div class="bp-shell">
+              <div class="bp-side">
+                <span class="bp-logo">
+                  <img v-if="logoPreview" :src="logoPreview" alt="" />
+                  <ImageIcon v-else :size="13" class="text-slate-300" />
+                </span>
+                <span class="bp-name">{{ form.branding.nombre_publico || parroquiaStore.parroquia?.nombre || 'Nombre visible' }}</span>
+              </div>
+              <div class="bp-rows">
+                <span class="bp-row bp-row--on">Panel</span>
+                <span class="bp-row">Confirmandos</span>
+              </div>
+              <div class="bp-foot">
+                <button type="button" class="bp-btn">Guardar</button>
+                <span class="bp-chip">Activo</span>
+              </div>
+            </div>
+            <small>Así se verá en todo el sistema al guardar.</small>
           </div>
         </div>
       </section>
@@ -528,27 +670,6 @@ const UMBRALES = [
   border-color: #6366f1;
 }
 
-.row-identidad {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: end;
-  gap: 1rem;
-}
-
-@media (max-width: 520px) {
-  .row-identidad {
-    grid-template-columns: auto 1fr;
-  }
-
-  .row-identidad .field:last-child {
-    grid-column: 1 / -1;
-  }
-
-  .inp-color {
-    max-width: 120px;
-  }
-}
-
 .logo-box {
   width: 52px;
   height: 52px;
@@ -561,10 +682,238 @@ const UMBRALES = [
   background: #f8fafc;
 }
 
+.logo-box--lg {
+  width: 64px;
+  height: 64px;
+}
+
 .logo-box img {
   width: 100%;
   height: 100%;
   object-fit: contain;
+}
+
+/* Subidor de logo */
+.logo-up {
+  display: flex;
+  align-items: center;
+  gap: .9rem;
+}
+
+.logo-up__side {
+  display: flex;
+  flex-direction: column;
+  gap: .4rem;
+  min-width: 0;
+}
+
+.logo-up__btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+
+.sr-file {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.btn-soft {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 9px;
+  padding: .45rem .8rem;
+  font-size: .82rem;
+  font-weight: 500;
+  color: #334155;
+  background: #fff;
+}
+
+.btn-soft:hover:not(:disabled) {
+  background: #f8fafc;
+}
+
+.btn-soft:disabled {
+  opacity: .6;
+}
+
+.btn-quitar {
+  border: 0;
+  background: none;
+  font-size: .78rem;
+  font-weight: 500;
+  color: #e11d48;
+  padding: 0 .3rem;
+}
+
+.btn-quitar:disabled {
+  opacity: .5;
+}
+
+/* Color: picker + hex + presets */
+.color-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .6rem;
+}
+
+.inp-color--sm {
+  width: 44px;
+  min-width: 44px;
+  height: 34px;
+}
+
+.inp-hex {
+  width: 92px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  text-transform: lowercase;
+}
+
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .35rem;
+}
+
+.swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 1px solid rgba(15, 23, 42, .12);
+  cursor: pointer;
+  padding: 0;
+}
+
+.swatch--on {
+  outline: 2px solid #0f172a;
+  outline-offset: 1px;
+}
+
+.warn-contraste {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  color: #b45309 !important;
+}
+
+/* Vista previa del branding */
+.brand-preview {
+  border: 1px dashed #d8dee9;
+  border-radius: 12px;
+  padding: .85rem;
+  background: #fbfcfe;
+}
+
+.brand-preview .bp-tag {
+  font-size: .66rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: #94a3b8;
+}
+
+.bp-shell {
+  margin: .5rem 0 .45rem;
+  border: 1px solid #e6eaf0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.bp-side {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .5rem .6rem;
+  border-bottom: 1px solid #eef2f6;
+}
+
+.bp-logo {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 6px;
+  background: #f1f5f9;
+}
+
+.bp-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.bp-name {
+  font-size: .8rem;
+  font-weight: 700;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bp-rows {
+  display: flex;
+  flex-direction: column;
+  padding: .4rem .5rem;
+  gap: .2rem;
+}
+
+.bp-row {
+  font-size: .78rem;
+  color: #64748b;
+  padding: .3rem .5rem;
+  border-radius: 6px;
+}
+
+.bp-row--on {
+  background: color-mix(in srgb, var(--pv) 12%, #fff);
+  color: color-mix(in srgb, var(--pv) 78%, #1e293b);
+  font-weight: 600;
+}
+
+.bp-foot {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  padding: .5rem .6rem .6rem;
+}
+
+.bp-btn {
+  border: 0;
+  border-radius: 7px;
+  padding: .4rem .8rem;
+  font-size: .78rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--pv);
+}
+
+.bp-chip {
+  display: inline-flex;
+  align-items: center;
+  font-size: .74rem;
+  font-weight: 500;
+  padding: .25rem .6rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--pv) 40%, #e2e8f0);
+  background: color-mix(in srgb, var(--pv) 9%, #fff);
+  color: color-mix(in srgb, var(--pv) 75%, #1e293b);
+}
+
+@media (max-width: 520px) {
+  .logo-up {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 
 /* Chips seleccionables */

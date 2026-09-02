@@ -17,7 +17,7 @@ export const CONFIG_DEFAULTS = {
     bajo_tardanzas_seguidas: 2,
   },
   procedencias: ['sede', 'caserio'],
-  branding: { nombre_publico: null, logo_url: null, color_primario: '#2563eb' },
+  branding: { nombre_publico: null, logo_url: null, logo_url_proveedor: null, color_primario: '#2563eb' },
   roles_labels: {},
   // Personalización de interfaz. Filtro de layout: cada opción se muestra solo
   // si además el usuario tiene el permiso/rol correspondiente. Ausente ⇒ default.
@@ -96,6 +96,11 @@ export const useParroquiaStore = defineStore('parroquia', {
 
   getters: {
     branding: (s) => ({ ...CONFIG_DEFAULTS.branding, ...(s.configuracion?.branding ?? {}) }),
+    // Logo efectivo: el del admin de la parroquia manda; si no puso, el del proveedor.
+    brandingLogo: (s) => {
+      const b = { ...CONFIG_DEFAULTS.branding, ...(s.configuracion?.branding ?? {}) }
+      return b.logo_url || b.logo_url_proveedor || null
+    },
     tiposReunion: (s) => s.configuracion?.tipos_reunion ?? CONFIG_DEFAULTS.tipos_reunion,
     procedencias: (s) => s.configuracion?.procedencias ?? CONFIG_DEFAULTS.procedencias,
     nombreApp: (s) => s.configuracion?.branding?.nombre_publico || s.parroquia?.nombre || 'SGPC',
@@ -118,6 +123,18 @@ export const useParroquiaStore = defineStore('parroquia', {
     hydrateFromLogin({ parroquia, configuracion }) {
       if (parroquia) this.parroquia = parroquia
       if (configuracion) this.configuracion = mergeConfig(configuracion)
+      persist(this)
+    },
+
+    // Aplica el branding devuelto por fn_branding_logo_set sin recargar toda la
+    // configuración (la subida del logo no pasa por save()).
+    aplicarBranding(branding) {
+      if (!branding) return
+      this.configuracion = {
+        ...this.configuracion,
+        branding: { ...CONFIG_DEFAULTS.branding, ...branding },
+        updated_at: new Date().toISOString(),
+      }
       persist(this)
     },
 
