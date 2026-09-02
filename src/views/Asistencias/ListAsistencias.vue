@@ -3,6 +3,7 @@ import { ref, onMounted, watch, computed, nextTick } from 'vue';
 import { useAsistenciasStore } from '../../stores/asistencias';
 import { useGruposStore } from '../../stores/grupos';
 import { useAuthStore } from '../../stores/auth';
+import { useParroquiaStore } from '../../stores/parroquia';
 import { storeToRefs } from 'pinia';
 import { showAlerta } from '@/funciones';
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router';
@@ -40,6 +41,7 @@ const props = defineProps({
 const asistenciasStore = useAsistenciasStore();
 const gruposStore = useGruposStore();
 const authStore = useAuthStore();
+const parroquiaStore = useParroquiaStore();
 const router = useRouter();
 const route = useRoute();
 
@@ -507,10 +509,21 @@ const setEstadoRapido = (personaId, reunionId, nuevoEstado) => {
 };
 
 // --- REUNIÓN AÚN NO OCURRE: no se marca asistencia de algo que no empezó ---
+// "Ahora" en la zona horaria de la PARROQUIA (igual que el backend), no la del
+// navegador — si el dispositivo está en otra zona no debe cambiar el resultado.
 const ahoraNaive = () => {
-    const d = new Date();
-    const p = (n) => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+    try {
+        const s = new Intl.DateTimeFormat('sv-SE', {
+            timeZone: parroquiaStore.zonaHoraria,
+            year: 'numeric', month: '2-digit', day: '2-digit',
+            hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+        }).format(new Date());
+        return s.replace(' ', 'T'); // "2026-09-02 14:30:00" → "2026-09-02T14:30:00"
+    } catch {
+        const d = new Date();
+        const p = (n) => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+    }
 };
 const reunionFutura = (r) => {
     if (!r?.fecha) return false;

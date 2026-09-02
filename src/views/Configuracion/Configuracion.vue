@@ -194,6 +194,8 @@ function estructuraVacia() {
     tipos_reunion: [],
     umbrales_alerta: { ...CONFIG_DEFAULTS.umbrales_alerta },
     procedencias: '',
+    grupos_edad_min: '',
+    grupos_edad_max: '',
     branding: { nombre_publico: '', logo_url: '', logo_url_proveedor: '', color_primario: '#2563eb' },
     roles_labels: {},
     ui_dashboard_kpis: [...CONFIG_DEFAULTS.ui.dashboard_kpis],
@@ -212,6 +214,8 @@ function cargarDesdeStore() {
   form.tipos_reunion = [...(c.tipos_reunion ?? CONFIG_DEFAULTS.tipos_reunion)]
   form.umbrales_alerta = { ...CONFIG_DEFAULTS.umbrales_alerta, ...(c.umbrales_alerta ?? {}) }
   form.procedencias = (c.procedencias ?? CONFIG_DEFAULTS.procedencias).join(', ')
+  form.grupos_edad_min = c.grupos_edad_min ?? ''
+  form.grupos_edad_max = c.grupos_edad_max ?? ''
   form.roles_labels = { ...(c.roles_labels ?? {}) }
   form.ui_dashboard_kpis = [...(c.ui?.dashboard_kpis ?? CONFIG_DEFAULTS.ui.dashboard_kpis)]
   form.ui_dashboard_paneles = [...(c.ui?.dashboard_paneles ?? CONFIG_DEFAULTS.ui.dashboard_paneles)]
@@ -249,6 +253,8 @@ async function guardar() {
       Object.entries(form.umbrales_alerta).map(([k, v]) => [k, Number(v)]),
     ),
     procedencias: form.procedencias.split(',').map(s => s.trim()).filter(Boolean),
+    grupos_edad_min: form.grupos_edad_min === '' ? null : Number(form.grupos_edad_min),
+    grupos_edad_max: form.grupos_edad_max === '' ? null : Number(form.grupos_edad_max),
     roles_labels: Object.fromEntries(
       Object.entries(form.roles_labels).filter(([, v]) => (v || '').trim()),
     ),
@@ -412,6 +418,17 @@ const UMBRALES = [
             <label>Procedencias de grupo</label>
             <input v-model="form.procedencias" type="text" class="inp inp--md" />
             <small>Separadas por coma. Ej: <code>sede, caserio</code></small>
+          </div>
+          <div class="field">
+            <label>Edad para el reparto automático de grupos</label>
+            <div class="edad-row">
+              <input v-model="form.grupos_edad_min" type="number" min="1" max="99" class="inp-num" placeholder="—" />
+              <span>a</span>
+              <input v-model="form.grupos_edad_max" type="number" min="1" max="99" class="inp-num" placeholder="—" />
+              <span>años</span>
+            </div>
+            <small>Al "Generar grupos", solo se reparten confirmandos dentro de este rango (los que no tienen
+              fecha de nacimiento siempre entran). Deja ambos en blanco para no filtrar por edad.</small>
           </div>
         </div>
       </section>
@@ -697,6 +714,14 @@ const UMBRALES = [
 
 .inp--md {
   max-width: 340px;
+}
+
+.edad-row {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  font-size: .85rem;
+  color: #64748b;
 }
 
 .inp-color {

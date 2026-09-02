@@ -8,7 +8,8 @@ import { supabase } from '@/lib/supabase'
 
 const CONFIG_COLS =
   'programa_inicio, programa_fin, dias_ventana_justificacion, tipos_reunion,' +
-  ' umbrales_alerta, procedencias, branding, roles_labels, ui, updated_at'
+  ' umbrales_alerta, procedencias, branding, roles_labels, ui,' +
+  ' grupos_edad_min, grupos_edad_max, updated_at'
 
 export async function getConfiguracion() {
   const { data, error } = await supabase

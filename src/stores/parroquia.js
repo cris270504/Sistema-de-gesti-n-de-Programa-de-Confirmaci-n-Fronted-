@@ -17,6 +17,9 @@ export const CONFIG_DEFAULTS = {
     bajo_tardanzas_seguidas: 2,
   },
   procedencias: ['sede', 'caserio'],
+  // Rango de edad para el reparto automático de grupos. null = sin límite.
+  grupos_edad_min: null,
+  grupos_edad_max: null,
   branding: { nombre_publico: null, logo_url: null, logo_url_proveedor: null, color_primario: '#2563eb' },
   roles_labels: {},
   // Personalización de interfaz. Filtro de layout: cada opción se muestra solo
@@ -116,6 +119,13 @@ export const useParroquiaStore = defineStore('parroquia', {
       s.colorPreview || s.configuracion?.branding?.color_primario || CONFIG_DEFAULTS.branding.color_primario,
     // La procedencia (sede/caserío) solo aporta si la parroquia usa más de una.
     usaProcedencia: (s) => (s.configuracion?.procedencias ?? CONFIG_DEFAULTS.procedencias).length > 1,
+    // Zona horaria de la parroquia (para calcular "ahora" igual que el backend).
+    zonaHoraria: (s) => s.parroquia?.zona_horaria || 'America/Lima',
+    // Rango de edad para el reparto de grupos ({ min, max }, cada uno puede ser null).
+    gruposEdad: (s) => ({
+      min: s.configuracion?.grupos_edad_min ?? null,
+      max: s.configuracion?.grupos_edad_max ?? null,
+    }),
     // true si la parroquia ocultó ese módulo del menú (por nombre de ruta).
     moduloOculto: (s) => (nombreRuta) => (s.configuracion?.ui?.modulos_ocultos ?? []).includes(nombreRuta),
     confirmandosEstadoDefault: (s) =>
