@@ -660,7 +660,8 @@ onUnmounted(() => {
                                         aria-label="Ver apoderados" @click="openApoderadosModal(c)">
                                         <Users :size="18" />
                                     </button>
-                                    <button class="btn-action btn-soft-primary" title="Editar"
+                                    <button v-if="authStore.can('editar confirmandos')"
+                                        class="btn-action btn-soft-primary" title="Editar"
                                         aria-label="Editar confirmando" :disabled="isConfirmandoModalLoading"
                                         @click="abrirEditar(c.id)">
                                         <span v-if="isConfirmandoModalLoading" class="spinner-border spinner-border-sm"></span>
