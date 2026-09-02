@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import {
   useParroquiaStore, CONFIG_DEFAULTS,
   DASHBOARD_KPIS, DASHBOARD_PANELES, MODULOS_OCULTABLES, CONFIRMANDOS_ESTADOS, CONFIRMANDO_CAMPOS,
@@ -9,6 +9,7 @@ import {
   Palette, CalendarRange, Users, Tag, LayoutDashboard, TriangleAlert, Check, PanelLeft, ListFilter, UserCheck,
 } from 'lucide-vue-next'
 import { subirLogo, quitarLogo } from '@/services/branding'
+import { aplicarColorParroquia } from '@/lib/tema'
 import { showAlerta, confirmar } from '@/funciones'
 import AppPage from '@/components/AppPage.vue'
 
@@ -55,7 +56,14 @@ function limpiarLocal() {
   if (logoLocal.value) URL.revokeObjectURL(logoLocal.value)
   logoLocal.value = ''
 }
-onBeforeUnmount(limpiarLocal)
+
+// Vista previa del color EN VIVO sobre todo el sistema mientras se edita.
+// Al salir sin guardar (o al Descartar) se restaura el color guardado.
+watch(() => form.branding.color_primario, (hex) => aplicarColorParroquia(hex))
+onBeforeUnmount(() => {
+  limpiarLocal()
+  aplicarColorParroquia(parroquiaStore.branding.color_primario)
+})
 
 async function onLogoFile(e) {
   const file = e.target.files?.[0]
@@ -352,7 +360,7 @@ const UMBRALES = [
                 <span class="bp-chip">Activo</span>
               </div>
             </div>
-            <small>Así se verá en todo el sistema al guardar.</small>
+            <small>El color ya se está aplicando a todo el sistema. Guarda para conservarlo o Descarta para volver atrás.</small>
           </div>
         </div>
       </section>

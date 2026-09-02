@@ -39,15 +39,17 @@ import AppCredit from '../components/AppCredit.vue'
 import { useParroquiaStore } from '@/stores/parroquia'
 import { useAuthStore } from '@/stores/auth'
 import { useMediaQuery } from '@/composables/useMediaQuery'
+import { aplicarColorParroquia } from '@/lib/tema'
 
 const route = useRoute()
 const parroquiaStore = useParroquiaStore()
 const authStore = useAuthStore()
 
-// Color primario de la parroquia como variable CSS global (--parroquia-color).
+// Color primario de la parroquia aplicado a todo el sistema (Tailwind + Bootstrap
+// + estilos propios). Ver src/lib/tema.js.
 watch(
   () => parroquiaStore.branding.color_primario,
-  (color) => { if (color) document.documentElement.style.setProperty('--parroquia-color', color) },
+  (color) => aplicarColorParroquia(color),
   { immediate: true }
 )
 

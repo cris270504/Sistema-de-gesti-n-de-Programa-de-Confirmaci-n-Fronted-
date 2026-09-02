@@ -158,7 +158,13 @@ textarea {
          focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2;
 }
 .btn-primary {
-  @apply bg-indigo-600 text-white hover:bg-indigo-700 focus-visible:ring-indigo-500;
+  /* Sigue el color de la parroquia (--parroquia-color lo fija DefaultLayout.vue;
+     en Configuración se actualiza en vivo mientras se edita). */
+  @apply text-white focus-visible:ring-indigo-500;
+  background-color: var(--parroquia-color, #2563eb);
+}
+.btn-primary:hover:not(:disabled) {
+  background-color: color-mix(in srgb, var(--parroquia-color, #2563eb), #000 12%);
 }
 .btn-secondary {
   @apply bg-gray-200 text-gray-800 hover:bg-gray-300;
@@ -455,8 +461,9 @@ tbody tr:hover {
 }
 
 /* ===== BRANDING POR PARROQUIA =====
-   --parroquia-color lo fija DefaultLayout.vue desde la configuración de la parroquia.
-   Fallback al azul por defecto para las vistas públicas (login) que no lo setean. */
+   El color de la parroquia se aplica en runtime como estilo inline en <html> desde
+   src/lib/tema.js (--parroquia-color, --color-primary, --bs-primary/-rgb) — gana a
+   toda hoja de estilo. Acá solo el fallback de --parroquia-color para el login. */
 :root {
   --parroquia-color: #2563eb;
 }
