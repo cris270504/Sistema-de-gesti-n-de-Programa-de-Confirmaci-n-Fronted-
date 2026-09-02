@@ -9,10 +9,16 @@ import { supabase } from '@/lib/supabase'
 export const listParroquias = async () => {
   const { data, error } = await supabase
     .from('v_parroquias')
-    .select('id, nombre, slug, activa, zona_horaria, created_at, users_count, grupos_count, confirmandos_count')
+    .select('id, nombre, slug, activa, zona_horaria, es_plantilla, created_at, users_count, grupos_count, confirmandos_count')
     .order('nombre')
   if (error) throw new Error(error.message)
   return data
+}
+
+// Marca qué parroquia se usa como plantilla al crear nuevas (ruta sacramental).
+export const setPlantillaParroquia = async (id) => {
+  const { error } = await supabase.rpc('fn_set_parroquia_plantilla', { p_id: Number(id) })
+  if (error) throw new Error(error.message)
 }
 
 export const crearParroquia = async (payload) => {

@@ -3,7 +3,7 @@ import { ref, reactive, computed, onMounted, onUnmounted, onBeforeUnmount, nextT
 import { Modal } from 'bootstrap'
 import { Plus, Check, X, Copy, Building2, KeyRound, Eye, Search, Clock, Upload, Image as ImageIcon } from 'lucide-vue-next'
 import { showAlerta, confirmar, slugify } from '@/funciones'
-import { listParroquias, crearParroquia, actualizarParroquia, getBrandingParroquia } from '@/services/proveedor'
+import { listParroquias, crearParroquia, actualizarParroquia, getBrandingParroquia, setPlantillaParroquia } from '@/services/proveedor'
 import { subirLogo, quitarLogo } from '@/services/branding'
 import AppPage from '@/components/AppPage.vue'
 import { useMediaQuery } from '@/composables/useMediaQuery'
@@ -12,6 +12,13 @@ const esMovil = useMediaQuery('(max-width: 767px)')
 
 const ZONAS = ['America/Lima', 'America/Bogota', 'America/Guayaquil', 'America/La_Paz',
   'America/Santiago', 'America/Argentina/Buenos_Aires', 'America/Mexico_City', 'America/Caracas']
+
+const SACRAMENTOS_META = [
+  ['bautismo', 'Bautismo'],
+  ['comunion', 'Primera Comunión'],
+  ['confirmacion', 'Confirmación'],
+]
+const SAC_CLAVES = SACRAMENTOS_META.map(([k]) => k)
 
 const parroquias = ref([])
 const loading = ref(true)
@@ -29,7 +36,11 @@ const credenciales = ref(null)
 const errores = ref({})
 
 // --- Alta ---
-const form = reactive({ nombre: '', slug: '', zona_horaria: 'America/Lima', admin_nombre: '', admin_email: '', admin_dni: '' })
+const form = reactive({
+  nombre: '', slug: '', zona_horaria: 'America/Lima',
+  admin_nombre: '', admin_email: '', admin_dni: '',
+  sacramentos: [...SAC_CLAVES],
+})
 const nuevoLogo = ref(null)          // File elegido en el alta (se sube tras crear)
 const nuevoLogoPreview = ref('')     // objectURL
 const slugManual = ref(false)
@@ -37,10 +48,11 @@ const slugPreview = computed(() => (slugManual.value ? form.slug : slugify(form.
 watch(() => form.nombre, () => { if (!slugManual.value) form.slug = slugify(form.nombre) })
 
 // --- Detalle / edición ---
-const edit = reactive({ id: null, nombre: '', slug: '', zona_horaria: '', activa: true, created_at: null, users_count: 0, grupos_count: 0, confirmandos_count: 0 })
+const edit = reactive({ id: null, nombre: '', slug: '', zona_horaria: '', activa: true, es_plantilla: false, created_at: null, users_count: 0, grupos_count: 0, confirmandos_count: 0 })
 const editSlugManual = ref(false)
 const editErrores = ref({})
 const savingEdit = ref(false)
+const marcandoPlantilla = ref(false)
 
 // Branding en el detalle (ranura 'proveedor').
 const editBranding = reactive({ logo_url: '', logo_url_proveedor: '' })
@@ -160,7 +172,11 @@ function abrirAlta() {
   errores.value = {}
   slugManual.value = false
   quitarNuevoLogo()
-  Object.assign(form, { nombre: '', slug: '', zona_horaria: 'America/Lima', admin_nombre: '', admin_email: '', admin_dni: '' })
+  Object.assign(form, {
+    nombre: '', slug: '', zona_horaria: 'America/Lima',
+    admin_nombre: '', admin_email: '', admin_dni: '',
+    sacramentos: [...SAC_CLAVES],
+  })
   nextTick(() => {
     formModal ??= new Modal(formModalRef.value, { backdrop: 'static' })
     formModal.show()
@@ -168,6 +184,10 @@ function abrirAlta() {
 }
 
 async function crear() {
+  if (form.sacramentos.length === 0) {
+    showAlerta('Elige al menos un sacramento a gestionar.', 'warning')
+    return
+  }
   saving.value = true
   errores.value = {}
   try {
@@ -176,6 +196,7 @@ async function crear() {
       zona_horaria: form.zona_horaria,
       admin_nombre: form.admin_nombre,
       admin_email: form.admin_email,
+      sacramentos: SAC_CLAVES.filter(k => form.sacramentos.includes(k)),
     }
     const slug = (slugManual.value ? form.slug : slugPreview.value).trim()
     if (slug) payload.slug = slug
@@ -212,7 +233,7 @@ async function abrirDetalle(p) {
   editSlugManual.value = false
   Object.assign(edit, {
     id: p.id, nombre: p.nombre, slug: p.slug, zona_horaria: p.zona_horaria || 'America/Lima',
-    activa: p.activa, created_at: p.created_at,
+    activa: p.activa, es_plantilla: !!p.es_plantilla, created_at: p.created_at,
     users_count: p.users_count, grupos_count: p.grupos_count, confirmandos_count: p.confirmandos_count,
   })
   editBranding.logo_url = ''
@@ -249,6 +270,28 @@ async function guardarDetalle() {
     if (!Object.keys(editErrores.value).length) showAlerta('No se pudo guardar', 'error')
   } finally {
     savingEdit.value = false
+  }
+}
+
+async function marcarComoPlantilla() {
+  if (edit.es_plantilla || marcandoPlantilla.value) return
+  const ok = await confirmar({
+    titulo: `¿Usar «${edit.nombre}» como plantilla?`,
+    texto: 'Las parroquias nuevas copiarán de esta su ruta sacramental (sacramentos y documentos). Reemplaza a la plantilla actual.',
+    icono: 'question',
+    confirmarTexto: 'Sí, usar como plantilla',
+  })
+  if (!ok) return
+  marcandoPlantilla.value = true
+  try {
+    await setPlantillaParroquia(edit.id)
+    parroquias.value.forEach(p => { p.es_plantilla = p.id === edit.id })
+    edit.es_plantilla = true
+    showAlerta('Plantilla actualizada', 'success')
+  } catch (e) {
+    showAlerta(e.message || 'No se pudo marcar como plantilla', 'error')
+  } finally {
+    marcandoPlantilla.value = false
   }
 }
 
@@ -416,6 +459,18 @@ function copiar(txt) {
                   </select>
                 </label>
                 <div class="text-sm sm:col-span-2">
+                  <span class="block mb-1">Sacramentos que gestionará</span>
+                  <div class="lp-sacs">
+                    <label v-for="[clave, label] in SACRAMENTOS_META" :key="clave" class="lp-sac"
+                      :class="{ 'lp-sac--on': form.sacramentos.includes(clave) }">
+                      <input type="checkbox" :value="clave" v-model="form.sacramentos" />
+                      <Check v-if="form.sacramentos.includes(clave)" :size="13" /> {{ label }}
+                    </label>
+                  </div>
+                  <small class="text-slate-400">Se copian de la parroquia plantilla, con sus documentos.</small>
+                </div>
+
+                <div class="text-sm sm:col-span-2">
                   <span class="block mb-1">Logo <span class="text-slate-400">(opcional)</span></span>
                   <div class="flex items-center gap-3">
                     <div class="lp-logobox">
@@ -532,6 +587,17 @@ function copiar(txt) {
                     </small>
                   </div>
                 </div>
+              </div>
+
+              <div class="mt-4 border-t pt-4">
+                <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Plantilla</p>
+                <div v-if="edit.es_plantilla" class="inline-flex items-center gap-2 text-sm text-emerald-700">
+                  <Check :size="15" /> Esta es la parroquia plantilla. Las nuevas copian de aquí su ruta sacramental.
+                </div>
+                <button v-else type="button" class="btn-outline btn-sm" :disabled="marcandoPlantilla"
+                  @click="marcarComoPlantilla">
+                  {{ marcandoPlantilla ? 'Guardando…' : 'Usar como plantilla para nuevas parroquias' }}
+                </button>
               </div>
             </div>
             <div class="modal-footer">
@@ -713,6 +779,36 @@ function copiar(txt) {
 .btn-sm {
   padding: 0.35rem 0.7rem;
   font-size: 0.8rem;
+}
+
+.lp-sacs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.lp-sac {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 9px;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.83rem;
+  font-weight: 500;
+  color: #64748b;
+  cursor: pointer;
+  user-select: none;
+}
+.lp-sac input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.lp-sac--on {
+  border-color: color-mix(in srgb, var(--parroquia-color, #2563eb) 45%, #e2e8f0);
+  background: color-mix(in srgb, var(--parroquia-color, #2563eb) 9%, #fff);
+  color: color-mix(in srgb, var(--parroquia-color, #2563eb) 75%, #1e293b);
 }
 .lp-readonly {
   background: #f8fafc;
