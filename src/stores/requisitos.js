@@ -97,9 +97,6 @@ export const useRequisitosStore = defineStore('requisitos', {
         return updated
       } catch (e) {
         showErroresDeValidacion(e?.response?.data?.errors || e)
-        if (!e?.response?.data?.errors) {
-          showAlerta(e?.response?.data?.message || e?.message || 'Error al actualizar requisito', 'error');
-        }
         throw e
       }
     },

@@ -192,9 +192,6 @@ export const useConfirmandosStore = defineStore('confirmandos', {
                 return updated;
             } catch (e) {
                 showErroresDeValidacion(e?.response?.data?.errors || e);
-                if (!e?.response?.data?.errors) {
-                    showAlerta(e?.response?.data?.message || 'Error al actualizar confirmando', 'error');
-                }
                 throw e;
             }
         },
@@ -286,7 +283,7 @@ export const useConfirmandosStore = defineStore('confirmandos', {
 
             try {
                 await retirarConfirmandoById(confirmandoId, motivo);
-                this.items = this.items.filter(c => c.id !== confirmandoId);
+                this._parchearEstado(confirmandoId, 'retirado', { motivo_retiro: motivo, fecha_retiro: new Date().toISOString() });
                 await this.fetchMetricas();
                 showAlerta('Confirmando retirado del programa.', 'success');
                 return true;
@@ -295,6 +292,13 @@ export const useConfirmandosStore = defineStore('confirmandos', {
                 showAlerta(this.error, 'error');
                 return false;
             }
+        },
+
+        // Parchea en memoria el estado de un confirmando (retiro/reingreso) sin
+        // sacarlo de la lista: sigue visible en las pestañas "Retirados"/"Todos".
+        _parchearEstado(id, estado, extra = {}) {
+            const c = this.items.find(x => x.id === Number(id));
+            if (c) Object.assign(c, { estado, ...extra });
         },
 
         async reingresar(id, nombre) {
@@ -307,7 +311,7 @@ export const useConfirmandosStore = defineStore('confirmandos', {
             if (!ok) return false;
             try {
                 await reingresarConfirmandoById(confirmandoId);
-                this.items = this.items.filter(c => c.id !== confirmandoId);
+                this._parchearEstado(confirmandoId, 'en_preparacion', { motivo_retiro: null, fecha_retiro: null });
                 await this.fetchMetricas();
                 showAlerta('Confirmando reingresado al programa.', 'success');
                 return true;

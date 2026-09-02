@@ -9,7 +9,6 @@ import { useReunionesStore } from '../stores/reunions';
 import { useConfirmandosStore } from '../stores/confirmandos';
 
 import { Calendar, MessagesSquare, TriangleAlert, Clock, MapPin, CircleAlert, User, Instagram, Facebook, MessageCircle } from 'lucide-vue-next';
-import { confirmar } from '@/funciones';
 import PerfilConfirmandoModal from '@/components/Modals/PerfilConfirmandoModal.vue';
 import AppPage from '@/components/AppPage.vue';
 import AppSkeleton from '@/components/AppSkeleton.vue';
@@ -96,22 +95,10 @@ const alertasFiltradas = computed(() => {
 
 // 4. Métodos
 const confirmarRetiroJoven = async (joven) => {
-  const confirmado = await confirmar({
-    titulo: '¿Retirar confirmando del programa?',
-    texto: `Estás a punto de registrar la baja formal de ${joven.nombre_completo} debido a la acumulación crítica de inasistencias.`,
-    icono: 'warning',
-    confirmarTexto: 'Sí, retirar del programa',
-    cancelarTexto: 'Cancelar'
-  });
-
-  if (confirmado) {
-    const exito = await confirmandosStore.registrarRetiro(joven.id, joven.nombre_completo);
-    if (exito) {
-      // ➔ CORRECCIÓN CRÍTICA: En lugar de descargar los 458kB de confirmandos de nuevo,
-      // simplemente actualizamos las métricas del dashboard. force: saltamos la ventana
-      // de frescura porque acabamos de cambiar datos.
-      await dashboardStore.fetchMetricas({ force: true });
-    }
+  // registrarRetiro ya pide el motivo (y sirve de confirmación).
+  const exito = await confirmandosStore.registrarRetiro(joven.id, joven.nombre_completo);
+  if (exito) {
+    await dashboardStore.fetchMetricas({ force: true });
   }
 };
 </script>

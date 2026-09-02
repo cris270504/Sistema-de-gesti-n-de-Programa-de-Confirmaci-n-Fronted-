@@ -59,8 +59,8 @@ const save = async () => {
         showAlerta('Catequistas actualizados', 'success');
         emit('updated');
         close();
-    } catch (e) {
-        showAlerta('Error al guardar catequistas', 'error');
+    } catch {
+        // El store ya mostró el motivo real del error.
     } finally {
         saving.value = false;
     }

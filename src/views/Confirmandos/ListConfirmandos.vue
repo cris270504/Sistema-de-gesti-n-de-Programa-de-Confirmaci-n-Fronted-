@@ -76,10 +76,9 @@ async function accionEstado(accion, c) {
     borrandoId.value = c.id;
     const nombre = `${c.apellidos} ${c.nombres}`;
     try {
-        const ok = accion === 'retirar'
-            ? await confirmandosStore.registrarRetiro(c.id, nombre)
-            : await confirmandosStore.reingresar(c.id, nombre);
-        if (ok) await fetchAllConfirmandos({ force: true });
+        if (accion === 'retirar') await confirmandosStore.registrarRetiro(c.id, nombre);
+        else await confirmandosStore.reingresar(c.id, nombre);
+        // el store parchea el estado en memoria; la lista se re-filtra sola.
     } finally {
         borrandoId.value = null;
     }
@@ -288,9 +287,23 @@ const abrirGenerador = async () => {
     } else {
         groupNames.value = ['Grupo Nuevo 1'];
     }
-    // El reparto solo considera confirmandos EN PREPARACIÓN sin grupo (igual que
-    // fn_generar_grupos_equitativo). No cuenta retirados ni confirmados.
-    const sinGrupo = confirmandos.value.filter(c => !c.grupo_id && c.estado === 'en_preparacion');
+    // El reparto solo considera confirmandos EN PREPARACIÓN sin grupo, dentro del
+    // rango de edad configurado (igual que fn_generar_grupos_equitativo). El motor
+    // devuelve luego la lista exacta de no asignados con su motivo.
+    const { min, max } = parroquiaStore.gruposEdad;
+    const edadDe = (iso) => {
+        if (!iso) return null;
+        const h = new Date(), n = new Date(iso + 'T00:00:00');
+        let e = h.getFullYear() - n.getFullYear();
+        if (h.getMonth() < n.getMonth() || (h.getMonth() === n.getMonth() && h.getDate() < n.getDate())) e--;
+        return e;
+    };
+    const enRango = (c) => {
+        const e = edadDe(c.fecha_nacimiento);
+        if (e == null) return true; // sin fecha → el motor lo incluye
+        return (min == null || e >= min) && (max == null || e <= max);
+    };
+    const sinGrupo = confirmandos.value.filter(c => !c.grupo_id && c.estado === 'en_preparacion' && enRango(c));
     stats.value = {
         total: sinGrupo.length,
         hombres: sinGrupo.filter(c => c.genero === 'm' || c.genero === 'M').length,
@@ -639,6 +652,10 @@ onUnmounted(() => {
                                 <span class="badge border" :class="getBadgeEstado(c.estado).class">
                                     {{ getBadgeEstado(c.estado).text }}
                                 </span>
+                                <div v-if="c.estado === 'retirado' && c.fecha_retiro" class="small text-muted mt-1">
+                                    {{ formatFecha(c.fecha_retiro) }}
+                                    <span v-if="c.motivo_retiro" :title="c.motivo_retiro">· {{ c.motivo_retiro.length > 24 ? c.motivo_retiro.slice(0, 24) + '…' : c.motivo_retiro }}</span>
+                                </div>
                             </td>
                             <td class="py-2">
                                 <router-link v-if="c.grupo && authStore.can('ver todos los grupos')"

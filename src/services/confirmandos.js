@@ -28,6 +28,7 @@ function aplanarM2M(rows, puente, entidad, pivotCols) {
 
 const SELECT_LISTA =
   'id, nombres, apellidos, fecha_nacimiento, genero, celular, estado, grupo_id,' +
+  ' fecha_retiro, motivo_retiro,' +
   ' grupo:grupos(id, nombre, color, procedencia),' +
   ' confirmando_sacramento(estado, sacramento:sacramentos(id, nombre))'
 

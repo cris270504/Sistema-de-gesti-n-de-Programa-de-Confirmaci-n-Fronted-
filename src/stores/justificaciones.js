@@ -40,7 +40,7 @@ export const useJustificacionesStore = defineStore('justificaciones', {
                 await this.fetchPendientes();
                 return true;
             } catch (e) {
-                const msg = e?.response?.data?.message || 'Error al registrar el acuerdo';
+                const msg = e?.message || e?.response?.data?.message || 'Error al registrar el acuerdo';
                 showAlerta(msg, 'error');
                 return false;
             }
@@ -56,7 +56,7 @@ export const useJustificacionesStore = defineStore('justificaciones', {
                 await this.fetchPendientes();
                 return true;
             } catch (e) {
-                const msg = e?.response?.data?.message || 'Error al validar la justificación';
+                const msg = e?.message || e?.response?.data?.message || 'Error al validar la justificación';
                 showAlerta(msg, 'error');
                 return false;
             }

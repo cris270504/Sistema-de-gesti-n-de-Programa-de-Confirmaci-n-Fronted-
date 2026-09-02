@@ -222,7 +222,7 @@ async function crear() {
     await cargar()
   } catch (e) {
     errores.value = e?.response?.data?.errors || {}
-    if (!Object.keys(errores.value).length) showAlerta('No se pudo crear la parroquia', 'error')
+    if (!Object.keys(errores.value).length) showAlerta(e?.message || 'No se pudo crear la parroquia', 'error')
   } finally {
     saving.value = false
   }
@@ -267,7 +267,7 @@ async function guardarDetalle() {
     showAlerta('Parroquia actualizada', 'success')
   } catch (e) {
     editErrores.value = e?.response?.data?.errors || {}
-    if (!Object.keys(editErrores.value).length) showAlerta('No se pudo guardar', 'error')
+    if (!Object.keys(editErrores.value).length) showAlerta(e?.message || 'No se pudo guardar', 'error')
   } finally {
     savingEdit.value = false
   }

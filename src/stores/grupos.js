@@ -115,9 +115,6 @@ export const useGruposStore = defineStore('grupos', {
                 return updated
             } catch (e) {
                 showErroresDeValidacion(e?.response?.data?.errors || e)
-                if (!e?.response?.data?.errors) {
-                    showAlerta(e?.response?.data?.message || e?.message || 'Error al actualizar grupo', 'error');
-                }
                 throw e
             }
         },
@@ -193,9 +190,6 @@ export const useGruposStore = defineStore('grupos', {
                 return response;
             } catch (e) {
                 showErroresDeValidacion(e?.response?.data?.errors || e);
-                if (!e?.response?.data?.errors) {
-                    showAlerta(e?.response?.data?.message || e?.message || 'No se pudo asignar confirmandos', 'error');
-                }
                 throw e;
             }
         },
@@ -270,9 +264,6 @@ export const useGruposStore = defineStore('grupos', {
             } catch (e) {
                 // Manejo de errores estándar
                 showErroresDeValidacion(e?.response?.data?.errors || e);
-                if (!e?.response?.data?.errors) {
-                    showAlerta(e?.response?.data?.message || e?.message || 'Error al generar grupos', 'error');
-                }
                 throw e;
             } finally {
                 this.loading = false;

@@ -41,10 +41,8 @@ export const useAsistenciasStore = defineStore('asistencias', {
                 // Quitamos el fetchByReunion de aquí porque loadMatrix() ya hace el trabajo
                 return true;
             } catch (e) {
-                // Agregamos un console.error para que, si falla el backend, veas el error real en la consola (F12)
                 console.error("Error real al guardar asistencia:", e);
-                const msg = e?.response?.data?.message || 'Error al guardar asistencia';
-                throw new Error(msg); // Lanzamos el error para que el componente padre lo atrape
+                throw new Error(e?.message || e?.response?.data?.message || 'Error al guardar asistencia');
             }
         }
     },

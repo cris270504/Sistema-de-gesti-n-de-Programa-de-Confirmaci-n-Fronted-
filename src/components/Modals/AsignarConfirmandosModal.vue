@@ -91,8 +91,8 @@ const save = async () => {
         showAlerta('Confirmandos actualizados', 'success');
         emit('updated');
         close();
-    } catch (e) {
-        showAlerta('Error al guardar confirmandos', 'error');
+    } catch {
+        // El store ya mostró el motivo real del error.
     } finally {
         saving.value = false;
     }
