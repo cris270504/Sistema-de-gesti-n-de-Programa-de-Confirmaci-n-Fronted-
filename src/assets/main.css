@@ -496,3 +496,12 @@ tbody tr:hover {
   border-color: color-mix(in srgb, var(--parroquia-color, #2563eb) 55%, #fff);
   box-shadow: 0 0 0 .25rem color-mix(in srgb, var(--parroquia-color, #2563eb) 25%, transparent);
 }
+
+/* Botón "OK" de los avisos de SweetAlert (showAlerta) — trae un morado propio.
+   Las confirmaciones (confirmar) usan buttonsStyling:false y no se ven afectadas. */
+.swal2-popup .swal2-styled.swal2-confirm {
+  background-color: var(--parroquia-color, #2563eb) !important;
+}
+.swal2-popup .swal2-styled.swal2-confirm:focus {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--parroquia-color, #2563eb) 40%, transparent) !important;
+}
