@@ -289,8 +289,21 @@ const generarGruposApi = async () => {
             periodo: periodoActual,
             estrategia: estrategiaGrupos.value,
         });
-        showAlerta(response.message, 'success');
         generadorModalInstance.value?.hide();
+
+        const sinAsignar = response.no_asignados ?? [];
+        if (sinAsignar.length > 0) {
+            const lista = sinAsignar
+                .map(c => `• ${c.apellidos}, ${c.nombres} — ${c.motivo}`)
+                .join('\n');
+            showAlerta(
+                `${response.message}\n\n${sinAsignar.length} confirmando(s) quedaron sin grupo:\n${lista}\n\n` +
+                `Ajusta el rango de edad en Configuración o corrige sus datos y vuelve a generar.`,
+                'warning',
+            );
+        } else {
+            showAlerta(response.message, 'success');
+        }
         // El backend devuelve el mapa de asignaciones: parcheamos la lista en memoria
         // en vez de re-descargar los ~458 kB de confirmandos.
         if (response.asignaciones) {
