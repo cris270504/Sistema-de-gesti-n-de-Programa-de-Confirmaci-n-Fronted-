@@ -9,7 +9,8 @@ import {
     retirarConfirmandoById,
     obtenerPerfilConfirmando,
 } from '../services/confirmandos';
-import { confirmarEliminacion, showAlerta, showErroresDeValidacion } from '@/funciones'
+import { confirmarEliminacion, confirmar, showAlerta, showErroresDeValidacion } from '@/funciones'
+import { contarAsistenciasConfirmando } from '../services/confirmandos'
 
 // Ventana de frescura: dentro de este lapso no se vuelve a pedir la lista completa
 // al re-montar ListConfirmandos (evita el skeleton al navegar de ida y vuelta).
@@ -199,7 +200,25 @@ export const useConfirmandosStore = defineStore('confirmandos', {
 
         async remove(id, nombre) {
             const confirmandoId = Number(id);
-            const ok = await confirmarEliminacion(nombre || `Confirmando con ID ${confirmandoId}`);
+            const etiqueta = nombre || `Confirmando con ID ${confirmandoId}`;
+
+            // ¿Tiene historial de asistencia? Entonces no se elimina (se perdería y
+            // dejaría filas huérfanas): se ofrece retirarlo del programa.
+            let nAsist = 0;
+            try { nAsist = await contarAsistenciasConfirmando(confirmandoId); } catch { /* ignora, el trigger igual protege */ }
+            if (nAsist > 0) {
+                const retirar = await confirmar({
+                    titulo: `${etiqueta} tiene ${nAsist} registro(s) de asistencia`,
+                    texto: 'No se puede eliminar sin perder ese historial. ¿Retirarlo del programa en su lugar?',
+                    icono: 'warning',
+                    confirmarTexto: 'Sí, retirar del programa',
+                    cancelarTexto: 'No hacer nada',
+                });
+                if (retirar) return this.registrarRetiro(confirmandoId, nombre);
+                return false;
+            }
+
+            const ok = await confirmarEliminacion(etiqueta);
             if (!ok) {
                 showAlerta('Operación cancelada', 'info');
                 return false;

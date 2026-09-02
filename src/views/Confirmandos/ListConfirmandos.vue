@@ -57,7 +57,18 @@ const parroquiaStore = useParroquiaStore();
 
 // NOTA: Como Laravel ahora devuelve "get()", items trae todo el array.
 const { items: confirmandos, loading, error } = storeToRefs(confirmandosStore);
-const { fetchAll: fetchAllConfirmandos, remove: removeConfirmando } = confirmandosStore;
+const { fetchAll: fetchAllConfirmandos, remove: _removeConfirmando } = confirmandosStore;
+
+const borrandoId = ref(null);
+async function removeConfirmando(id, nombre) {
+    if (borrandoId.value) return;
+    borrandoId.value = id;
+    try {
+        await _removeConfirmando(id, nombre);
+    } finally {
+        borrandoId.value = null;
+    }
+}
 
 // --- ESTADOS LOCALES ---
 const modalRef = ref(null);
@@ -657,7 +668,7 @@ onUnmounted(() => {
                                     </button>
                                     <button v-if="authStore.can('eliminar confirmandos')"
                                         class="btn-action btn-soft-danger" title="Eliminar"
-                                        aria-label="Eliminar confirmando"
+                                        aria-label="Eliminar confirmando" :disabled="borrandoId === c.id"
                                         @click="removeConfirmando(c.id, c.apellidos + ' ' + c.nombres)">
                                         <Trash :size="18" />
                                     </button>

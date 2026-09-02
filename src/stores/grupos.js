@@ -123,14 +123,22 @@ export const useGruposStore = defineStore('grupos', {
         },
 
         async remove(id, nombre) {
-            let nombreParaConfirmar = nombre;
-            if (!nombreParaConfirmar) {
-                const grupoEnStore = this.byId(id);
-                if (grupoEnStore) {
-                    nombreParaConfirmar = grupoEnStore.nombre;
-                }
+            const grupoEnStore = this.byId(id);
+            const nombreParaConfirmar = nombre || grupoEnStore?.nombre || `Grupo ${id}`;
+
+            // Un grupo con confirmandos no se puede eliminar (los dejaría sin grupo y
+            // a los catequistas sin asignación). Hay que reasignarlos primero.
+            const nConf = grupoEnStore?.confirmandos?.length ?? 0;
+            if (nConf > 0) {
+                showAlerta(
+                    `«${nombreParaConfirmar}» tiene ${nConf} confirmando(s) asignado(s). ` +
+                    `Quítalos o pásalos a otro grupo antes de eliminarlo.`,
+                    'warning',
+                );
+                return false;
             }
-            const ok = await confirmarEliminacion(nombre || `Grupo ${nombreParaConfirmar}`)
+
+            const ok = await confirmarEliminacion(nombreParaConfirmar)
             if (!ok) {
                 showAlerta('Operación cancelada', 'info')
                 return false

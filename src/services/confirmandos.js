@@ -164,6 +164,17 @@ export async function retirarConfirmandoById(id) {
   return { status: true, message: 'Confirmando retirado del programa exitosamente.' }
 }
 
+// Cuántas filas de asistencia tiene un confirmando (para decidir eliminar vs retirar).
+export async function contarAsistenciasConfirmando(id) {
+  const { count, error } = await supabase
+    .from('asistencia')
+    .select('id', { count: 'exact', head: true })
+    .eq('asistente_type', 'App\\Models\\Confirmando')
+    .eq('asistente_id', Number(id))
+  if (error) throw new Error(error.message)
+  return count ?? 0
+}
+
 // Import: Edge Function `importar-confirmandos` (parseo del .xlsx en Deno). El
 // error se re-lanza con forma tipo-axios para que el catch de la vista siga
 // distinguiendo `errors` (lista de filas omitidas) de `message`.

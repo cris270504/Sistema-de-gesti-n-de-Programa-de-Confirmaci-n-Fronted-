@@ -13,11 +13,22 @@ import AppPage from '@/components/AppPage.vue';
 const gruposStore = useGruposStore();
 const parroquiaStore = useParroquiaStore();
 const { items: grupos, loading, error } = storeToRefs(gruposStore);
-const { fetchAll, remove } = gruposStore;
+const { fetchAll, remove: removeGrupo } = gruposStore;
 
 // Referencia al modal
 const modalRef = ref(null);
 const isExporting = ref(false);
+const borrandoId = ref(null);
+
+async function remove(id, nombre) {
+    if (borrandoId.value) return;
+    borrandoId.value = id;
+    try {
+        await removeGrupo(id, nombre);
+    } finally {
+        borrandoId.value = null;
+    }
+}
 
 // Monitorear errores del store y mostrarlos con alerta
 watch(error, (newError) => {
@@ -138,7 +149,7 @@ onMounted(() => {
                                     </button>
 
                                     <button class="btn-action btn-soft-danger" title="Eliminar"
-                                        @click="remove(g.id, g.nombre)">
+                                        :disabled="borrandoId === g.id" @click="remove(g.id, g.nombre)">
                                         <Trash :size="18" />
                                     </button>
                                 </div>
