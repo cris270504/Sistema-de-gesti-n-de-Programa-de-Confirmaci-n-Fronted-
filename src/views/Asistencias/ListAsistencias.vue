@@ -317,6 +317,10 @@ async function loadMatrix() {
 
 // --- INTERACCIÓN CON EL POPOVER ---
 const openPopover = (event, personaId, reunionId) => {
+    if (reunionBloqueada(reunionId)) {
+        showAlerta('Esta reunión todavía no empezó. Podrás registrar la asistencia cuando ocurra.', 'info');
+        return;
+    }
     // Evitar reabrir si ya está abierto
     if (popover.value.visible && popover.value.personaId === personaId && popover.value.reunionId === reunionId) return;
 
@@ -477,6 +481,10 @@ const estadoDe = (personaId, reunionId) => attendanceMap.value[personaId]?.[reun
 
 const setEstadoRapido = (personaId, reunionId, nuevoEstado) => {
     if (!reunionId) return;
+    if (reunionBloqueada(reunionId)) {
+        showAlerta('Esta reunión todavía no empezó.', 'info');
+        return;
+    }
     if (!canEditAttendance(personaId, reunionId)) {
         showAlerta('Registro cerrado. Solo el coordinador puede editarlo.', 'info');
         return;
@@ -498,8 +506,21 @@ const setEstadoRapido = (personaId, reunionId, nuevoEstado) => {
     };
 };
 
+// --- REUNIÓN AÚN NO OCURRE: no se marca asistencia de algo que no empezó ---
+const ahoraNaive = () => {
+    const d = new Date();
+    const p = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+};
+const reunionFutura = (r) => {
+    if (!r?.fecha) return false;
+    return String(r.fecha).slice(0, 19).replace(' ', 'T') > ahoraNaive();
+};
+const reunionBloqueada = (reunionId) => reunionFutura(reuniones.value.find(x => x.id === reunionId));
+
 //SOLO EL ADMIN PUEDE EDITAR
 const canEditAttendance = (personaId, reunionId) => {
+    if (reunionBloqueada(reunionId)) return false;
     if (authStore.can('editar asistencias')) return true; // Coordinadores siempre pueden
 
     const key = tipoActual.value === 'Apoderados' ? `${personaId}-${reunionId}-apo` : `${personaId}-${reunionId}`;
@@ -721,13 +742,22 @@ const formatColDate = (dateStr) => {
                 <div v-else-if="esMovil" class="asis-movil">
                     <div class="asis-chips">
                         <button v-for="r in reuniones" :key="r.id" type="button" class="asis-chip"
-                            :class="{ 'asis-chip--on': r.id === reunionMovilId }" @click="reunionMovilId = r.id">
-                            <span class="asis-chip__fecha">{{ formatColDate(r.fecha) }}</span>
+                            :class="{ 'asis-chip--on': r.id === reunionMovilId, 'asis-chip--futura': reunionFutura(r) }"
+                            @click="reunionMovilId = r.id">
+                            <span class="asis-chip__fecha">
+                                <Lock v-if="reunionFutura(r)" :size="11" aria-hidden="true" /> {{ formatColDate(r.fecha) }}
+                            </span>
                             <span class="asis-chip__tema">{{ r.nombre_tema }}</span>
                         </button>
                     </div>
 
-                    <div v-if="filteredPersonas.length === 0" class="text-center py-5 text-muted">
+                    <div v-if="reunionBloqueada(reunionMovilId)"
+                        class="d-flex align-items-center gap-2 m-3 p-3 rounded bg-secondary-subtle text-muted small">
+                        <Lock :size="16" aria-hidden="true" />
+                        Esta reunión todavía no empezó. Vas a poder registrar la asistencia cuando ocurra.
+                    </div>
+
+                    <div v-else-if="filteredPersonas.length === 0" class="text-center py-5 text-muted">
                         No hay {{ labelSingular.toLowerCase() }}s en esta selección.
                     </div>
 
@@ -785,7 +815,8 @@ const formatColDate = (dateStr) => {
                                     style="min-width: 280px; z-index: 20;">
                                     {{ labelSingular }}
                                 </th>
-                                <th v-for="r in reuniones" :key="r.id" class="py-2 px-1" style="min-width: 70px;">
+                                <th v-for="r in reuniones" :key="r.id" class="py-2 px-1" style="min-width: 70px;"
+                                    :class="{ 'bg-secondary-subtle': reunionFutura(r) }">
                                     <div class="fw-bold text-dark text-wrap mb-1"
                                         style="font-size: 0.75rem; line-height: 1.2; max-height: 35px; overflow: hidden;"
                                         :title="r.nombre_tema">
@@ -793,6 +824,10 @@ const formatColDate = (dateStr) => {
                                     </div>
                                     <div class="fw-bold text-dark" style="font-size: 0.9rem;">
                                         {{ formatColDate(r.fecha) }}
+                                    </div>
+                                    <div v-if="reunionFutura(r)" class="text-muted d-flex align-items-center justify-content-center gap-1"
+                                        style="font-size: 0.62rem;" title="Aún no ocurre">
+                                        <Lock :size="10" aria-hidden="true" /> Programada
                                     </div>
                                 </th>
                             </tr>
@@ -822,17 +857,17 @@ const formatColDate = (dateStr) => {
                                 </td>
 
                                 <td v-for="r in reuniones" :key="r.id"
-                                    @click="p.estado !== 'retirado' ? openPopover($event, p.id, r.id) : null"
+                                    @click="(p.estado !== 'retirado' && !reunionFutura(r)) ? openPopover($event, p.id, r.id) : null"
                                     class="cell-interactive p-1"
-                                    :class="{ 'cursor-not-allowed': p.estado === 'retirado' }">
+                                    :class="{ 'cursor-not-allowed': p.estado === 'retirado' || reunionFutura(r) }">
                                     <div class="cell-content d-flex align-items-center justify-content-center rounded position-relative"
                                         :class="{
                                             'bg-success-subtle text-success': attendanceMap[p.id]?.[r.id]?.estado === 'asistio',
                                             'bg-warning-subtle text-warning': attendanceMap[p.id]?.[r.id]?.estado === 'tardanza',
                                             'bg-info-subtle text-info': attendanceMap[p.id]?.[r.id]?.estado === 'falta justificada',
                                             'bg-danger-subtle text-danger': attendanceMap[p.id]?.[r.id]?.estado === 'falta injustificada',
-                                            'bg-secondary-subtle text-muted': p.estado === 'retirado' && !attendanceMap[p.id]?.[r.id]?.estado,
-                                            'cell-empty': !attendanceMap[p.id]?.[r.id]?.estado && p.estado !== 'retirado'
+                                            'bg-secondary-subtle text-muted': (p.estado === 'retirado' || reunionFutura(r)) && !attendanceMap[p.id]?.[r.id]?.estado,
+                                            'cell-empty': !attendanceMap[p.id]?.[r.id]?.estado && p.estado !== 'retirado' && !reunionFutura(r)
                                         }" style="height: 40px; width: 100%;">
 
                                         <Check v-if="attendanceMap[p.id]?.[r.id]?.estado === 'asistio'"
@@ -845,6 +880,7 @@ const formatColDate = (dateStr) => {
                                             :size="20" aria-hidden="true" />
 
                                         <span v-else-if="p.estado === 'retirado'" class="opacity-50">-</span>
+                                        <Lock v-else-if="reunionFutura(r)" :size="13" class="opacity-25" aria-hidden="true" />
                                         <span v-else class="opacity-25">&bull;</span>
 
                                         <div v-if="attendanceMap[p.id]?.[r.id]?.nota"
@@ -1017,6 +1053,16 @@ const formatColDate = (dateStr) => {
 .asis-chip--on {
     border-color: var(--parroquia-color, #2563eb);
     background: #eff6ff;
+}
+.asis-chip--futura {
+    border-style: dashed;
+    color: #94a3b8;
+}
+.asis-chip--futura .asis-chip__fecha {
+    color: #94a3b8;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
 }
 .asis-chip__fecha {
     font-weight: 700;
