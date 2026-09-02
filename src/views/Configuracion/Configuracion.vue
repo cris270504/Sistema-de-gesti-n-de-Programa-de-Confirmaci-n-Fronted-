@@ -82,6 +82,36 @@ async function onLogoFile(e) {
   }
 }
 
+async function restablecerIdentidad() {
+  const tieneLogo = !!form.branding.logo_url
+  const ok = await confirmar({
+    titulo: '¿Restablecer la identidad?',
+    texto: tieneLogo
+      ? 'Se quita tu logo (vuelve el del proveedor o el del sistema) y el color pasa al azul por defecto. Se aplica al instante.'
+      : 'El color vuelve al azul por defecto. (Recuerda Guardar para conservarlo.)',
+    icono: 'warning',
+    confirmarTexto: 'Sí, restablecer',
+  })
+  if (!ok) return
+  form.branding.color_primario = CONFIG_DEFAULTS.branding.color_primario
+  if (tieneLogo) {
+    subiendoLogo.value = true
+    try {
+      const { branding } = await quitarLogo({
+        parroquiaId: parroquiaStore.parroquia.id, slot: 'parroquia', urlAnterior: form.branding.logo_url,
+      })
+      parroquiaStore.aplicarBranding(branding)
+      const color = form.branding.color_primario
+      cargarDesdeStore()
+      form.branding.color_primario = color
+    } catch (err) {
+      showAlerta(err.message || 'No se pudo quitar el logo', 'error')
+    } finally {
+      subiendoLogo.value = false
+    }
+  }
+}
+
 async function quitarLogoActual() {
   const ok = await confirmar({
     titulo: '¿Quitar tu logo?',
@@ -250,8 +280,11 @@ const UMBRALES = [
     <form class="cfg__form" @submit.prevent="guardar">
       <!-- Identidad -->
       <section class="card">
-        <header class="card__head">
+        <header class="card__head card__head--row">
           <h3 class="card__title"><Palette :size="15" class="card__ico" /> Identidad</h3>
+          <button type="button" class="btn-quitar" :disabled="subiendoLogo" @click="restablecerIdentidad">
+            Restablecer
+          </button>
         </header>
         <div class="card__body">
           <div class="field">
@@ -545,6 +578,13 @@ const UMBRALES = [
 
 .card__head {
   margin-bottom: 1rem;
+}
+
+.card__head--row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
 }
 
 .card__title {
