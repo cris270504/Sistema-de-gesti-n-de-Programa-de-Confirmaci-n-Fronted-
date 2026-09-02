@@ -94,6 +94,24 @@ describe('stores/parroquia', () => {
     expect(s.confirmandoObligatorios).toEqual(['celular'])
   })
 
+  it('colorEfectivo: la vista previa gana; si no, el guardado; si no, el default', () => {
+    const s = useParroquiaStore()
+    expect(s.colorEfectivo).toBe(CONFIG_DEFAULTS.branding.color_primario)
+
+    s.hydrateFromLogin({
+      parroquia: { id: 1, nombre: 'X' },
+      configuracion: { ...CONFIG_DEFAULTS, branding: { ...CONFIG_DEFAULTS.branding, color_primario: '#dc2626' } },
+    })
+    expect(s.colorEfectivo).toBe('#dc2626')
+
+    s.setColorPreview('#db2777')
+    expect(s.colorEfectivo).toBe('#db2777')
+
+    s.setColorPreview('no-es-hex')
+    expect(s.colorPreview).toBeNull()
+    expect(s.colorEfectivo).toBe('#dc2626')
+  })
+
   it('clear vuelve a defaults y limpia localStorage', () => {
     const s = useParroquiaStore()
     s.hydrateFromLogin({ parroquia: { id: 1, nombre: 'X' }, configuracion: { dias_ventana_justificacion: 5 } })

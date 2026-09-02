@@ -91,6 +91,9 @@ export const useParroquiaStore = defineStore('parroquia', {
       loading: false,
       _lastRefreshCheck: 0,
       _refreshing: false,
+      // Color que se está probando en Configuración (aún sin guardar). Mientras
+      // no sea null, es EL color que se pinta en todo el sistema.
+      colorPreview: null,
     }
   },
 
@@ -107,6 +110,10 @@ export const useParroquiaStore = defineStore('parroquia', {
     roleLabel: (s) => (rol) => (s.configuracion?.roles_labels?.[rol]) || prettify(rol),
     dashboardKpis: (s) => s.configuracion?.ui?.dashboard_kpis ?? CONFIG_DEFAULTS.ui.dashboard_kpis,
     dashboardPaneles: (s) => s.configuracion?.ui?.dashboard_paneles ?? CONFIG_DEFAULTS.ui.dashboard_paneles,
+    // Color efectivo para pintar el sistema: el que se está probando en
+    // Configuración manda; si no, el guardado.
+    colorEfectivo: (s) =>
+      s.colorPreview || s.configuracion?.branding?.color_primario || CONFIG_DEFAULTS.branding.color_primario,
     // La procedencia (sede/caserío) solo aporta si la parroquia usa más de una.
     usaProcedencia: (s) => (s.configuracion?.procedencias ?? CONFIG_DEFAULTS.procedencias).length > 1,
     // true si la parroquia ocultó ese módulo del menú (por nombre de ruta).
@@ -124,6 +131,11 @@ export const useParroquiaStore = defineStore('parroquia', {
       if (parroquia) this.parroquia = parroquia
       if (configuracion) this.configuracion = mergeConfig(configuracion)
       persist(this)
+    },
+
+    // Color que se prueba en Configuración (null = usar el guardado).
+    setColorPreview(hex) {
+      this.colorPreview = /^#[0-9a-fA-F]{6}$/.test(hex || '') ? hex : null
     },
 
     // Aplica el branding devuelto por fn_branding_logo_set sin recargar toda la

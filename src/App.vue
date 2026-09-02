@@ -20,10 +20,13 @@ const pingHealth = () => {
   fetch(HEALTH_URL, { method: 'GET', cache: 'no-store' }).catch(() => {})
 }
 
-// Al volver a la pestaña, traer la config de la parroquia si cambió (otro
-// coordinador la editó). refreshIfStale se auto-limita a un chequeo cada 30s.
+// Al volver a la pestaña: traer la config de la parroquia si cambió y revalidar
+// la sesión (si el proveedor desactivó la parroquia, cierra sesión con aviso).
+// Ambos se auto-limitan a un chequeo cada 30s.
 const onVisible = () => {
-  if (document.visibilityState === 'visible') useParroquiaStore().refreshIfStale()
+  if (document.visibilityState !== 'visible') return
+  useParroquiaStore().refreshIfStale()
+  useAuthStore().refrescarUsuario()
 }
 
 onMounted(async () => {
@@ -40,7 +43,7 @@ onMounted(async () => {
   const { data } = await supabase.auth.getSession()
   if (data.session) {
     auth.token = data.session.access_token
-    await auth.refrescarUsuario()
+    await auth.refrescarUsuario({ force: true })
   } else if (auth.token) {
     // Espejo viejo sin sesión de Supabase: limpiar.
     auth.logoutLocal()

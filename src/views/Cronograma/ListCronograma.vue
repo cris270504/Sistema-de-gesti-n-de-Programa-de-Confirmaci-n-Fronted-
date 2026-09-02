@@ -482,8 +482,14 @@ onUnmounted(() => {
   --fc-page-bg-color: #ffffff;
   --fc-neutral-bg-color: #f8f9fa;
   --fc-list-event-hover-bg-color: #e9ecef;
-  --fc-today-bg-color: rgba(13, 110, 253, 0.05);
-  /* Variable nativa para 'hoy' */
+  /* 'Hoy' y los botones siguen el color de la parroquia (--parroquia-color). */
+  --fc-today-bg-color: color-mix(in srgb, var(--parroquia-color, #2563eb) 8%, transparent);
+  --fc-button-bg-color: var(--parroquia-color, #2563eb);
+  --fc-button-border-color: var(--parroquia-color, #2563eb);
+  --fc-button-hover-bg-color: color-mix(in srgb, var(--parroquia-color, #2563eb), #000 12%);
+  --fc-button-hover-border-color: color-mix(in srgb, var(--parroquia-color, #2563eb), #000 12%);
+  --fc-button-active-bg-color: color-mix(in srgb, var(--parroquia-color, #2563eb), #000 22%);
+  --fc-button-active-border-color: color-mix(in srgb, var(--parroquia-color, #2563eb), #000 22%);
 }
 
 /* --- 3. EL ÚNICO HOVER QUE QUEREMOS (DÍA INDIVIDUAL) --- */
@@ -518,21 +524,27 @@ onUnmounted(() => {
 }
 
 :deep(.fc-button-primary) {
-  background-color: #0d6efd;
-  border-color: #0d6efd;
+  background-color: var(--parroquia-color, #2563eb) !important;
+  border-color: var(--parroquia-color, #2563eb) !important;
   text-transform: capitalize;
   /* Capitaliza "mes", "semana" */
 }
 
 :deep(.fc-button-primary:hover) {
-  background-color: #0b5ed7;
-  border-color: #0a58ca;
+  background-color: color-mix(in srgb, var(--parroquia-color, #2563eb), #000 12%) !important;
+  border-color: color-mix(in srgb, var(--parroquia-color, #2563eb), #000 12%) !important;
 }
 
 :deep(.fc-button-primary:disabled) {
-  background-color: #0d6efd;
-  border-color: #0d6efd;
+  background-color: var(--parroquia-color, #2563eb) !important;
+  border-color: var(--parroquia-color, #2563eb) !important;
   opacity: 0.65;
+}
+
+:deep(.fc-button-primary:not(:disabled).fc-button-active),
+:deep(.fc-button-primary:not(:disabled):active) {
+  background-color: color-mix(in srgb, var(--parroquia-color, #2563eb), #000 22%) !important;
+  border-color: color-mix(in srgb, var(--parroquia-color, #2563eb), #000 22%) !important;
 }
 
 /* --- 5. EVENTOS --- */

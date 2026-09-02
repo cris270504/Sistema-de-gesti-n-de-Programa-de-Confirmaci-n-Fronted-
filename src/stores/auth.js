@@ -18,6 +18,7 @@ export const useAuthStore = defineStore('auth', {
     user: safeParse(localStorage.getItem(LS_USER_KEY)),
     loading: false,
     error: null,
+    _ultimoChequeo: 0,
   }),
 
   getters: {
@@ -51,6 +52,17 @@ export const useAuthStore = defineStore('auth', {
           'resolver-login',
           { body: { login: identificador } },
         )
+        // Parroquia desactivada → la Edge Function responde 403 { error: 'parroquia_inactiva' }.
+        let errCode = resuelto?.error
+        if (errResolver && !errCode) {
+          try { errCode = (await errResolver.context?.json?.())?.error } catch { /* sin cuerpo */ }
+        }
+        if (errCode === 'parroquia_inactiva') {
+          this.logoutLocal()
+          this.error = 'Tu parroquia está desactivada.'
+          showAlerta('Tu parroquia está desactivada. Contacta con el proveedor del sistema.', 'error')
+          return false
+        }
         if (errResolver || !resuelto?.email) {
           throw new Error('No se pudo resolver el identificador')
         }
@@ -124,14 +136,24 @@ export const useAuthStore = defineStore('auth', {
      * arrancar la app: así los permisos nunca quedan desfasados (p. ej. si cambió
      * un rol) — la RPC los relee en vivo, no del claim del JWT.
      */
-    async refrescarUsuario() {
+    async refrescarUsuario({ force = false } = {}) {
       if (!this.token) return
+      const ahora = Date.now()
+      // Throttle: en navegación/focus se llama seguido; al arrancar la app va force.
+      if (!force && ahora - (this._ultimoChequeo || 0) < 30_000) return
+      this._ultimoChequeo = ahora
+
       const { data, error } = await supabase.rpc('fn_get_user')
       if (error || !data) {
-        // Parroquia desactivada (u otro rechazo explícito): cerrar sesión ahora.
-        // Errores transitorios (red): se conserva localStorage.
+        // Parroquia desactivada (u otro rechazo explícito): cerrar sesión ahora,
+        // con aviso. Errores transitorios (red): se conserva localStorage.
         if (/desactivad|inactiv|no encontrado o inactivo/i.test(error?.message || '')) {
-          showAlerta(error.message, 'error')
+          showAlerta(
+            /desactivad|inactiv/i.test(error.message)
+              ? 'Tu parroquia fue desactivada. Contacta con el proveedor del sistema.'
+              : error.message,
+            'error',
+          )
           await this.logout()
         }
         return

@@ -46,9 +46,11 @@ const parroquiaStore = useParroquiaStore()
 const authStore = useAuthStore()
 
 // Color primario de la parroquia aplicado a todo el sistema (Tailwind + Bootstrap
-// + estilos propios). Ver src/lib/tema.js.
+// + estilos propios). Único punto que escribe las variables CSS: lee el color
+// efectivo del store (el de "vista previa" de Configuración si lo hay, si no el
+// guardado). Ver src/lib/tema.js.
 watch(
-  () => parroquiaStore.branding.color_primario,
+  () => parroquiaStore.colorEfectivo,
   (color) => aplicarColorParroquia(color),
   { immediate: true }
 )

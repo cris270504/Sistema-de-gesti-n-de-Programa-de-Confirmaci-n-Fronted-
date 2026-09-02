@@ -253,6 +253,11 @@ router.beforeEach(async (to) => {
     return { name: 'login', query: redirect ? { redirect } : {} };
   }
 
+  // Revalida la sesión al navegar (throttle 30s): si el proveedor desactivó la
+  // parroquia, refrescarUsuario cierra sesión con aviso. Fire-and-forget para no
+  // frenar la navegación; el logout se encarga de redirigir al login.
+  if (logged && !onlyGuests) auth.refrescarUsuario();
+
   // El proveedor de la plataforma opera el panel de parroquias, no el Dashboard
   // de una parroquia. (Cuentas separadas: super-admin de parroquia vs proveedor.)
   const esProveedor = auth.user?.roles?.includes('proveedor');
@@ -286,7 +291,7 @@ router.beforeEach(async (to) => {
     // Antes de mandar a /403, refrescamos una vez desde el backend y reevaluamos.
     if (!ok && !permisosYaRefrescados) {
       permisosYaRefrescados = true;
-      await auth.refrescarUsuario();
+      await auth.refrescarUsuario({ force: true });
       ok = permsArray.every(p => auth.user?.permissions?.includes(p));
     }
 

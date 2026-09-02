@@ -9,7 +9,6 @@ import {
   Palette, CalendarRange, Users, Tag, LayoutDashboard, TriangleAlert, Check, PanelLeft, ListFilter, UserCheck,
 } from 'lucide-vue-next'
 import { subirLogo, quitarLogo } from '@/services/branding'
-import { aplicarColorParroquia } from '@/lib/tema'
 import { showAlerta, confirmar } from '@/funciones'
 import AppPage from '@/components/AppPage.vue'
 
@@ -141,12 +140,16 @@ const TIPOS_REUNION = ['Confirmandos', 'Catequistas', 'Apoderados']
 const saving = ref(false)
 const form = reactive(estructuraVacia())
 
-// Vista previa del color EN VIVO sobre todo el sistema mientras se edita.
-// Al salir sin guardar (o al Descartar) se restaura el color guardado.
-watch(() => form.branding.color_primario, (hex) => aplicarColorParroquia(hex))
+// Vista previa del color EN VIVO sobre todo el sistema mientras se edita: se
+// publica en el store (solo si difiere del guardado) y DefaultLayout lo pinta.
+// Al Descartar / Guardar / salir vuelve el color guardado.
+watch(() => form.branding.color_primario, (hex) => {
+  const guardado = parroquiaStore.configuracion?.branding?.color_primario
+  parroquiaStore.setColorPreview(hex && hex !== guardado ? hex : null)
+})
 onBeforeUnmount(() => {
   limpiarLocal()
-  aplicarColorParroquia(parroquiaStore.branding.color_primario)
+  parroquiaStore.setColorPreview(null)
 })
 
 const ROLES_INTERNOS = [
@@ -264,6 +267,8 @@ async function guardar() {
   }
   await parroquiaStore.save(payload)
   cargarDesdeStore()
+  // Ya guardado: el color efectivo pasa a ser el de la config, no la "vista previa".
+  parroquiaStore.setColorPreview(null)
   saving.value = false
 }
 
@@ -341,8 +346,8 @@ const UMBRALES = [
             </small>
           </div>
 
-          <div class="brand-preview" :style="{ '--pv': form.branding.color_primario }">
-            <span class="bp-tag">Vista previa</span>
+          <div class="brand-preview" :style="{ '--pv': form.branding.color_primario }" aria-hidden="true">
+            <span class="bp-tag">Vista previa · solo muestra</span>
             <div class="bp-shell">
               <div class="bp-side">
                 <span class="bp-logo">
@@ -356,11 +361,13 @@ const UMBRALES = [
                 <span class="bp-row">Confirmandos</span>
               </div>
               <div class="bp-foot">
-                <button type="button" class="bp-btn">Guardar</button>
-                <span class="bp-chip">Activo</span>
+                <span class="bp-btn">Botón</span>
+                <span class="bp-chip">Etiqueta</span>
               </div>
             </div>
-            <small>El color ya se está aplicando a todo el sistema. Guarda para conservarlo o Descarta para volver atrás.</small>
+            <small>El color se aplica al instante en todo el sistema. Para conservarlo pulsa
+              <b>«Guardar configuración»</b> abajo (o <b>Descartar</b> para volver al anterior).
+              El logo se guarda solo, al subirlo.</small>
           </div>
         </div>
       </section>
@@ -872,6 +879,9 @@ const UMBRALES = [
   border-radius: 10px;
   overflow: hidden;
   background: #fff;
+  /* Es una maqueta: nada acá se puede clicar. */
+  pointer-events: none;
+  user-select: none;
 }
 
 .bp-side {
@@ -936,7 +946,7 @@ const UMBRALES = [
 }
 
 .bp-btn {
-  border: 0;
+  display: inline-block;
   border-radius: 7px;
   padding: .4rem .8rem;
   font-size: .78rem;
