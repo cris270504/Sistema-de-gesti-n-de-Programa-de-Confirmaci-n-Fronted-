@@ -6,6 +6,7 @@ import { onMounted, onUnmounted, ref, computed, nextTick, watch, defineAsyncComp
 import {
     Pencil, Trash, Plus, User, Phone, Calendar, Users,
     Wand2, Trash2, Save, Upload, Eye, Search, X, ArrowRight, Info,
+    UserX, UserCheck,
 } from 'lucide-vue-next';
 import { useAuthStore } from '@/stores/auth';
 import { useParroquiaStore } from '@/stores/parroquia';
@@ -65,6 +66,20 @@ async function removeConfirmando(id, nombre) {
     borrandoId.value = id;
     try {
         await _removeConfirmando(id, nombre);
+    } finally {
+        borrandoId.value = null;
+    }
+}
+
+async function accionEstado(accion, c) {
+    if (borrandoId.value) return;
+    borrandoId.value = c.id;
+    const nombre = `${c.apellidos} ${c.nombres}`;
+    try {
+        const ok = accion === 'retirar'
+            ? await confirmandosStore.registrarRetiro(c.id, nombre)
+            : await confirmandosStore.reingresar(c.id, nombre);
+        if (ok) await fetchAllConfirmandos({ force: true });
     } finally {
         borrandoId.value = null;
     }
@@ -666,6 +681,18 @@ onUnmounted(() => {
                                         @click="abrirEditar(c.id)">
                                         <span v-if="isConfirmandoModalLoading" class="spinner-border spinner-border-sm"></span>
                                         <Pencil v-else :size="18" />
+                                    </button>
+                                    <button v-if="authStore.can('editar confirmandos') && c.estado !== 'retirado'"
+                                        class="btn-action btn-soft-warning" title="Retirar del programa"
+                                        aria-label="Retirar del programa" :disabled="borrandoId === c.id"
+                                        @click="accionEstado('retirar', c)">
+                                        <UserX :size="18" />
+                                    </button>
+                                    <button v-if="authStore.can('editar confirmandos') && c.estado === 'retirado'"
+                                        class="btn-action btn-soft-success" title="Reingresar al programa"
+                                        aria-label="Reingresar al programa" :disabled="borrandoId === c.id"
+                                        @click="accionEstado('reingresar', c)">
+                                        <UserCheck :size="18" />
                                     </button>
                                     <button v-if="authStore.can('eliminar confirmandos')"
                                         class="btn-action btn-soft-danger" title="Eliminar"

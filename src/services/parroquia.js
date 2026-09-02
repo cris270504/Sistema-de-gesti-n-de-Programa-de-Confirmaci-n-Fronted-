@@ -1,3 +1,4 @@
+import { errorLegible } from '@/lib/errores'
 import { supabase } from '@/lib/supabase'
 
 // Configuración de la parroquia. Lectura → PostgREST sobre
@@ -16,7 +17,7 @@ export async function getConfiguracion() {
     .from('parroquia_configuraciones')
     .select(CONFIG_COLS)
     .maybeSingle()
-  if (error) throw new Error(error.message)
+  if (error) throw errorLegible(error)
   return data ?? {} // sin fila → el store aplica sus defaults
 }
 
@@ -26,12 +27,12 @@ export async function getConfiguracionUpdatedAt() {
     .from('parroquia_configuraciones')
     .select('updated_at')
     .maybeSingle()
-  if (error) throw new Error(error.message)
+  if (error) throw errorLegible(error)
   return data?.updated_at ?? null
 }
 
 export async function updateConfiguracion(payload) {
   const { data, error } = await supabase.rpc('fn_guardar_configuracion', { p_config: payload })
-  if (error) throw new Error(error.message)
+  if (error) throw errorLegible(error)
   return data // { message, configuracion }
 }

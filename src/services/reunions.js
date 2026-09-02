@@ -1,3 +1,4 @@
+import { errorLegible } from '@/lib/errores'
 import { supabase } from '@/lib/supabase'
 
 // Fase 3/4: lecturas y escrituras → PostgREST (RLS + CHECK de tipo + trigger
@@ -5,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 
 async function unwrap(promise) {
   const { data, error } = await promise
-  if (error) throw new Error(error.message)
+  if (error) throw errorLegible(error)
   return data
 }
 
@@ -42,19 +43,19 @@ export function getUpcomingReuniones() {
 export async function createReunion(reunion) {
   const { data, error } = await supabase
     .from('reunions').insert(soloEscribibles(reunion)).select(COLS).single()
-  if (error) throw new Error(error.message)
+  if (error) throw errorLegible(error)
   return { reunion: data }
 }
 
 export async function updateReunion(id, reunion) {
   const { data, error } = await supabase
     .from('reunions').update(soloEscribibles(reunion)).eq('id', Number(id)).select(COLS).single()
-  if (error) throw new Error(error.message)
+  if (error) throw errorLegible(error)
   return { reunion: data }
 }
 
 export async function deleteReunionById(id) {
   const { error } = await supabase.from('reunions').delete().eq('id', Number(id))
-  if (error) throw new Error(error.message)
+  if (error) throw errorLegible(error)
   return { message: 'Reunión eliminada' }
 }

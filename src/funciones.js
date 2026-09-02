@@ -100,6 +100,24 @@ export function confirmar(opciones = {}) {
 }
 
 /**
+ * Pide un texto (motivo, nota…). Devuelve el string (o null si se confirmó vacío),
+ * o `undefined` si se canceló.
+ */
+export function pedirTexto({ titulo = 'Motivo', texto = '', placeholder = '', confirmarTexto = 'Guardar', requerido = false } = {}) {
+  return Swal.fire({
+    title: escaparHtml(titulo),
+    text: texto,
+    input: 'textarea',
+    inputPlaceholder: placeholder,
+    inputAttributes: { 'aria-label': titulo, maxlength: 300 },
+    showCancelButton: true,
+    confirmButtonText: confirmarTexto,
+    cancelButtonText: 'Cancelar',
+    inputValidator: (v) => (requerido && !String(v || '').trim()) ? 'Escribe un motivo' : undefined,
+  }).then((res) => (res.isConfirmed ? (String(res.value || '').trim() || null) : undefined))
+}
+
+/**
  * Azúcar sintáctica para confirmar eliminación
  * @param {string} nombre nombre a mostrar (ej: título del post)
  * @returns {Promise<boolean>}

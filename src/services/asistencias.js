@@ -1,3 +1,4 @@
+import { errorLegible } from '@/lib/errores'
 import { supabase } from '@/lib/supabase';
 
 // Asistencias: todo vía Supabase. Lista de una reunión → PostgREST; guardado
@@ -9,7 +10,7 @@ export async function getAsistenciasList(reunionId) {
         .from('asistencia')
         .select('id, reunion_id, estado, asistente_type, asistente_id, nota')
         .eq('reunion_id', Number(reunionId));
-    if (error) throw new Error(error.message);
+    if (error) throw errorLegible(error);
     return data;
 }
 
@@ -20,7 +21,7 @@ export async function saveAsistenciasBulk(reunionId, asistenciasData) {
         p_reunion_id: Number(reunionId),
         p_filas: asistenciasData,
     });
-    if (error) throw new Error(error.message);
+    if (error) throw errorLegible(error);
     return { message: 'Asistencia guardada correctamente', ...data };
 }
 
@@ -32,7 +33,7 @@ export function getAsistenciaMatrix(tipo, fecha) {
     return supabase
         .rpc('fn_asistencia_matriz', { p_tipo: tipo, p_fecha: fecha || null })
         .then(({ data, error }) => {
-            if (error) throw new Error(error.message);
+            if (error) throw errorLegible(error);
             return data;
         });
 }

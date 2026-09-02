@@ -1,3 +1,4 @@
+import { errorLegible } from '@/lib/errores'
 import { supabase } from '@/lib/supabase'
 
 // Panel del proveedor (administrar plataforma).
@@ -11,14 +12,14 @@ export const listParroquias = async () => {
     .from('v_parroquias')
     .select('id, nombre, slug, activa, zona_horaria, es_plantilla, created_at, users_count, grupos_count, confirmandos_count')
     .order('nombre')
-  if (error) throw new Error(error.message)
+  if (error) throw errorLegible(error)
   return data
 }
 
 // Marca qué parroquia se usa como plantilla al crear nuevas (ruta sacramental).
 export const setPlantillaParroquia = async (id) => {
   const { error } = await supabase.rpc('fn_set_parroquia_plantilla', { p_id: Number(id) })
-  if (error) throw new Error(error.message)
+  if (error) throw errorLegible(error)
 }
 
 export const crearParroquia = async (payload) => {
@@ -41,7 +42,7 @@ export const getBrandingParroquia = async (id) => {
     .select('branding')
     .eq('parroquia_id', Number(id))
     .maybeSingle()
-  if (error) throw new Error(error.message)
+  if (error) throw errorLegible(error)
   return data?.branding ?? {}
 }
 
@@ -52,6 +53,6 @@ export const actualizarParroquia = async (id, payload) => {
     .eq('id', Number(id))
     .select('id, nombre, slug, activa, zona_horaria, created_at')
     .single()
-  if (error) throw new Error(error.message)
+  if (error) throw errorLegible(error)
   return { message: 'Parroquia actualizada.', parroquia: data }
 }

@@ -580,17 +580,40 @@ const saveChanges = async () => {
             updatesByReunion[p.reunion_id].push(p);
         });
 
-        // Esperamos a que todas las peticiones se guarden
-        const promises = Object.entries(updatesByReunion).map(([rId, items]) =>
-            asistenciasStore.saveBulk(rId, items)
+        // allSettled: si una reunión falla, las demás igual se guardan y sabemos
+        // exactamente cuál quedó pendiente (M6).
+        const entradas = Object.entries(updatesByReunion);
+        const resultados = await Promise.allSettled(
+            entradas.map(([rId, items]) => asistenciasStore.saveBulk(rId, items)),
         );
 
-        await Promise.all(promises);
-        
-        // Disparamos el éxito y recargamos la matriz
-        showAlerta('Asistencia guardada correctamente', 'success');
+        const okIds = new Set();
+        const fallos = [];
+        resultados.forEach((res, i) => {
+            const rId = String(entradas[i][0]);
+            if (res.status === 'fulfilled') {
+                okIds.add(rId);
+            } else {
+                const nombre = reuniones.value.find(r => String(r.id) === rId)?.nombre_tema || `Reunión ${rId}`;
+                fallos.push(`• ${nombre}: ${res.reason?.message || 'error'}`);
+            }
+        });
+
+        // Solo se limpian de `changes` las reuniones que SÍ se guardaron.
+        changes.value = Object.fromEntries(
+            Object.entries(changes.value).filter(([, v]) => !okIds.has(String(v.reunion_id))),
+        );
         await loadMatrix();
-        changes.value = {};
+
+        if (fallos.length > 0) {
+            showAlerta(
+                `Se guardó ${okIds.size} de ${entradas.length} reunión(es). No se pudieron guardar:\n${fallos.join('\n')}\n\n` +
+                `Los cambios pendientes siguen en pantalla; corrige y vuelve a guardar.`,
+                'warning',
+            );
+            return;
+        }
+        showAlerta('Asistencia guardada correctamente', 'success');
 
         const user = authStore.user;
         const roles = user?.roles || [];

@@ -1,3 +1,4 @@
+import { errorLegible } from '@/lib/errores'
 import { supabase } from '@/lib/supabase'
 
 // Usuarios. Lecturas → vista v_usuarios (PostgREST; roles/grupos resueltos con
@@ -11,7 +12,7 @@ export async function getUsersList() {
     .from('v_usuarios')
     .select(SELECT)
     .order('id', { ascending: false })
-  if (error) throw new Error(error.message)
+  if (error) throw errorLegible(error)
   return data
 }
 
@@ -21,7 +22,7 @@ export async function getUserById(id) {
     .select(SELECT)
     .eq('id', Number(id))
     .single()
-  if (error) throw new Error(error.message)
+  if (error) throw errorLegible(error)
   return data
 }
 

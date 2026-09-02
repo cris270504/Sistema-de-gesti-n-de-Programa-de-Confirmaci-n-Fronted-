@@ -1,3 +1,4 @@
+import { errorLegible } from '@/lib/errores'
 import { supabase } from '@/lib/supabase'
 
 // Grupos: todo vía Supabase. Lecturas → PostgREST (RLS: privilegiado ve su
@@ -6,7 +7,7 @@ import { supabase } from '@/lib/supabase'
 
 async function unwrap(promise) {
   const { data, error } = await promise
-  if (error) throw new Error(error.message)
+  if (error) throw errorLegible(error)
   return data
 }
 
@@ -42,20 +43,20 @@ const GRUPO_COLS = 'id, nombre, periodo, color, procedencia'
 
 export async function createGrupo(grupo) {
   const { data, error } = await supabase.from('grupos').insert(grupo).select(GRUPO_COLS).single()
-  if (error) throw new Error(error.message)
+  if (error) throw errorLegible(error)
   return { grupo: { ...data, catequistas: [], confirmandos: [] } }
 }
 
 export async function updateGrupo(id, grupo) {
   const { data, error } = await supabase
     .from('grupos').update(grupo).eq('id', Number(id)).select(GRUPO_COLS).single()
-  if (error) throw new Error(error.message)
+  if (error) throw errorLegible(error)
   return { grupo: data }
 }
 
 export async function deleteGrupoById(id) {
   const { error } = await supabase.from('grupos').delete().eq('id', Number(id))
-  if (error) throw new Error(error.message)
+  if (error) throw errorLegible(error)
   return { message: 'Grupo eliminado' }
 }
 
@@ -64,7 +65,7 @@ export async function deleteGrupoById(id) {
 // `{ message, grupo }` como consumían assignCatequists / assignConfirmandos.
 async function syncGrupo(rpc, grupoId, arg, key, message) {
   const { error } = await supabase.rpc(rpc, { p_grupo_id: Number(grupoId), [key]: arg ?? [] })
-  if (error) throw new Error(error.message)
+  if (error) throw errorLegible(error)
   return { message, grupo: await getGrupoById(grupoId) }
 }
 
@@ -106,7 +107,7 @@ export async function generarGruposEquitativos({ nombres_grupos, periodo, estrat
     p_periodo: periodo,
     p_estrategia: estrategia,
   })
-  if (error) throw new Error(error.message)
+  if (error) throw errorLegible(error)
 
   const { total_asignados, grupos_nuevos, grupos_existentes } = data
   const n = grupos_nuevos + grupos_existentes

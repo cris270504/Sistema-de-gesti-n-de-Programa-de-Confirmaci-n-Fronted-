@@ -1,3 +1,4 @@
+import { errorLegible } from '@/lib/errores'
 import { supabase } from '@/lib/supabase'
 
 // Logo de la parroquia en el Storage de Supabase (bucket público `branding`).
@@ -72,7 +73,7 @@ export async function subirLogo({ parroquiaId, slot, file, urlAnterior = null })
   })
   if (error) {
     await supabase.storage.from(BUCKET).remove([path]).catch(() => {})
-    throw new Error(error.message)
+    throw errorLegible(error)
   }
 
   const prev = rutaDesdeUrl(urlAnterior)
@@ -89,7 +90,7 @@ export async function quitarLogo({ parroquiaId, slot, urlAnterior = null }) {
     p_slot: slot,
     p_url: null,
   })
-  if (error) throw new Error(error.message)
+  if (error) throw errorLegible(error)
 
   const prev = rutaDesdeUrl(urlAnterior)
   if (prev) await supabase.storage.from(BUCKET).remove([prev]).catch(() => {})

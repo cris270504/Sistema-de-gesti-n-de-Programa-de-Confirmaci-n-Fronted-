@@ -1,3 +1,4 @@
+import { errorLegible } from '@/lib/errores'
 import { supabase } from '@/lib/supabase'
 
 // Roles (Spatie). Las tablas están REVOCADAS de PostgREST → todo por RPCs
@@ -6,7 +7,7 @@ import { supabase } from '@/lib/supabase'
 
 async function rpc(fn, args) {
   const { data, error } = await supabase.rpc(fn, args)
-  if (error) throw new Error(error.message)
+  if (error) throw errorLegible(error)
   return data
 }
 

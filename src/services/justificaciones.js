@@ -1,3 +1,4 @@
+import { errorLegible } from '@/lib/errores'
 import { supabase } from '@/lib/supabase';
 
 // Fase 3: el listado lee la vista v_justificaciones_pendientes (ventana de N días
@@ -10,7 +11,7 @@ export async function getJustificacionesPendientes() {
         .from('v_justificaciones_pendientes')
         .select('*')
         .order('fecha_falta', { ascending: false });
-    if (error) throw new Error(error.message);
+    if (error) throw errorLegible(error);
     return data;
 }
 
@@ -18,7 +19,7 @@ export async function getJustificacionesPendientes() {
 //    asistencia). La RLS de esas tablas hace de `autorizarAsistencia`. ─────────
 async function rpc(fn, args) {
     const { data, error } = await supabase.rpc(fn, args);
-    if (error) throw new Error(error.message);
+    if (error) throw errorLegible(error);
     return { status: true, ...(data ?? {}) };
 }
 

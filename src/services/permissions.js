@@ -1,3 +1,4 @@
+import { errorLegible } from '@/lib/errores'
 import { supabase } from '@/lib/supabase'
 
 // Catálogo de permisos: solo lectura (para los checkboxes del editor de roles).
@@ -7,6 +8,6 @@ import { supabase } from '@/lib/supabase'
 
 export async function getPermissionsList() {
   const { data, error } = await supabase.rpc('fn_permisos_lista')
-  if (error) throw new Error(error.message)
+  if (error) throw errorLegible(error)
   return data
 }

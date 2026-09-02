@@ -1,3 +1,4 @@
+import { errorLegible } from '@/lib/errores'
 import { supabase } from '@/lib/supabase'
 
 // Fase 3 migración Supabase: las LECTURAS del catálogo van directo a PostgREST
@@ -6,7 +7,7 @@ import { supabase } from '@/lib/supabase'
 
 async function unwrap(promise) {
   const { data, error } = await promise
-  if (error) throw new Error(error.message)
+  if (error) throw errorLegible(error)
   return data
 }
 
@@ -49,20 +50,20 @@ const soloSacramento = ({ nombre, clave } = {}) => ({
 export async function createSacramento(sacramento) {
   const { data, error } = await supabase
     .from('sacramentos').insert(soloSacramento(sacramento)).select('id, nombre, clave').single()
-  if (error) throw new Error(error.message)
+  if (error) throw errorLegible(error)
   return { sacramento: { ...data, requisitos: [] } }
 }
 
 export async function updateSacramento(id, sacramento) {
   const { data, error } = await supabase
     .from('sacramentos').update(soloSacramento(sacramento)).eq('id', Number(id)).select('id, nombre, clave').single()
-  if (error) throw new Error(error.message)
+  if (error) throw errorLegible(error)
   return { sacramento: data }
 }
 
 export async function deleteSacramentoById(id) {
   const { error } = await supabase.from('sacramentos').delete().eq('id', Number(id))
-  if (error) throw new Error(error.message)
+  if (error) throw errorLegible(error)
   return { message: 'Sacramento eliminado' }
 }
 
@@ -73,5 +74,5 @@ export async function setSacramentoRequisito(sacramentoId, requisitoId, activo) 
     p_requisito_id: Number(requisitoId),
     p_activo: !!activo,
   })
-  if (error) throw new Error(error.message)
+  if (error) throw errorLegible(error)
 }

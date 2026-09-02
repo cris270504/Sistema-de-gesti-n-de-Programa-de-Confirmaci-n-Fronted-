@@ -7,10 +7,11 @@ import {
     updateConfirmando,
     importarConfirmandosExcel,
     retirarConfirmandoById,
+    reingresarConfirmandoById,
+    contarAsistenciasConfirmando,
     obtenerPerfilConfirmando,
 } from '../services/confirmandos';
-import { confirmarEliminacion, confirmar, showAlerta, showErroresDeValidacion } from '@/funciones'
-import { contarAsistenciasConfirmando } from '../services/confirmandos'
+import { confirmarEliminacion, confirmar, pedirTexto, showAlerta, showErroresDeValidacion } from '@/funciones'
 
 // Ventana de frescura: dentro de este lapso no se vuelve a pedir la lista completa
 // al re-montar ListConfirmandos (evita el skeleton al navegar de ida y vuelta).
@@ -275,17 +276,43 @@ export const useConfirmandosStore = defineStore('confirmandos', {
 
         async registrarRetiro(id, nombre) {
             const confirmandoId = Number(id);
+            const motivo = await pedirTexto({
+                titulo: `Retirar del programa${nombre ? ` a ${nombre}` : ''}`,
+                texto: 'Deja de contar en el padrón activo y en las asistencias. Puede reingresar después.',
+                placeholder: 'Motivo (opcional): cambió de parroquia, dejó de asistir…',
+                confirmarTexto: 'Retirar',
+            });
+            if (motivo === undefined) return false; // cancelado
+
             try {
-                await retirarConfirmandoById(confirmandoId);
+                await retirarConfirmandoById(confirmandoId, motivo);
                 this.items = this.items.filter(c => c.id !== confirmandoId);
-
-                // 4. ¡VITAL! Al dar de baja a alguien, pedimos los números frescos a Laravel
                 await this.fetchMetricas();
-
-                showAlerta('¡Confirmando retirado correctamente!', 'success');
+                showAlerta('Confirmando retirado del programa.', 'success');
                 return true;
             } catch (e) {
-                this.error = e?.response?.data?.message || 'No se pudo procesar el retiro';
+                this.error = e?.message || 'No se pudo procesar el retiro';
+                showAlerta(this.error, 'error');
+                return false;
+            }
+        },
+
+        async reingresar(id, nombre) {
+            const confirmandoId = Number(id);
+            const ok = await confirmar({
+                titulo: `¿Reingresar${nombre ? ` a ${nombre}` : ''} al programa?`,
+                texto: 'Vuelve a "En preparación" y al padrón activo.',
+                icono: 'question', confirmarTexto: 'Sí, reingresar',
+            });
+            if (!ok) return false;
+            try {
+                await reingresarConfirmandoById(confirmandoId);
+                this.items = this.items.filter(c => c.id !== confirmandoId);
+                await this.fetchMetricas();
+                showAlerta('Confirmando reingresado al programa.', 'success');
+                return true;
+            } catch (e) {
+                this.error = e?.message || 'No se pudo reingresar';
                 showAlerta(this.error, 'error');
                 return false;
             }

@@ -8,7 +8,7 @@ import { useAuthStore } from '@/stores/auth';
 import { useParroquiaStore } from '@/stores/parroquia';
 
 import { storeToRefs } from 'pinia';
-import { showAlerta } from '@/funciones';
+import { showAlerta, confirmar } from '@/funciones';
 import { Modal } from 'bootstrap';
 import { buscarApoderados } from '@/services/confirmandos';
 import { attachModalFocusReturn } from '@/composables/useModalFocusReturn';
@@ -67,10 +67,19 @@ const { errores, marcarTocado } = useFieldValidation({
   celular: () => validarCelular(draft.value.celular),
 });
 
-const maxDate = computed(() => {
-  const today = new Date();
-  return `${today.getFullYear() - 14}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-});
+// Máximo permitido en el input = hoy (no se admite una fecha de nacimiento futura).
+const maxDate = computed(() => new Date().toISOString().slice(0, 10));
+
+// Edad en años a partir de una fecha ISO (yyyy-mm-dd).
+function edadDesde(iso) {
+  if (!iso) return null;
+  const hoy = new Date();
+  const n = new Date(iso + 'T00:00:00');
+  let e = hoy.getFullYear() - n.getFullYear();
+  const m = hoy.getMonth() - n.getMonth();
+  if (m < 0 || (m === 0 && hoy.getDate() < n.getDate())) e--;
+  return e;
+}
 
 const buscarPadresExistentes = async (e, index) => {
   const query = e.target.value;
@@ -233,8 +242,10 @@ async function submitUpdate() {
   if (obligatorio('fecha_nacimiento') && !payload.fecha_nacimiento) return showAlerta('La fecha de nacimiento es obligatoria.', 'warning');
   if (obligatorio('genero') && !payload.genero) return showAlerta('El género es obligatorio.', 'warning');
 
-  // Validación de edad solo si la fecha cambió o es nuevo
-  if (payload.fecha_nacimiento > maxDate.value) return showAlerta('Debe tener al menos 14 años.', 'warning');
+  // No se admite una fecha de nacimiento futura.
+  if (payload.fecha_nacimiento && payload.fecha_nacimiento > maxDate.value) {
+    return showAlerta('La fecha de nacimiento no puede ser futura.', 'warning');
+  }
 
   for (const ap of payload.apoderados) {
     if (!ap.nombres || !ap.apellidos || !ap.tipo_apoderado_id) {
@@ -243,6 +254,22 @@ async function submitUpdate() {
   }
 
   saving.value = true;
+
+  // Aviso NO bloqueante si queda fuera del rango de edad para grupos.
+  {
+    const { min, max } = parroquiaStore.gruposEdad;
+    const edad = edadDesde(payload.fecha_nacimiento);
+    if (edad != null && ((min != null && edad < min) || (max != null && edad > max))) {
+      const rango = [min ?? '…', max ?? '…'].join('–');
+      const seguir = await confirmar({
+        titulo: `Edad fuera del rango para grupos (${rango} años)`,
+        texto: `Tiene ${edad} años; el generador automático de grupos no lo incluirá. ¿Guardar de todos modos?`,
+        icono: 'question', confirmarTexto: 'Sí, guardar', cancelarTexto: 'Volver',
+      });
+      if (!seguir) { saving.value = false; return; }
+    }
+  }
+
   try {
     let result;
     if (draft.value.id) {
@@ -378,12 +405,16 @@ async function submitUpdate() {
 
               <div class="col-md-6">
                 <label class="form-label fw-bold text-secondary small text-uppercase">Estado del Confirmando</label>
-                <select v-model="draft.estado" class="form-select border-start-0" aria-label="Estado del confirmando"
+                <div v-if="draft.estado === 'retirado'" class="form-control-plaintext fw-semibold text-danger py-1">
+                  Retirado del programa
+                  <small class="d-block text-muted fw-normal">Para reingresarlo, usa el botón en la lista de confirmandos.</small>
+                </div>
+                <select v-else v-model="draft.estado" class="form-select border-start-0" aria-label="Estado del confirmando"
                   :disabled="saving || authStore.user?.roles?.includes('catequista')">
                   <option value="en_preparacion">En Preparación</option>
                   <option value="confirmado">Confirmado (Finalizado)</option>
-                  <option value="retirado">Retirado / Desertó</option>
                 </select>
+                <small v-if="draft.estado !== 'retirado'" class="text-muted">El retiro se hace desde la lista (pide un motivo).</small>
               </div>
 
               <div class="col-md-6">

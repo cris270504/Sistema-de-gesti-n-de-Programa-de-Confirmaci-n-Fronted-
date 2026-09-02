@@ -1,3 +1,4 @@
+import { errorLegible } from '@/lib/errores'
 import { supabase } from '@/lib/supabase'
 
 // Fase 3/4: lecturas y escrituras del catálogo → PostgREST (RLS por parroquia).
@@ -5,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 
 async function unwrap(promise) {
   const { data, error } = await promise
-  if (error) throw new Error(error.message)
+  if (error) throw errorLegible(error)
   return data
 }
 
@@ -25,19 +26,19 @@ export function getRequisitoById(id) {
 export async function createRequisito(requisito) {
   const { data, error } = await supabase
     .from('requisitos').insert(requisito).select('id, nombre').single()
-  if (error) throw new Error(error.message)
+  if (error) throw errorLegible(error)
   return { requisito: data }
 }
 
 export async function updateRequisito(id, requisito) {
   const { data, error } = await supabase
     .from('requisitos').update(requisito).eq('id', Number(id)).select('id, nombre').single()
-  if (error) throw new Error(error.message)
+  if (error) throw errorLegible(error)
   return { requisito: data }
 }
 
 export async function deleteRequisitoById(id) {
   const { error } = await supabase.from('requisitos').delete().eq('id', Number(id))
-  if (error) throw new Error(error.message)
+  if (error) throw errorLegible(error)
   return { message: 'Requisito eliminado' }
 }

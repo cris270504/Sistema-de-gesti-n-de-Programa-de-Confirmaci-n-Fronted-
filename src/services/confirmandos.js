@@ -1,3 +1,4 @@
+import { errorLegible } from '@/lib/errores'
 import { supabase } from '@/lib/supabase'
 
 // Confirmandos: todo vía Supabase. Lecturas → PostgREST (RLS por parroquia y
@@ -6,7 +7,7 @@ import { supabase } from '@/lib/supabase'
 
 async function unwrap(promise) {
   const { data, error } = await promise
-  if (error) throw new Error(error.message)
+  if (error) throw errorLegible(error)
   return data
 }
 
@@ -79,7 +80,7 @@ async function guardarConfirmando(id, payload) {
     p_apoderados: apoderados === undefined ? null : apoderados,
     p_requisitos: requisitos_actualizar,
   })
-  if (error) throw new Error(error.message)
+  if (error) throw errorLegible(error)
 
   return {
     message: id ? 'Confirmando actualizado correctamente' : 'Confirmando creado y ruta sacramental asignada',
@@ -99,7 +100,7 @@ export async function obtenerPerfilConfirmando(id) {
     .select('*')
     .eq('id', Number(id))
     .single()
-  if (error) throw new Error(error.message)
+  if (error) throw errorLegible(error)
 
   return {
     status: true,
@@ -153,15 +154,23 @@ export async function buscarApoderados(q) {
 export async function deleteConfirmandoById(id) {
   // RLS confirmandos_delete (app_is_privileged) + cascada de los pivotes por FK.
   const { error } = await supabase.from('confirmandos').delete().eq('id', Number(id))
-  if (error) throw new Error(error.message)
+  if (error) throw errorLegible(error)
   return { message: 'Confirmando eliminado correctamente' }
 }
 
-export async function retirarConfirmandoById(id) {
-  const { error } = await supabase
-    .from('confirmandos').update({ estado: 'retirado' }).eq('id', Number(id))
-  if (error) throw new Error(error.message)
+export async function retirarConfirmandoById(id, motivo = null) {
+  const patch = { estado: 'retirado' }
+  if (motivo) patch.motivo_retiro = motivo
+  const { error } = await supabase.from('confirmandos').update(patch).eq('id', Number(id))
+  if (error) throw errorLegible(error)
   return { status: true, message: 'Confirmando retirado del programa exitosamente.' }
+}
+
+export async function reingresarConfirmandoById(id) {
+  const { error } = await supabase
+    .from('confirmandos').update({ estado: 'en_preparacion' }).eq('id', Number(id))
+  if (error) throw errorLegible(error)
+  return { status: true, message: 'Confirmando reingresado al programa.' }
 }
 
 // Cuántas filas de asistencia tiene un confirmando (para decidir eliminar vs retirar).
@@ -171,7 +180,7 @@ export async function contarAsistenciasConfirmando(id) {
     .select('id', { count: 'exact', head: true })
     .eq('asistente_type', 'App\\Models\\Confirmando')
     .eq('asistente_id', Number(id))
-  if (error) throw new Error(error.message)
+  if (error) throw errorLegible(error)
   return count ?? 0
 }
 
