@@ -103,6 +103,8 @@ const submit = async () => {
             </form>
         </div>
 
-        <AppCredit class="mt-6 max-w-md" />
+        <div class="mt-10 max-w-md">
+            <AppCredit />
+        </div>
     </div>
 </template>

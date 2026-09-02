@@ -102,7 +102,7 @@ onUnmounted(() => { document.body.style.overflow = '' })
     flex-shrink: 0;
     border-top: 1px solid #eef2f6;
     background: #fff;
-    padding: 6px 12px;
+    padding: 10px 14px;
 }
 
 .app-footer--with-bottomnav {
