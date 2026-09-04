@@ -35,6 +35,8 @@ export const CONFIG_DEFAULTS = {
     confirmandos_estado_default: 'en_preparacion',
     // Campos que la parroquia exige al registrar un confirmando. Vacío = ninguno.
     confirmando_obligatorios: [],
+    // 'si' = no se puede marcar 'confirmado' con requisitos/sacramentos pendientes.
+    confirmado_exige_requisitos: 'no',
   },
 }
 
@@ -133,6 +135,7 @@ export const useParroquiaStore = defineStore('parroquia', {
     confirmandoObligatorios: (s) => s.configuracion?.ui?.confirmando_obligatorios ?? [],
     confirmandoEsObligatorio: (s) => (campo) =>
       (s.configuracion?.ui?.confirmando_obligatorios ?? []).includes(campo),
+    confirmadoExigeRequisitos: (s) => (s.configuracion?.ui?.confirmado_exige_requisitos ?? 'no') === 'si',
   },
 
   actions: {

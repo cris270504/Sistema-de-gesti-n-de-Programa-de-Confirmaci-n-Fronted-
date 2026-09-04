@@ -203,6 +203,7 @@ function estructuraVacia() {
     ui_modulos_visibles: [...MODULOS_OCULTABLES],
     ui_confirmandos_estado_default: CONFIG_DEFAULTS.ui.confirmandos_estado_default,
     ui_confirmando_obligatorios: [...CONFIG_DEFAULTS.ui.confirmando_obligatorios],
+    ui_confirmado_exige_requisitos: CONFIG_DEFAULTS.ui.confirmado_exige_requisitos === 'si',
   }
 }
 
@@ -229,6 +230,7 @@ function cargarDesdeStore() {
       : CONFIG_DEFAULTS.ui.confirmandos_estado_default
   form.ui_confirmando_obligatorios =
     CONFIRMANDO_CAMPOS.filter(campo => (c.ui?.confirmando_obligatorios ?? []).includes(campo))
+  form.ui_confirmado_exige_requisitos = (c.ui?.confirmado_exige_requisitos ?? 'no') === 'si'
   form.branding = {
     nombre_publico: c.branding?.nombre_publico ?? '',
     logo_url: c.branding?.logo_url ?? '',
@@ -269,6 +271,7 @@ async function guardar() {
       modulos_ocultos: MODULOS_OCULTABLES.filter(m => !form.ui_modulos_visibles.includes(m)),
       confirmandos_estado_default: form.ui_confirmandos_estado_default,
       confirmando_obligatorios: CONFIRMANDO_CAMPOS.filter(c => form.ui_confirmando_obligatorios.includes(c)),
+      confirmado_exige_requisitos: form.ui_confirmado_exige_requisitos ? 'si' : 'no',
     },
   }
   await parroquiaStore.save(payload)
@@ -516,6 +519,13 @@ const UMBRALES = [
                 <Check v-if="form.ui_confirmando_obligatorios.includes(key)" :size="13" class="chip__check" /> {{ label }}
               </label>
             </div>
+          </div>
+          <div class="field">
+            <label class="chip" :class="{ 'chip--on': form.ui_confirmado_exige_requisitos }" style="align-self:flex-start">
+              <input type="checkbox" v-model="form.ui_confirmado_exige_requisitos" />
+              <Check v-if="form.ui_confirmado_exige_requisitos" :size="13" class="chip__check" />
+              No permitir marcar "Confirmado" con documentos o sacramentos pendientes
+            </label>
           </div>
         </div>
       </section>

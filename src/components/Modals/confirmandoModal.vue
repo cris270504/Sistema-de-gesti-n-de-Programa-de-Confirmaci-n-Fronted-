@@ -69,6 +69,12 @@ const { errores, marcarTocado } = useFieldValidation({
 
 // Máximo permitido en el input = hoy (no se admite una fecha de nacimiento futura).
 const maxDate = computed(() => new Date().toISOString().slice(0, 10));
+// Mínimo razonable: 100 años atrás (evita fechas absurdas tipo 1850).
+const minDate = computed(() => {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() - 100);
+  return d.toISOString().slice(0, 10);
+});
 
 // Edad en años a partir de una fecha ISO (yyyy-mm-dd).
 function edadDesde(iso) {
@@ -350,7 +356,7 @@ async function submitUpdate() {
                   <span class="input-group-text bg-blue-soft text-primary border-end-0">
                     <CalendarDays class="h-4 w-4" aria-hidden="true" />
                   </span>
-                  <input v-model="draft.fecha_nacimiento" :max="maxDate" type="date" class="form-control border-start-0"
+                  <input v-model="draft.fecha_nacimiento" :max="maxDate" :min="minDate" type="date" class="form-control border-start-0"
                     :required="obligatorio('fecha_nacimiento')" aria-label="Fecha de nacimiento" :disabled="saving">
                 </div>
               </div>

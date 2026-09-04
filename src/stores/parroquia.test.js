@@ -94,6 +94,13 @@ describe('stores/parroquia', () => {
     expect(s.confirmandoObligatorios).toEqual(['celular'])
   })
 
+  it('confirmadoExigeRequisitos refleja ui.confirmado_exige_requisitos', () => {
+    const s = useParroquiaStore()
+    expect(s.confirmadoExigeRequisitos).toBe(false) // default 'no'
+    s.hydrateFromLogin({ parroquia: { id: 1, nombre: 'X' }, configuracion: { ...CONFIG_DEFAULTS, ui: { confirmado_exige_requisitos: 'si' } } })
+    expect(s.confirmadoExigeRequisitos).toBe(true)
+  })
+
   it('colorEfectivo: la vista previa gana; si no, el guardado; si no, el default', () => {
     const s = useParroquiaStore()
     expect(s.colorEfectivo).toBe(CONFIG_DEFAULTS.branding.color_primario)
