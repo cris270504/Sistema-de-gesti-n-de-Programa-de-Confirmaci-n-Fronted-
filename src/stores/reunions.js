@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { getUpcomingReuniones } from '@/services/reunions'
-import { createReunion, deleteReunionById, getReunionById, getReunionsList, updateReunion } from '../services/reunions';
+import { createReunion, deleteReunionById, getReunionById, getReunionsList, updateReunion, contarAsistenciasReunion } from '../services/reunions';
 import { confirmarEliminacion, showAlerta, showErroresDeValidacion } from '@/funciones'
 
 const FRESH_MS = 30_000
@@ -109,6 +109,18 @@ export const useReunionesStore = defineStore('reuniones', {
         },
         async remove(id, nombre) {
             const reunionId = Number(id);
+
+            // Una reunión con asistencia registrada no se puede borrar (se perdería
+            // ese historial). Se avisa antes de mostrar el diálogo de eliminación.
+            let nAsist = 0;
+            try { nAsist = await contarAsistenciasReunion(reunionId); } catch { /* el trigger igual protege */ }
+            if (nAsist > 0) {
+                showAlerta(
+                    `Esta reunión tiene ${nAsist} registro(s) de asistencia. No se puede eliminar sin perder ese historial; edítala si necesitas corregir algo.`,
+                    'warning',
+                );
+                return false;
+            }
 
             const ok = await confirmarEliminacion(nombre || `reunión con ID ${nombre}`)
             if (!ok) {

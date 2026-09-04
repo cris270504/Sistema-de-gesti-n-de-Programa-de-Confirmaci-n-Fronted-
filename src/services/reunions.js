@@ -59,3 +59,13 @@ export async function deleteReunionById(id) {
   if (error) throw errorLegible(error)
   return { message: 'Reunión eliminada' }
 }
+
+// Nº de asistencias registradas de una reunión (para avisar antes de borrarla).
+export async function contarAsistenciasReunion(id) {
+  const { count, error } = await supabase
+    .from('asistencia')
+    .select('id', { count: 'exact', head: true })
+    .eq('reunion_id', Number(id))
+  if (error) throw errorLegible(error)
+  return count ?? 0
+}
