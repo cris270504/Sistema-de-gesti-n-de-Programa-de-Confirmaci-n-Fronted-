@@ -515,7 +515,7 @@ const rechazarCumplimientoSwal = async (item) => {
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label text-xs fw-bold text-muted text-uppercase mb-1">Fecha límite del Acuerdo</label>
+                        <label class="form-label text-xs fw-bold text-muted text-uppercase mb-1">Fecha a realizar el Acuerdo</label>
                         <input type="date" class="form-control bg-light border-0 shadow-none" v-model="form.fecha_acuerdo">
                     </div>
 
