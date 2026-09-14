@@ -1,16 +1,18 @@
 import { errorLegible } from '@/lib/errores'
 import { supabase } from '@/lib/supabase';
 
-// Fase 3: el listado lee la vista v_justificaciones_pendientes (ventana de N días
-// + faltas con trámite ya resueltas en SQL; RLS acota por parroquia y grupo).
-// Las 3 acciones de escritura son RPCs transaccionales (asistencia +
-// justificación).
+// Fase 3.1: el listado usa el RPC fn_justificaciones_pendientes (ventana de N
+// días + faltas con trámite ya resueltas en SQL). Antes se leía directo la
+// vista v_justificaciones_pendientes con `.order()`, pero PostgREST no puede
+// empujar ese ORDER BY a través del security barrier que impone RLS sobre las
+// 8 tablas que arma la vista -> timeout 57014. El RPC calcula el scope del
+// usuario una sola vez (SECURITY DEFINER) y ordena/limita adentro de la
+// función, no desde el cliente. La vista se mantiene por compatibilidad pero
+// este listado ya no la usa. Las 3 acciones de escritura son RPCs
+// transaccionales (asistencia + justificación).
 
 export async function getJustificacionesPendientes() {
-    const { data, error } = await supabase
-        .from('v_justificaciones_pendientes')
-        .select('*')
-        .order('fecha_falta', { ascending: false });
+    const { data, error } = await supabase.rpc('fn_justificaciones_pendientes');
     if (error) throw errorLegible(error);
     return data;
 }
