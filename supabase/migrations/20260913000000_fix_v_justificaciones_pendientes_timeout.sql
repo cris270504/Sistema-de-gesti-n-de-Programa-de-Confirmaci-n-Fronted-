@@ -313,10 +313,15 @@ create index if not exists idx_confirmando_apoderado_confirmando_id on public.co
 -- original citada en el comentario correspondiente).
 -- ---------------------------------------------------------------------
 
-create or replace function public.fn_justificaciones_pendientes(p_limit integer default 500)
+-- reunions.fecha es `timestamp without time zone` (no timestamptz), y
+-- RETURNS TABLE no admite cambiar el rowtype vía CREATE OR REPLACE: hay que
+-- dropear la función primero.
+drop function if exists public.fn_justificaciones_pendientes(integer);
+
+create function public.fn_justificaciones_pendientes(p_limit integer default 500)
 returns table (
     asistencia_id bigint,
-    fecha_falta timestamptz,
+    fecha_falta timestamp,
     tema_reunion text,
     confirmando_id bigint,
     confirmando text,
@@ -361,17 +366,17 @@ begin
     select
         a.id,
         r.fecha,
-        r.nombre_tema,
+        r.nombre_tema::text,
         c.id,
-        (c.apellidos || ', ' || c.nombres),
-        coalesce(g.nombre, 'Sin Grupo'),
-        coalesce((ap.apellidos || ', ' || ap.nombres), 'No registrado'),
+        (c.apellidos::text || ', ' || c.nombres::text),
+        coalesce(g.nombre::text, 'Sin Grupo'),
+        coalesce((ap.apellidos::text || ', ' || ap.nombres::text), 'No registrado'),
         coalesce(ap.celular::text, 'Sin celular'),
         j.id,
-        coalesce(j.motivo, ''),
-        coalesce(j.descripcion, ''),
+        coalesce(j.motivo::text, ''),
+        coalesce(j.descripcion::text, ''),
         coalesce(j.fecha_acuerdo::text, ''),
-        coalesce(j.estado, 'injustificado')
+        coalesce(j.estado::text, 'injustificado')
     from asistencia a
     -- asistencia_select: privilegiado o app_can_access_asistente(tipo, id).
     -- Para asistente_type = Confirmando, app_can_access_asistente se reduce a
