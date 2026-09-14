@@ -31,6 +31,7 @@ export function saveJustificacionAcuerdo(payload) {
         p_motivo: payload.motivo,
         p_descripcion: payload.descripcion,
         p_fecha_acuerdo: payload.fecha_acuerdo,
+        p_tipo_accion: payload.tipo_accion,
     });
 }
 

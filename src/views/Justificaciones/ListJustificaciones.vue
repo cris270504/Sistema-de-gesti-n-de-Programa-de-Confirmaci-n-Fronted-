@@ -30,8 +30,12 @@ const form = ref({
     confirmando: '',
     motivo: '',
     descripcion: '',
-    fecha_acuerdo: ''
+    fecha_acuerdo: '',
+    tipo_accion: ''
 });
+
+const ACCION_LABELS = { lectura: 'Lectura', colecta: 'Colecta', otros: 'Otros' };
+const etiquetaAccion = (tipo) => ACCION_LABELS[tipo] || '';
 
 const filtroActual = ref('TODOS');
 
@@ -102,7 +106,8 @@ const abrirModalAcuerdo = (item) => {
         confirmando: item.confirmando,
         motivo: item.motivo || '',
         descripcion: item.descripcion || '',
-        fecha_acuerdo: item.fecha_acuerdo ? String(item.fecha_acuerdo).substring(0, 10) : ''
+        fecha_acuerdo: item.fecha_acuerdo ? String(item.fecha_acuerdo).substring(0, 10) : '',
+        tipo_accion: item.tipo_accion || ''
     };
     modalVisible.value = true;
 };
@@ -113,8 +118,12 @@ const cerrarModal = () => {
 
 // Guardar acuerdo (Estado: Pendiente)
 const guardarAcuerdo = async () => {
-    if (!form.value.motivo || !form.value.descripcion || !form.value.fecha_acuerdo) {
+    if (!form.value.motivo || !form.value.fecha_acuerdo || !form.value.tipo_accion) {
         showAlerta('Por favor, completa todos los campos del acuerdo', 'warning');
+        return;
+    }
+    if (form.value.tipo_accion === 'otros' && !form.value.descripcion.trim()) {
+        showAlerta('Especifica el detalle de la acción reparadora', 'warning');
         return;
     }
     saving.value = true;
@@ -122,8 +131,9 @@ const guardarAcuerdo = async () => {
     const exito = await justificacionesStore.registrarAcuerdo({
         asistencia_id: form.value.asistencia_id,
         motivo: form.value.motivo,
-        descripcion: form.value.descripcion,
-        fecha_acuerdo: form.value.fecha_acuerdo
+        descripcion: form.value.tipo_accion === 'otros' ? form.value.descripcion : '',
+        fecha_acuerdo: form.value.fecha_acuerdo,
+        tipo_accion: form.value.tipo_accion
     });
 
     if (exito) {
@@ -166,7 +176,22 @@ const getClaseAlertaFecha = (fechaFaltaStr) => {
     return diasTranscurridos >= 7 ? 'fila-alerta-amarilla' : '';
 };
 
+// La acción reparadora está pactada para una fecha futura: no se puede
+// validar cumplimiento antes de que llegue esa fecha (el RPC lo rechaza
+// igual, esto es solo para no mostrar un botón que va a fallar).
+const puedeMarcarCumplido = (item) => {
+    if (!item.fecha_acuerdo) return false;
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const fecha = new Date(String(item.fecha_acuerdo).substring(0, 10) + 'T00:00:00');
+    return fecha <= hoy;
+};
+
 const confirmarCumplimientoSwal = async (item) => {
+    if (!puedeMarcarCumplido(item)) {
+        showAlerta(`Todavía no se puede validar: la acción está pactada para el ${formatFechaFalta(item.fecha_acuerdo)}`, 'warning');
+        return;
+    }
     Swal.fire({
         title: '¿Validar cumplimiento de acuerdo?',
         html: `¿Confirmas que el joven <b>${item.confirmando}</b> cumplió con la acción reparadora pactada para la falta del día <b>${formatFechaFalta(item.fecha_falta)}</b>?`,
@@ -185,7 +210,7 @@ const confirmarCumplimientoSwal = async (item) => {
                 justificacionesStore.fetchPendientes();
             } catch (error) {
                 console.error(error);
-                showAlerta('No se pudo procesar la validación en el servidor.', 'error');
+                showAlerta(error?.message || 'No se pudo procesar la validación en el servidor.', 'error');
             }
         }
     });
@@ -335,8 +360,9 @@ const rechazarCumplimientoSwal = async (item) => {
                                 <td>
                                     <div v-if="item.estado_justificacion !== 'injustificado'">
                                         <span class="fw-bold text-dark" style="font-size: 0.85rem;">{{ item.motivo }}</span>
-                                        <div class="text-muted text-wrap fst-italic mt-1" style="font-size: 0.8rem; max-width: 250px;">
-                                            "{{ item.descripcion }}"
+                                        <div class="text-muted text-wrap mt-1" style="font-size: 0.8rem; max-width: 250px;">
+                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-normal">{{ etiquetaAccion(item.tipo_accion) }}</span>
+                                            <span v-if="item.tipo_accion === 'otros' && item.descripcion" class="fst-italic ms-1">"{{ item.descripcion }}"</span>
                                         </div>
                                     </div>
                                     <span v-else class="badge bg-light text-muted border fw-normal">Sin tramitar</span>
@@ -383,7 +409,8 @@ const rechazarCumplimientoSwal = async (item) => {
                                                 <Pencil :size="14" />
                                             </button>
                                             <button @click="confirmarCumplimientoSwal(item)"
-                                                class="btn-action btn-soft-success" title="Validar Cumplimiento">
+                                                class="btn-action btn-soft-success" :disabled="!puedeMarcarCumplido(item)"
+                                                :title="puedeMarcarCumplido(item) ? 'Validar Cumplimiento' : `Recién se puede validar desde el ${formatFechaFalta(item.fecha_acuerdo)}`">
                                                 <Check :size="18" stroke-width="2.5" />
                                             </button>
                                             <button @click="rechazarCumplimientoSwal(item)"
@@ -436,7 +463,9 @@ const rechazarCumplimientoSwal = async (item) => {
                             </div>
                             <div v-if="item.estado_justificacion !== 'injustificado'">
                                 <dt>Acción reparadora</dt>
-                                <dd>{{ item.motivo }} <span v-if="item.descripcion" class="text-muted fst-italic">— "{{ item.descripcion }}"</span></dd>
+                                <dd>{{ item.motivo }} — <span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-normal">{{ etiquetaAccion(item.tipo_accion) }}</span>
+                                    <span v-if="item.tipo_accion === 'otros' && item.descripcion" class="text-muted fst-italic"> "{{ item.descripcion }}"</span>
+                                </dd>
                             </div>
                             <div v-if="item.fecha_acuerdo">
                                 <dt>Fecha acuerdo</dt>
@@ -462,7 +491,9 @@ const rechazarCumplimientoSwal = async (item) => {
                                 <button @click="abrirModalAcuerdo(item)" class="btn-action btn-soft-warning" title="Editar acuerdo">
                                     <Pencil :size="14" />
                                 </button>
-                                <button @click="confirmarCumplimientoSwal(item)" class="btn just-btn btn-success">
+                                <button @click="confirmarCumplimientoSwal(item)" class="btn just-btn btn-success"
+                                    :disabled="!puedeMarcarCumplido(item)"
+                                    :title="puedeMarcarCumplido(item) ? '' : `Recién se puede validar desde el ${formatFechaFalta(item.fecha_acuerdo)}`">
                                     <Check :size="15" /> Cumplió
                                 </button>
                                 <button @click="rechazarCumplimientoSwal(item)" class="btn-action btn-soft-danger" title="No cumplió">
@@ -519,10 +550,20 @@ const rechazarCumplimientoSwal = async (item) => {
                         <input type="date" class="form-control bg-light border-0 shadow-none" v-model="form.fecha_acuerdo">
                     </div>
 
-                    <div class="mb-4">
+                    <div class="mb-3">
                         <label class="form-label text-xs fw-bold text-muted text-uppercase mb-1">Acción Reparadora Pactada</label>
+                        <select class="form-select bg-light border-0 shadow-none" v-model="form.tipo_accion">
+                            <option value="">Seleccione una acción...</option>
+                            <option value="lectura">Lectura (máx. 3 por fecha)</option>
+                            <option value="colecta">Colecta (máx. 6 por fecha)</option>
+                            <option value="otros">Otros</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-4" v-if="form.tipo_accion === 'otros'">
+                        <label class="form-label text-xs fw-bold text-muted text-uppercase mb-1">Especifica la acción</label>
                         <textarea class="form-control bg-light border-0 shadow-none" rows="3" v-model="form.descripcion"
-                            placeholder="Ej: El joven apoyará leyendo la primera lectura en la misa del domingo..."></textarea>
+                            placeholder="Ej: El joven apoyará ordenando las sillas del salón..."></textarea>
                     </div>
 
                     <div class="d-flex gap-2 justify-content-end pt-2 border-top">
