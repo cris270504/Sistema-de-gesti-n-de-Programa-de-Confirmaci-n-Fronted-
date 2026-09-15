@@ -7,6 +7,8 @@ export const useSystemStatusStore = defineStore('systemStatus', {
     state: () => ({
         mantenimiento: false,
         mensaje: null,
+        alcance: 'todas',
+        parroquiaIds: [],
         loaded: false,
         saving: false,
         _unsubscribe: null,
@@ -14,20 +16,29 @@ export const useSystemStatusStore = defineStore('systemStatus', {
 
     getters: {
         // El proveedor nunca queda bloqueado: es quien tiene que poder entrar a
-        // desactivarlo.
+        // desactivarlo. Para los demás, si el alcance es 'parroquias', solo
+        // bloquea a quienes pertenecen a una de esas parroquias.
         bloqueaAlUsuarioActual: (state) => {
+            if (!state.mantenimiento) return false
             const auth = useAuthStore()
-            const esProveedor = auth.user?.roles?.includes('proveedor')
-            return state.mantenimiento && !esProveedor
+            if (auth.user?.roles?.includes('proveedor')) return false
+            if (state.alcance === 'todas') return true
+            const miParroquiaId = auth.user?.parroquia?.id ?? null
+            return miParroquiaId != null && state.parroquiaIds.includes(miParroquiaId)
         },
     },
 
     actions: {
+        _aplicar(data) {
+            this.mantenimiento = !!data.mantenimiento
+            this.mensaje = data.mensaje ?? null
+            this.alcance = data.alcance ?? 'todas'
+            this.parroquiaIds = data.parroquia_ids ?? []
+        },
+
         async fetchStatus() {
             try {
-                const data = await getSystemStatus()
-                this.mantenimiento = !!data.mantenimiento
-                this.mensaje = data.mensaje ?? null
+                this._aplicar(await getSystemStatus())
                 this.loaded = true
             } catch {
                 // Si falla la lectura (ej. sin sesión todavía), no bloqueamos por
@@ -41,8 +52,7 @@ export const useSystemStatusStore = defineStore('systemStatus', {
         iniciarEscuchaEnVivo() {
             if (this._unsubscribe) return
             this._unsubscribe = subscribeSystemStatus((row) => {
-                this.mantenimiento = !!row.mantenimiento
-                this.mensaje = row.mensaje ?? null
+                this._aplicar(row)
 
                 if (this.bloqueaAlUsuarioActual) {
                     if (router.currentRoute.value.name !== 'mantenimiento') {
@@ -54,12 +64,11 @@ export const useSystemStatusStore = defineStore('systemStatus', {
             })
         },
 
-        async activar(mensaje) {
+        // scope: { alcance: 'todas' | 'parroquias', parroquia_ids?: number[] }
+        async activar(mensaje, scope) {
             this.saving = true
             try {
-                const data = await setMantenimiento(true, mensaje)
-                this.mantenimiento = !!data.mantenimiento
-                this.mensaje = data.mensaje ?? null
+                this._aplicar(await setMantenimiento(true, mensaje, scope))
             } finally {
                 this.saving = false
             }
@@ -68,9 +77,7 @@ export const useSystemStatusStore = defineStore('systemStatus', {
         async desactivar() {
             this.saving = true
             try {
-                const data = await setMantenimiento(false, null)
-                this.mantenimiento = !!data.mantenimiento
-                this.mensaje = data.mensaje ?? null
+                this._aplicar(await setMantenimiento(false, null))
             } finally {
                 this.saving = false
             }

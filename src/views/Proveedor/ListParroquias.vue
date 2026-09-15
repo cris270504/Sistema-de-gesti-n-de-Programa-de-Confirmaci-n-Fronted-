@@ -14,7 +14,12 @@ const esMovil = useMediaQuery('(max-width: 767px)')
 // --- Modo mantenimiento (bloquea a todo logueado que no sea proveedor) ---
 const systemStatus = useSystemStatusStore()
 const mensajeMantenimiento = ref('')
+const alcanceMantenimiento = ref('todas') // 'todas' | 'parroquias'
+const parroquiasSeleccionadas = ref([]) // ids, solo si alcanceMantenimiento === 'parroquias'
 onMounted(() => { systemStatus.fetchStatus() })
+
+const nombresSeleccionados = computed(() =>
+  parroquias.value.filter(p => parroquiasSeleccionadas.value.includes(p.id)).map(p => p.nombre))
 
 const toggleMantenimiento = async () => {
   if (systemStatus.mantenimiento) {
@@ -35,16 +40,28 @@ const toggleMantenimiento = async () => {
     return
   }
 
+  if (alcanceMantenimiento.value === 'parroquias' && parroquiasSeleccionadas.value.length === 0) {
+    showAlerta('Elegí al menos una parroquia, o cambiá el alcance a "Todas".', 'warning')
+    return
+  }
+
+  const destino = alcanceMantenimiento.value === 'todas'
+    ? 'Todas las personas logueadas (de todas las parroquias, menos vos)'
+    : `Las personas logueadas de: ${nombresSeleccionados.value.join(', ')}`
+
   const seguro = await confirmar({
     titulo: '¿Activar mantenimiento?',
-    texto: 'Todas las personas logueadas (de todas las parroquias, menos vos) van a quedar bloqueadas con una pantalla de mantenimiento hasta que lo desactives.',
+    texto: `${destino} van a quedar bloqueadas con una pantalla de mantenimiento hasta que lo desactives.`,
     icono: 'warning',
     confirmarTexto: 'Sí, activar',
     cancelarTexto: 'Cancelar'
   })
   if (!seguro) return
   try {
-    await systemStatus.activar(mensajeMantenimiento.value.trim() || null)
+    await systemStatus.activar(mensajeMantenimiento.value.trim() || null, {
+      alcance: alcanceMantenimiento.value,
+      parroquia_ids: parroquiasSeleccionadas.value,
+    })
     showAlerta('Mantenimiento activado.', 'success')
   } catch (e) {
     showAlerta(e?.message || 'No se pudo activar el mantenimiento', 'error')
@@ -385,19 +402,46 @@ function copiar(txt) {
 
     <!-- Modo mantenimiento: bloquea a todo logueado que no sea proveedor -->
     <div class="lp-mant" :class="{ 'lp-mant--on': systemStatus.mantenimiento }">
-      <div class="lp-mant__info">
-        <Wrench :size="18" class="flex-shrink-0" />
-        <div class="lp-mant__titulo">
-          Modo mantenimiento: {{ systemStatus.mantenimiento ? 'ACTIVADO' : 'desactivado' }}
+      <div class="lp-mant__row">
+        <div class="lp-mant__info">
+          <Wrench :size="18" class="flex-shrink-0" />
+          <div class="lp-mant__titulo">
+            Modo mantenimiento: {{ systemStatus.mantenimiento ? 'ACTIVADO' : 'desactivado' }}
+          </div>
+        </div>
+        <div class="lp-mant__acciones">
+          <input v-if="!systemStatus.mantenimiento" v-model="mensajeMantenimiento" type="text"
+            class="lp-mant__input" placeholder="Mensaje opcional (ej: volvemos a las 3pm)" />
+          <button class="btn" :class="systemStatus.mantenimiento ? 'btn-success' : 'btn-warning'"
+            :disabled="systemStatus.saving" @click="toggleMantenimiento">
+            {{ systemStatus.mantenimiento ? 'Desactivar' : 'Activar' }}
+          </button>
         </div>
       </div>
-      <div class="lp-mant__acciones">
-        <input v-if="!systemStatus.mantenimiento" v-model="mensajeMantenimiento" type="text"
-          class="lp-mant__input" placeholder="Mensaje opcional (ej: volvemos a las 3pm)" />
-        <button class="btn" :class="systemStatus.mantenimiento ? 'btn-success' : 'btn-warning'"
-          :disabled="systemStatus.saving" @click="toggleMantenimiento">
-          {{ systemStatus.mantenimiento ? 'Desactivar' : 'Activar' }}
-        </button>
+
+      <!-- Activo: mostrar a quién afecta (solo lectura, hay que desactivar para cambiarlo) -->
+      <div v-if="systemStatus.mantenimiento" class="lp-mant__alcance-activo">
+        Alcance:
+        <b v-if="systemStatus.alcance === 'todas'">todas las parroquias</b>
+        <b v-else>
+          {{ parroquias.filter(p => systemStatus.parroquiaIds.includes(p.id)).map(p => p.nombre).join(', ') || '—' }}
+        </b>
+      </div>
+
+      <!-- Por activar: elegir a quién afecta -->
+      <div v-else class="lp-mant__alcance-picker">
+        <label class="lp-mant__radio">
+          <input type="radio" value="todas" v-model="alcanceMantenimiento" /> Todas las parroquias
+        </label>
+        <label class="lp-mant__radio">
+          <input type="radio" value="parroquias" v-model="alcanceMantenimiento" /> Parroquias específicas
+        </label>
+        <div v-if="alcanceMantenimiento === 'parroquias'" class="lp-mant__checklist">
+          <label v-for="p in parroquias" :key="p.id" class="lp-mant__check">
+            <input type="checkbox" :value="p.id" v-model="parroquiasSeleccionadas" /> {{ p.nombre }}
+          </label>
+          <span v-if="parroquias.length === 0" class="text-muted small">No hay parroquias.</span>
+        </div>
       </div>
     </div>
 
@@ -719,10 +763,8 @@ function copiar(txt) {
 }
 .lp-mant {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
+  flex-direction: column;
+  gap: 0.65rem;
   padding: 0.85rem 1rem;
   margin-bottom: 1rem;
   border-radius: 0.75rem;
@@ -734,6 +776,13 @@ function copiar(txt) {
   border-color: #fde68a;
   background: #fffbeb;
   color: #92400e;
+}
+.lp-mant__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
 }
 .lp-mant__info { display: flex; align-items: center; gap: 0.6rem; }
 .lp-mant__titulo { font-weight: 700; font-size: 0.85rem; }
@@ -747,8 +796,30 @@ function copiar(txt) {
   min-width: 280px;
   max-width: 420px;
 }
+.lp-mant__alcance-activo { font-size: 0.8rem; }
+.lp-mant__alcance-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 1rem;
+  font-size: 0.8rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed #e2e8f0;
+}
+.lp-mant__radio { display: inline-flex; align-items: center; gap: 0.35rem; cursor: pointer; }
+.lp-mant__checklist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.9rem;
+  width: 100%;
+  padding: 0.4rem 0.6rem;
+  margin-top: 0.15rem;
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.6);
+}
+.lp-mant__check { display: inline-flex; align-items: center; gap: 0.3rem; cursor: pointer; }
 @media (max-width: 767px) {
-  .lp-mant { flex-direction: column; align-items: stretch; }
+  .lp-mant__row { flex-direction: column; align-items: stretch; }
   .lp-mant__acciones { flex-direction: column; align-items: stretch; }
   .lp-mant__input { min-width: 0; max-width: none; }
 }
