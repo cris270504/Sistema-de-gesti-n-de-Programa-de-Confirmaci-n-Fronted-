@@ -1,4 +1,5 @@
 import Swal from "sweetalert2"
+import { useUiStore } from '@/stores/ui'
 
 /**
  * Escapa HTML para poder inyectar texto en `html:` de SweetAlert sin riesgo de XSS.
@@ -21,6 +22,14 @@ export function showAlerta(mensaje, icono = 'info', focoId = '') {
   if (focoId) {
     const el = document.getElementById(focoId)
     if (el) el.focus()
+  }
+  // Un "listo, salió bien" no necesita interrumpir con un modal que hay que
+  // cerrar a mano: va como toast, se autodescarta solo. error/warning/info/
+  // question sí siguen siendo modales -- representan algo que vale la pena
+  // que el usuario confirme haber visto (o que le pide una decisión).
+  if (icono === 'success') {
+    useUiStore().pushToast(mensaje)
+    return
   }
   Swal.fire({
     // Escapado + saltos de línea preservados. NO usar `title:` con texto dinámico
