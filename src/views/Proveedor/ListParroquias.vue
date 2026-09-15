@@ -1,7 +1,10 @@
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { Modal } from 'bootstrap'
-import { Plus, Check, X, Copy, Building2, KeyRound, Eye, Search, Clock, Upload, Image as ImageIcon, Wrench } from 'lucide-vue-next'
+import {
+  Plus, Check, X, Copy, Building2, KeyRound, Eye, Search, Clock, Upload, Image as ImageIcon, Wrench,
+  BookOpen, LayoutTemplate, Globe,
+} from 'lucide-vue-next'
 import { showAlerta, confirmar, slugify } from '@/funciones'
 import {
   listParroquias, crearParroquia, actualizarParroquia, getBrandingParroquia, setPlantillaParroquia,
@@ -658,8 +661,16 @@ function copiar(txt) {
     <div class="modal fade" ref="detalleModalRef" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title"><Building2 :size="18" class="me-2 d-inline-block align-text-bottom" />{{ edit.nombre }}</h5>
+          <div class="modal-header lp-modal-head">
+            <div class="lp-modal-head__icon"><Building2 :size="20" /></div>
+            <div class="min-w-0">
+              <h5 class="modal-title mb-0">{{ edit.nombre }}</h5>
+              <div class="lp-modal-head__slug">
+                <Globe :size="11" class="inline" /> {{ edit.slug }}
+                <span class="lp-dot" :class="edit.activa ? 'lp-dot--on' : 'lp-dot--off'"></span>
+                {{ edit.activa ? 'Activa' : 'Inactiva' }}
+              </div>
+            </div>
             <button type="button" class="btn-close" data-bs-dismiss="modal" :disabled="savingEdit"></button>
           </div>
           <form @submit.prevent="guardarDetalle">
@@ -671,39 +682,52 @@ function copiar(txt) {
                 <div><b class="text-sm"><Clock :size="13" class="inline" /> {{ fmtFecha(edit.created_at) }}</b><span>Creada</span></div>
               </div>
 
-              <div class="grid gap-3 sm:grid-cols-2 mt-4">
-                <label class="text-sm">Nombre
-                  <input v-model="edit.nombre" required maxlength="150" class="mt-1" />
-                  <small v-if="editErrores.nombre" class="text-rose-500">{{ editErrores.nombre[0] }}</small>
-                </label>
-                <label class="text-sm">
-                  <span class="flex items-center justify-between">
-                    Slug (URL)
-                    <button type="button" class="lp-link"
-                      @click="editSlugManual = !editSlugManual; !editSlugManual && (edit.slug = slugify(edit.nombre))">
-                      {{ editSlugManual ? 'Autogenerar' : 'Personalizar' }}
-                    </button>
-                  </span>
-                  <input v-model="edit.slug" maxlength="80" :readonly="!editSlugManual"
-                    class="mt-1 font-monospace" :class="{ 'lp-readonly': !editSlugManual }" />
-                  <small v-if="editErrores.slug" class="text-rose-500">{{ editErrores.slug[0] }}</small>
-                </label>
-                <label class="text-sm">Zona horaria
-                  <select v-model="edit.zona_horaria" class="mt-1">
-                    <option v-for="z in ZONAS" :key="z" :value="z">{{ z }}</option>
-                  </select>
-                </label>
-                <label class="text-sm flex items-center gap-2 mt-6">
-                  <input type="checkbox" v-model="edit.activa" class="!w-auto" />
-                  <span>Parroquia activa</span>
-                </label>
-              </div>
-              <p v-if="!edit.activa" class="mt-3 text-xs text-amber-600">
-                Con la parroquia inactiva, sus usuarios no podrán iniciar sesión.
-              </p>
+              <section class="lp-section">
+                <header class="lp-section__head">
+                  <Building2 :size="15" class="lp-section__ico" /> Datos generales
+                </header>
+                <div class="grid gap-3 sm:grid-cols-2">
+                  <label class="text-sm">Nombre
+                    <input v-model="edit.nombre" required maxlength="150" class="mt-1" />
+                    <small v-if="editErrores.nombre" class="text-rose-500">{{ editErrores.nombre[0] }}</small>
+                  </label>
+                  <label class="text-sm">
+                    <span class="flex items-center justify-between">
+                      Slug (URL)
+                      <button type="button" class="lp-link"
+                        @click="editSlugManual = !editSlugManual; !editSlugManual && (edit.slug = slugify(edit.nombre))">
+                        {{ editSlugManual ? 'Autogenerar' : 'Personalizar' }}
+                      </button>
+                    </span>
+                    <input v-model="edit.slug" maxlength="80" :readonly="!editSlugManual"
+                      class="mt-1 font-monospace" :class="{ 'lp-readonly': !editSlugManual }" />
+                    <small v-if="editErrores.slug" class="text-rose-500">{{ editErrores.slug[0] }}</small>
+                  </label>
+                  <label class="text-sm">Zona horaria
+                    <select v-model="edit.zona_horaria" class="mt-1">
+                      <option v-for="z in ZONAS" :key="z" :value="z">{{ z }}</option>
+                    </select>
+                  </label>
+                </div>
 
-              <div class="mt-4 border-t pt-4">
-                <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Tipo de programa</p>
+                <label class="lp-toggle-row" :class="{ 'lp-toggle-row--off': !edit.activa }">
+                  <span>
+                    <span class="lp-toggle-row__titulo">Parroquia activa</span>
+                    <span class="lp-toggle-row__desc">
+                      {{ edit.activa ? 'Sus usuarios pueden iniciar sesión con normalidad.' : 'Sus usuarios no podrán iniciar sesión.' }}
+                    </span>
+                  </span>
+                  <span class="lp-switch">
+                    <input type="checkbox" v-model="edit.activa" />
+                    <span class="lp-switch__track"><span class="lp-switch__thumb"></span></span>
+                  </span>
+                </label>
+              </section>
+
+              <section class="lp-section">
+                <header class="lp-section__head">
+                  <BookOpen :size="15" class="lp-section__ico" /> Tipo de programa
+                </header>
                 <div class="grid gap-3 sm:grid-cols-2">
                   <label class="text-sm">Programa
                     <select v-model="editPrograma.tipo" class="mt-1">
@@ -714,11 +738,13 @@ function copiar(txt) {
                     <input v-model="editPrograma.nombre_otro" maxlength="60" class="mt-1" placeholder="Ej: Primera Reconciliación" />
                   </label>
                 </div>
-                <small class="text-slate-400 block mt-1">Define qué dice el navbar: "Sistema de Gestión del Programa de …".</small>
-              </div>
+                <small class="text-slate-400 block mt-2">Define qué dice el navbar: "Sistema de Gestión del Programa de …".</small>
+              </section>
 
-              <div class="mt-4 border-t pt-4">
-                <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Logo base</p>
+              <section class="lp-section">
+                <header class="lp-section__head">
+                  <ImageIcon :size="15" class="lp-section__ico" /> Logo base
+                </header>
                 <div class="flex items-center gap-3">
                   <div class="lp-logobox lp-logobox--lg">
                     <img v-if="editLogoPreview" :src="editLogoPreview" alt="" />
@@ -742,10 +768,12 @@ function copiar(txt) {
                     </small>
                   </div>
                 </div>
-              </div>
+              </section>
 
-              <div class="mt-4 border-t pt-4">
-                <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Plantilla</p>
+              <section class="lp-section">
+                <header class="lp-section__head">
+                  <LayoutTemplate :size="15" class="lp-section__ico" /> Plantilla
+                </header>
                 <div v-if="edit.es_plantilla" class="inline-flex items-center gap-2 text-sm text-emerald-700">
                   <Check :size="15" /> Esta es la parroquia plantilla. Las nuevas copian de aquí su ruta sacramental.
                 </div>
@@ -753,7 +781,7 @@ function copiar(txt) {
                   @click="marcarComoPlantilla">
                   {{ marcandoPlantilla ? 'Guardando…' : 'Usar como plantilla para nuevas parroquias' }}
                 </button>
-              </div>
+              </section>
             </div>
             <div class="modal-footer">
               <button type="button" class="btn-outline" data-bs-dismiss="modal" :disabled="savingEdit">Cancelar</button>
@@ -1101,4 +1129,87 @@ function copiar(txt) {
 @media (max-width: 560px) {
   .lp-stats { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* Encabezado del modal de detalle: ícono en placa + nombre + slug/estado. */
+.lp-modal-head { display: flex; align-items: center; gap: 0.75rem; }
+.lp-modal-head__icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--parroquia-color, #6366f1) 12%, white);
+  color: var(--parroquia-color, #6366f1);
+}
+.lp-modal-head__slug {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.76rem;
+  color: #94a3b8;
+  font-family: ui-monospace, monospace;
+}
+
+/* Secciones del formulario de detalle: reemplaza los divisores + label
+   suelto por bloques con cabecera propia, más fáciles de escanear. */
+.lp-section {
+  padding: 1rem 1.1rem;
+  margin-top: 1rem;
+  border: 1px solid #eef1f5;
+  border-radius: 12px;
+  background: #fbfcfe;
+}
+.lp-section__head {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 0.85rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #475569;
+}
+.lp-section__ico { color: var(--parroquia-color, #6366f1); flex-shrink: 0; }
+
+/* Fila "Parroquia activa": toggle switch en vez de un checkbox suelto y mal
+   alineado junto a los demás campos. */
+.lp-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.85rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: 10px;
+  background: #f0fdf4;
+  cursor: pointer;
+}
+.lp-toggle-row--off { background: #fffbeb; }
+.lp-toggle-row__titulo { display: block; font-size: 0.85rem; font-weight: 600; color: #1e293b; }
+.lp-toggle-row__desc { display: block; font-size: 0.75rem; color: #64748b; margin-top: 0.1rem; }
+.lp-switch { position: relative; flex-shrink: 0; }
+.lp-switch input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+.lp-switch__track {
+  display: block;
+  width: 38px;
+  height: 22px;
+  border-radius: 999px;
+  background: #cbd5e1;
+  transition: background-color 0.15s ease;
+}
+.lp-switch__thumb {
+  display: block;
+  width: 18px;
+  height: 18px;
+  margin: 2px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.25);
+  transition: transform 0.15s ease;
+}
+.lp-switch input:checked ~ .lp-switch__track { background: #16a34a; }
+.lp-switch input:checked ~ .lp-switch__track .lp-switch__thumb { transform: translateX(16px); }
+.lp-switch input:focus-visible ~ .lp-switch__track { outline: 2px solid #6366f1; outline-offset: 2px; }
 </style>
