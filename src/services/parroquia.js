@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase'
 
 const CONFIG_COLS =
   'programa_inicio, programa_fin, programa_tipo, programa_nombre_otro,' +
+  ' persona_nombre_singular, persona_nombre_plural,' +
   ' dias_ventana_justificacion, tipos_reunion,' +
   ' umbrales_alerta, procedencias, branding, roles_labels, ui,' +
   ' grupos_edad_min, grupos_edad_max, updated_at'

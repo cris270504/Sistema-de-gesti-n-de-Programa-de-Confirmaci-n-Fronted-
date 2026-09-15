@@ -40,7 +40,7 @@ export const crearParroquia = async (payload) => {
 export const getBrandingParroquia = async (id) => {
   const { data, error } = await supabase
     .from('parroquia_configuraciones')
-    .select('branding, programa_tipo, programa_nombre_otro')
+    .select('branding, programa_tipo, programa_nombre_otro, persona_nombre_singular, persona_nombre_plural')
     .eq('parroquia_id', Number(id))
     .maybeSingle()
   if (error) throw errorLegible(error)
@@ -48,6 +48,8 @@ export const getBrandingParroquia = async (id) => {
     branding: data?.branding ?? {},
     programa_tipo: data?.programa_tipo ?? 'confirmacion',
     programa_nombre_otro: data?.programa_nombre_otro ?? '',
+    persona_nombre_singular: data?.persona_nombre_singular ?? '',
+    persona_nombre_plural: data?.persona_nombre_plural ?? '',
   }
 }
 
@@ -56,16 +58,21 @@ export const getBrandingParroquia = async (id) => {
 // A diferencia del admin de la parroquia, el proveedor no pasa por
 // fn_guardar_configuracion (esa RPC opera sobre "mi propia" parroquia vía
 // app_current_parroquia_id(), que para el proveedor es NULL).
-export const actualizarProgramaParroquia = async (parroquiaId, { programa_tipo, programa_nombre_otro }) => {
+export const actualizarProgramaParroquia = async (
+  parroquiaId,
+  { programa_tipo, programa_nombre_otro, persona_nombre_singular, persona_nombre_plural },
+) => {
   const { data, error } = await supabase
     .from('parroquia_configuraciones')
     .update({
       programa_tipo,
       programa_nombre_otro: programa_tipo === 'otro' ? (programa_nombre_otro || null) : null,
+      persona_nombre_singular: persona_nombre_singular || null,
+      persona_nombre_plural: persona_nombre_plural || null,
       updated_at: new Date().toISOString(),
     })
     .eq('parroquia_id', Number(parroquiaId))
-    .select('programa_tipo, programa_nombre_otro')
+    .select('programa_tipo, programa_nombre_otro, persona_nombre_singular, persona_nombre_plural')
     .single()
   if (error) throw errorLegible(error)
   return data

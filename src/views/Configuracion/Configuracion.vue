@@ -2,7 +2,7 @@
 import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
 import {
-  useParroquiaStore, CONFIG_DEFAULTS, PROGRAMA_TIPOS,
+  useParroquiaStore, CONFIG_DEFAULTS, PROGRAMA_TIPOS, PERSONA_LABELS_DEFAULT,
   DASHBOARD_KPIS, DASHBOARD_PANELES, MODULOS_OCULTABLES, CONFIRMANDOS_ESTADOS, CONFIRMANDO_CAMPOS,
 } from '@/stores/parroquia'
 import {
@@ -145,6 +145,11 @@ const form = reactive(estructuraVacia())
 const snapshotForm = ref(JSON.stringify(estructuraVacia()))
 const hayCambiosSinGuardar = computed(() => JSON.stringify(form) !== snapshotForm.value)
 
+// Default automático según el tipo elegido AHORA en el form (no el guardado
+// todavía) -- para mostrar como placeholder de lo que se usa si se deja vacío.
+const personaDefault = computed(() =>
+  PERSONA_LABELS_DEFAULT[form.programa_tipo] || PERSONA_LABELS_DEFAULT.confirmacion)
+
 // Vista previa del color EN VIVO sobre todo el sistema mientras se edita: se
 // publica en el store (solo si difiere del guardado) y DefaultLayout lo pinta.
 // Al Descartar / Guardar / salir vuelve el color guardado.
@@ -197,6 +202,8 @@ function estructuraVacia() {
     programa_fin: '',
     programa_tipo: CONFIG_DEFAULTS.programa_tipo,
     programa_nombre_otro: '',
+    persona_nombre_singular: '',
+    persona_nombre_plural: '',
     dias_ventana_justificacion: 21,
     tipos_reunion: [],
     umbrales_alerta: { ...CONFIG_DEFAULTS.umbrales_alerta },
@@ -220,6 +227,8 @@ function cargarDesdeStore() {
   form.programa_fin = c.programa_fin ?? ''
   form.programa_tipo = c.programa_tipo ?? CONFIG_DEFAULTS.programa_tipo
   form.programa_nombre_otro = c.programa_nombre_otro ?? ''
+  form.persona_nombre_singular = c.persona_nombre_singular ?? ''
+  form.persona_nombre_plural = c.persona_nombre_plural ?? ''
   form.dias_ventana_justificacion = c.dias_ventana_justificacion ?? 21
   form.tipos_reunion = [...(c.tipos_reunion ?? CONFIG_DEFAULTS.tipos_reunion)]
   form.umbrales_alerta = { ...CONFIG_DEFAULTS.umbrales_alerta, ...(c.umbrales_alerta ?? {}) }
@@ -280,6 +289,8 @@ async function guardar() {
     programa_fin: form.programa_fin || null,
     programa_tipo: form.programa_tipo,
     programa_nombre_otro: form.programa_tipo === 'otro' ? form.programa_nombre_otro.trim() : null,
+    persona_nombre_singular: form.persona_nombre_singular.trim() || null,
+    persona_nombre_plural: form.persona_nombre_plural.trim() || null,
     dias_ventana_justificacion: Number(form.dias_ventana_justificacion),
     tipos_reunion: form.tipos_reunion,
     umbrales_alerta: Object.fromEntries(
@@ -431,6 +442,23 @@ const UMBRALES = [
                 placeholder="Ej: Primera Reconciliación" />
             </div>
           </div>
+          <div class="grid-fields grid-fields--sm mt-3">
+            <div class="field">
+              <label>Cómo llamar a la persona (singular) <span class="opt">(opcional)</span></label>
+              <input v-model="form.persona_nombre_singular" type="text" maxlength="40" class="inp"
+                :placeholder="personaDefault[0]" />
+            </div>
+            <div class="field">
+              <label>Cómo llamar a la persona (plural) <span class="opt">(opcional)</span></label>
+              <input v-model="form.persona_nombre_plural" type="text" maxlength="40" class="inp"
+                :placeholder="personaDefault[1]" />
+            </div>
+          </div>
+          <small class="text-slate-400 block mt-1">
+            Vacío usa el default de "{{ PROGRAMA_TIPOS.find(([v]) => v === form.programa_tipo)?.[1] }}":
+            "{{ personaDefault[0] }}" / "{{ personaDefault[1] }}". Se usa en el menú, el dashboard y los
+            listados (ej. "Listado de {{ (form.persona_nombre_plural.trim() || personaDefault[1]).toLowerCase() }}").
+          </small>
           <div class="grid-fields grid-fields--sm mt-3">
             <div class="field">
               <label>Inicio</label>

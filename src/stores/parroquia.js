@@ -11,6 +11,10 @@ export const CONFIG_DEFAULTS = {
   // lleva el nombre libre.
   programa_tipo: 'confirmacion',
   programa_nombre_otro: null,
+  // Vacío = usar el default automático según programa_tipo (ver
+  // personaLabel/personaLabelPlural). Con texto, lo pisa.
+  persona_nombre_singular: null,
+  persona_nombre_plural: null,
   dias_ventana_justificacion: 21,
   tipos_reunion: ['Confirmandos', 'Catequistas', 'Apoderados'],
   umbrales_alerta: {
@@ -69,11 +73,12 @@ const PROGRAMA_LABELS = Object.fromEntries(PROGRAMA_TIPOS)
 // 'otro' usa un término genérico a propósito: no hay forma segura de
 // derivarlo del nombre libre del programa (ej. "Primera Reconciliación" no
 // implica que la persona se llame "penitente").
-const PERSONA_LABELS = {
+export const PERSONA_LABELS_DEFAULT = {
   comunion: ['Comulgante', 'Comulgantes'],
   confirmacion: ['Confirmando', 'Confirmandos'],
   otro: ['Participante', 'Participantes'],
 }
+const PERSONA_LABELS = PERSONA_LABELS_DEFAULT
 
 // Etiqueta por defecto de un rol interno cuando la parroquia no definió una.
 const ROLES_DEFAULT = {
@@ -142,12 +147,18 @@ export const useParroquiaStore = defineStore('parroquia', {
       return PROGRAMA_LABELS[tipo] || PROGRAMA_LABELS.confirmacion
     },
     // Cómo llamar en la UI a la persona del programa ("Confirmando",
-    // "Comulgante", "Participante"...). Singular y plural.
+    // "Comulgante", "Participante"...). Singular y plural. La parroquia
+    // (o el proveedor) puede escribir su propio término; si no, cae al
+    // default automático según programa_tipo.
     personaLabel: (s) => {
+      const custom = (s.configuracion?.persona_nombre_singular || '').trim()
+      if (custom) return custom
       const tipo = s.configuracion?.programa_tipo || CONFIG_DEFAULTS.programa_tipo
       return (PERSONA_LABELS[tipo] || PERSONA_LABELS.confirmacion)[0]
     },
     personaLabelPlural: (s) => {
+      const custom = (s.configuracion?.persona_nombre_plural || '').trim()
+      if (custom) return custom
       const tipo = s.configuracion?.programa_tipo || CONFIG_DEFAULTS.programa_tipo
       return (PERSONA_LABELS[tipo] || PERSONA_LABELS.confirmacion)[1]
     },

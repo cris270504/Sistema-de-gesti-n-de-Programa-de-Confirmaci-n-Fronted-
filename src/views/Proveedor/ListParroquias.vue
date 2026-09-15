@@ -14,7 +14,7 @@ import { subirLogo, quitarLogo } from '@/services/branding'
 import AppPage from '@/components/AppPage.vue'
 import { useMediaQuery } from '@/composables/useMediaQuery'
 import { useSystemStatusStore } from '@/stores/systemStatus'
-import { PROGRAMA_TIPOS } from '@/stores/parroquia'
+import { PROGRAMA_TIPOS, PERSONA_LABELS_DEFAULT } from '@/stores/parroquia'
 
 const esMovil = useMediaQuery('(max-width: 767px)')
 
@@ -131,7 +131,8 @@ const marcandoPlantilla = ref(false)
 
 // Branding en el detalle (ranura 'proveedor').
 const editBranding = reactive({ logo_url: '', logo_url_proveedor: '' })
-const editPrograma = reactive({ tipo: 'confirmacion', nombre_otro: '' })
+const editPrograma = reactive({ tipo: 'confirmacion', nombre_otro: '', persona_singular: '', persona_plural: '' })
+const editPersonaDefault = computed(() => PERSONA_LABELS_DEFAULT[editPrograma.tipo] || PERSONA_LABELS_DEFAULT.confirmacion)
 const editLogoInput = ref(null)
 const editLogoSubiendo = ref(false)
 const editLogoLocal = ref('')
@@ -316,12 +317,16 @@ async function abrirDetalle(p) {
   editBranding.logo_url_proveedor = ''
   editPrograma.tipo = 'confirmacion'
   editPrograma.nombre_otro = ''
+  editPrograma.persona_singular = ''
+  editPrograma.persona_plural = ''
   getBrandingParroquia(p.id)
-    .then(({ branding, programa_tipo, programa_nombre_otro }) => {
+    .then(({ branding, programa_tipo, programa_nombre_otro, persona_nombre_singular, persona_nombre_plural }) => {
       editBranding.logo_url = branding?.logo_url ?? ''
       editBranding.logo_url_proveedor = branding?.logo_url_proveedor ?? ''
       editPrograma.tipo = programa_tipo || 'confirmacion'
       editPrograma.nombre_otro = programa_nombre_otro || ''
+      editPrograma.persona_singular = persona_nombre_singular || ''
+      editPrograma.persona_plural = persona_nombre_plural || ''
     })
     .catch(() => { /* sin config aún */ })
   nextTick(() => {
@@ -348,6 +353,8 @@ async function guardarDetalle() {
     await actualizarProgramaParroquia(edit.id, {
       programa_tipo: editPrograma.tipo,
       programa_nombre_otro: editPrograma.nombre_otro.trim(),
+      persona_nombre_singular: editPrograma.persona_singular.trim(),
+      persona_nombre_plural: editPrograma.persona_plural.trim(),
     })
     const i = parroquias.value.findIndex(p => p.id === edit.id)
     if (i !== -1) parroquias.value[i] = { ...parroquias.value[i], ...parroquia }
@@ -769,6 +776,19 @@ function copiar(txt) {
                     <input v-model="editPrograma.nombre_otro" maxlength="60" class="mt-1" placeholder="Ej: Primera Reconciliación" />
                   </label>
                   <small class="text-slate-400 block mt-2">Define el navbar: "Programa de …".</small>
+
+                  <div class="grid gap-3 sm:grid-cols-2 mt-3 pt-3 border-t">
+                    <label class="text-sm">Persona (singular) <span class="text-slate-400">(opcional)</span>
+                      <input v-model="editPrograma.persona_singular" maxlength="40" class="mt-1" :placeholder="editPersonaDefault[0]" />
+                    </label>
+                    <label class="text-sm">Persona (plural) <span class="text-slate-400">(opcional)</span>
+                      <input v-model="editPrograma.persona_plural" maxlength="40" class="mt-1" :placeholder="editPersonaDefault[1]" />
+                    </label>
+                  </div>
+                  <small class="text-slate-400 block mt-1">
+                    Vacío usa "{{ editPersonaDefault[0] }}" / "{{ editPersonaDefault[1] }}". Así se llama a
+                    la persona en el menú, el dashboard y los listados de esta parroquia.
+                  </small>
                 </section>
 
                 <section class="lp-section">
