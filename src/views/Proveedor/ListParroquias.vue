@@ -1,14 +1,55 @@
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { Modal } from 'bootstrap'
-import { Plus, Check, X, Copy, Building2, KeyRound, Eye, Search, Clock, Upload, Image as ImageIcon } from 'lucide-vue-next'
+import { Plus, Check, X, Copy, Building2, KeyRound, Eye, Search, Clock, Upload, Image as ImageIcon, Wrench } from 'lucide-vue-next'
 import { showAlerta, confirmar, slugify } from '@/funciones'
 import { listParroquias, crearParroquia, actualizarParroquia, getBrandingParroquia, setPlantillaParroquia } from '@/services/proveedor'
 import { subirLogo, quitarLogo } from '@/services/branding'
 import AppPage from '@/components/AppPage.vue'
 import { useMediaQuery } from '@/composables/useMediaQuery'
+import { useSystemStatusStore } from '@/stores/systemStatus'
 
 const esMovil = useMediaQuery('(max-width: 767px)')
+
+// --- Modo mantenimiento (bloquea a todo logueado que no sea proveedor) ---
+const systemStatus = useSystemStatusStore()
+const mensajeMantenimiento = ref('')
+onMounted(() => { systemStatus.fetchStatus() })
+
+const toggleMantenimiento = async () => {
+  if (systemStatus.mantenimiento) {
+    const seguro = await confirmar({
+      titulo: '¿Desactivar mantenimiento?',
+      texto: 'Todas las personas logueadas van a poder volver a usar el sistema normalmente.',
+      icono: 'question',
+      confirmarTexto: 'Sí, desactivar',
+      cancelarTexto: 'Cancelar'
+    })
+    if (!seguro) return
+    try {
+      await systemStatus.desactivar()
+      showAlerta('Mantenimiento desactivado.', 'success')
+    } catch (e) {
+      showAlerta(e?.message || 'No se pudo desactivar el mantenimiento', 'error')
+    }
+    return
+  }
+
+  const seguro = await confirmar({
+    titulo: '¿Activar mantenimiento?',
+    texto: 'Todas las personas logueadas (de todas las parroquias, menos vos) van a quedar bloqueadas con una pantalla de mantenimiento hasta que lo desactives.',
+    icono: 'warning',
+    confirmarTexto: 'Sí, activar',
+    cancelarTexto: 'Cancelar'
+  })
+  if (!seguro) return
+  try {
+    await systemStatus.activar(mensajeMantenimiento.value.trim() || null)
+    showAlerta('Mantenimiento activado.', 'success')
+  } catch (e) {
+    showAlerta(e?.message || 'No se pudo activar el mantenimiento', 'error')
+  }
+}
 
 const ZONAS = ['America/Lima', 'America/Bogota', 'America/Guayaquil', 'America/La_Paz',
   'America/Santiago', 'America/Argentina/Buenos_Aires', 'America/Mexico_City', 'America/Caracas']
@@ -342,6 +383,31 @@ function copiar(txt) {
       </div>
     </div>
 
+    <!-- Modo mantenimiento: bloquea a todo logueado que no sea proveedor -->
+    <div class="lp-mant" :class="{ 'lp-mant--on': systemStatus.mantenimiento }">
+      <div class="lp-mant__info">
+        <Wrench :size="18" class="flex-shrink-0" />
+        <div>
+          <div class="lp-mant__titulo">
+            Modo mantenimiento: {{ systemStatus.mantenimiento ? 'ACTIVADO' : 'desactivado' }}
+          </div>
+          <div class="lp-mant__desc">
+            {{ systemStatus.mantenimiento
+              ? 'Todas las personas logueadas (menos vos) están viendo la pantalla de mantenimiento ahora mismo.'
+              : 'Al activarlo, cualquier persona logueada (de cualquier parroquia, menos vos) ve una pantalla de mantenimiento en vez del sistema.' }}
+          </div>
+        </div>
+      </div>
+      <div class="lp-mant__acciones">
+        <input v-if="!systemStatus.mantenimiento" v-model="mensajeMantenimiento" type="text"
+          class="lp-mant__input" placeholder="Mensaje opcional (ej: volvemos a las 3pm)" />
+        <button class="btn" :class="systemStatus.mantenimiento ? 'btn-success' : 'btn-warning'"
+          :disabled="systemStatus.saving" @click="toggleMantenimiento">
+          {{ systemStatus.mantenimiento ? 'Desactivar' : 'Activar' }}
+        </button>
+      </div>
+    </div>
+
     <!-- Tarjetas en celular -->
     <div v-if="esMovil" class="lp-cards">
       <p v-if="parroquiasFiltradas.length === 0" class="empty-state">
@@ -657,6 +723,40 @@ function copiar(txt) {
   justify-content: space-between;
   gap: 0.75rem;
   margin-bottom: 1rem;
+}
+.lp-mant {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  margin-bottom: 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #475569;
+}
+.lp-mant--on {
+  border-color: #fde68a;
+  background: #fffbeb;
+  color: #92400e;
+}
+.lp-mant__info { display: flex; align-items: flex-start; gap: 0.6rem; }
+.lp-mant__titulo { font-weight: 700; font-size: 0.85rem; }
+.lp-mant__desc { font-size: 0.78rem; opacity: 0.85; max-width: 46ch; }
+.lp-mant__acciones { display: flex; align-items: center; gap: 0.5rem; }
+.lp-mant__input {
+  font-size: 0.82rem;
+  padding: 0.4rem 0.65rem;
+  border-radius: 0.5rem;
+  border: 1px solid #cbd5e1;
+  min-width: 220px;
+}
+@media (max-width: 767px) {
+  .lp-mant { flex-direction: column; align-items: stretch; }
+  .lp-mant__acciones { flex-direction: column; align-items: stretch; }
+  .lp-mant__input { min-width: 0; }
 }
 .lp-count {
   display: inline-flex;

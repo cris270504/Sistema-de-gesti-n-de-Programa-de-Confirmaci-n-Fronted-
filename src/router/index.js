@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { LS_TOKEN_KEY, LS_USER_KEY, LS_PARROQUIA_KEY } from '@/constants/auth'
 import { useAuthStore } from '@/stores/auth'
 import { useUiStore } from '@/stores/ui'
+import { useSystemStatusStore } from '@/stores/systemStatus'
 
 import DefaultLayout from '../components/DefaultLayout.vue'
 import { isTokenExpired } from '@/funciones'
@@ -23,6 +24,7 @@ const Listcumpleanos = () => import('../views/Cumpleanos/listCumpleanos.vue')
 const ListJustificaciones = () => import('../views/Justificaciones/ListJustificaciones.vue')
 const Configuracion = () => import('../views/Configuracion/Configuracion.vue')
 const ProveedorParroquias = () => import('../views/Proveedor/ListParroquias.vue')
+const Mantenimiento = () => import('../views/Mantenimiento.vue')
 
 function hasSession() {
   const token = localStorage.getItem(LS_TOKEN_KEY)
@@ -211,6 +213,13 @@ const router = createRouter({
         },
 
         {
+          path: '/mantenimiento',
+          name: 'mantenimiento',
+          component: Mantenimiento,
+          meta: { title: 'Mantenimiento', requiresLayout: false }
+        },
+
+        {
           path: '/:pathMatch(.*)*',
           name: 'NotFound',
           component: NotFound,
@@ -253,14 +262,21 @@ router.beforeEach(async (to) => {
     return { name: 'login', query: redirect ? { redirect } : {} };
   }
 
+  // El proveedor de la plataforma opera el panel de parroquias, no el Dashboard
+  // de una parroquia. (Cuentas separadas: super-admin de parroquia vs proveedor.)
+  const esProveedor = auth.user?.roles?.includes('proveedor');
+
+  // Modo mantenimiento: bloquea a cualquier logueado que no sea el proveedor
+  // (es quien lo activa/desactiva, necesita poder entrar). El store ya trae el
+  // valor cacheado desde App.vue; esto no espera a ningún fetch.
+  if (logged && !esProveedor && useSystemStatusStore().bloqueaAlUsuarioActual && to.name !== 'mantenimiento') {
+    return { name: 'mantenimiento' };
+  }
+
   // Revalida la sesión al navegar (throttle 30s): si el proveedor desactivó la
   // parroquia, refrescarUsuario cierra sesión con aviso. Fire-and-forget para no
   // frenar la navegación; el logout se encarga de redirigir al login.
   if (logged && !onlyGuests) auth.refrescarUsuario();
-
-  // El proveedor de la plataforma opera el panel de parroquias, no el Dashboard
-  // de una parroquia. (Cuentas separadas: super-admin de parroquia vs proveedor.)
-  const esProveedor = auth.user?.roles?.includes('proveedor');
   if (logged && esProveedor && (to.name === 'dashboard' || onlyGuests)) {
     return { name: 'parroquias' };
   }

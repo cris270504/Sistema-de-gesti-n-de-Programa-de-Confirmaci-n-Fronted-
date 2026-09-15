@@ -5,6 +5,7 @@ import { updateUser } from '@/services/users'
 import { useParroquiaStore } from './parroquia'
 import { useUiStore } from './ui'
 import { useDashboardStore } from './dashboard'
+import { useSystemStatusStore } from './systemStatus'
 import { showAlerta, showErroresDeValidacion } from '@/funciones'
 import { supabase } from '@/lib/supabase'
 
@@ -102,6 +103,11 @@ export const useAuthStore = defineStore('auth', {
         })
 
         if (data?.metricas) useDashboardStore().seedMetricas(data.metricas)
+
+        // Con await: si no, la primera navegación post-login puede correr con
+        // el valor default (false) y dejar pasar a alguien bloqueado un
+        // instante antes de que llegue el evento de Realtime.
+        await useSystemStatusStore().fetchStatus()
 
         return true
       } catch (e) {

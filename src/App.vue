@@ -5,6 +5,7 @@ import { onMounted, onUnmounted } from 'vue'
 import LoadingOverlay from '@/components/LoadingOverlay.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useParroquiaStore } from '@/stores/parroquia'
+import { useSystemStatusStore } from '@/stores/systemStatus'
 import { supabase } from '@/lib/supabase'
 
 // Heartbeat a Supabase mientras alguien tiene la app abierta: mantiene el
@@ -38,12 +39,17 @@ onMounted(async () => {
   const auth = useAuthStore()
   auth.initAuthListener()
 
+  // Modo mantenimiento: valor inicial + suscripción en vivo (para que un
+  // cambio del proveedor bloquee/libere sin esperar a la próxima navegación).
+  const systemStatus = useSystemStatusStore()
+  systemStatus.iniciarEscuchaEnVivo()
+
   // Al abrir la app con sesión de Supabase activa, sincroniza datos y permisos
   // del usuario con el backend (evita quedarse con permisos viejos de localStorage).
   const { data } = await supabase.auth.getSession()
   if (data.session) {
     auth.token = data.session.access_token
-    await auth.refrescarUsuario({ force: true })
+    await Promise.all([auth.refrescarUsuario({ force: true }), systemStatus.fetchStatus()])
   } else if (auth.token) {
     // Espejo viejo sin sesión de Supabase: limpiar.
     auth.logoutLocal()
