@@ -39,10 +39,7 @@ onMounted(async () => {
   const auth = useAuthStore()
   auth.initAuthListener()
 
-  // Modo mantenimiento: valor inicial + suscripción en vivo (para que un
-  // cambio del proveedor bloquee/libere sin esperar a la próxima navegación).
   const systemStatus = useSystemStatusStore()
-  systemStatus.iniciarEscuchaEnVivo()
 
   // Al abrir la app con sesión de Supabase activa, sincroniza datos y permisos
   // del usuario con el backend (evita quedarse con permisos viejos de localStorage).
@@ -54,6 +51,13 @@ onMounted(async () => {
     // Espejo viejo sin sesión de Supabase: limpiar.
     auth.logoutLocal()
   }
+
+  // Modo mantenimiento: suscripción en vivo (para que un cambio del proveedor
+  // bloquee/libere sin esperar a la próxima navegación). Se arma DESPUÉS de
+  // que el token esté sincronizado: el canal de Realtime autoriza con la
+  // sesión vigente en ese momento, y si se suscribe antes de tener token
+  // puede quedar autorizado como anónimo.
+  systemStatus.iniciarEscuchaEnVivo()
 })
 
 onUnmounted(() => {
