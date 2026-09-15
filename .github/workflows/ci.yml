@@ -1,0 +1,35 @@
+name: CI
+
+# Gate mínimo antes de mergear: lint (sin --fix, para que falle en vez de
+# corregir en silencio) + tests + build. No corre nada contra Supabase --
+# eso sigue siendo manual hasta que haya un proyecto de staging (ver
+# supabase/migrations/README.md).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Lint (sin auto-fix)
+        run: npx eslint .
+
+      - name: Tests
+        run: npm run test
+
+      - name: Build
+        run: npm run build
