@@ -2,14 +2,12 @@
 import { ref, onMounted, computed } from 'vue';
 import { useJustificacionesStore } from '../../stores/justificaciones';
 import { storeToRefs } from 'pinia';
-import { showAlerta, showErroresDeValidacion } from '@/funciones';
-import Swal from 'sweetalert2';
+import { showAlerta, showErroresDeValidacion, confirmar } from '@/funciones';
 import { completeJustificacion } from '@/services/justificaciones';
 import {
     Pencil, Trash, Plus, User, Phone, Calendar, Users,
     Wand2, Trash2, Save, Upload, Check, X, Search
 } from 'lucide-vue-next';
-import { confirmar } from '../../funciones';
 import PerfilConfirmandoModal from '../../components/Modals/PerfilConfirmandoModal.vue';
 import AppPage from '@/components/AppPage.vue';
 import { useMediaQuery } from '@/composables/useMediaQuery';
@@ -192,28 +190,22 @@ const confirmarCumplimientoSwal = async (item) => {
         showAlerta(`Todavía no se puede validar: la acción está pactada para el ${formatFechaFalta(item.fecha_acuerdo)}`, 'warning');
         return;
     }
-    Swal.fire({
-        title: '¿Validar cumplimiento de acuerdo?',
-        html: `¿Confirmas que el joven <b>${item.confirmando}</b> cumplió con la acción reparadora pactada para la falta del día <b>${formatFechaFalta(item.fecha_falta)}</b>?`,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#198754',
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Sí, validar cumplimiento',
-        cancelButtonText: 'Cancelar',
-        reverseButtons: true
-    }).then(async (result) => {
-        if (result.isConfirmed) {
-            try {
-                await completeJustificacion(item.asistencia_id);
-                showAlerta('¡Falta Justificada con éxito!', 'success');
-                justificacionesStore.fetchPendientes();
-            } catch (error) {
-                console.error(error);
-                showAlerta(error?.message || 'No se pudo procesar la validación en el servidor.', 'error');
-            }
-        }
+    const seguro = await confirmar({
+        titulo: '¿Validar cumplimiento de acuerdo?',
+        texto: `¿Confirmás que ${item.confirmando} cumplió con la acción reparadora pactada para la falta del día ${formatFechaFalta(item.fecha_falta)}?`,
+        icono: 'question',
+        confirmarTexto: 'Sí, validar cumplimiento',
+        cancelarTexto: 'Cancelar'
     });
+    if (!seguro) return;
+    try {
+        await completeJustificacion(item.asistencia_id);
+        showAlerta('¡Falta Justificada con éxito!', 'success');
+        justificacionesStore.fetchPendientes();
+    } catch (error) {
+        console.error(error);
+        showAlerta(error?.message || 'No se pudo procesar la validación en el servidor.', 'error');
+    }
 };
 
 const rechazarCumplimientoSwal = async (item) => {

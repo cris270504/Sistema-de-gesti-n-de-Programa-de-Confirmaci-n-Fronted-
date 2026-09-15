@@ -75,7 +75,7 @@ const handleSave = async () => {
         hide();
         showAlerta('Documentos actualizados correctamente', 'success');
     } catch (e) {
-        showAlerta('Error al guardar documentos', 'error');
+        showAlerta(e?.message || 'Error al guardar documentos', 'error');
     } finally {
         savingDocs.value = false;
     }

@@ -89,7 +89,7 @@ async function loadData(id) {
     }
   } catch (e) {
     console.error("Error al cargar:", e);
-    showAlerta('Error al cargar datos del grupo', 'error');
+    showAlerta(e?.message || 'Error al cargar datos del grupo', 'error');
     close();
   } finally {
     loading.value = false;

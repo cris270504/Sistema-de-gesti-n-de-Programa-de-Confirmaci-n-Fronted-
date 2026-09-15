@@ -75,7 +75,7 @@ const loadData = async () => {
         
         await Promise.all(promises);
     } catch (e) {
-        showAlerta('Error al cargar datos', 'error');
+        showAlerta(e?.message || 'Error al cargar datos', 'error');
     } finally {
         loadingGrupo.value = false;
     }

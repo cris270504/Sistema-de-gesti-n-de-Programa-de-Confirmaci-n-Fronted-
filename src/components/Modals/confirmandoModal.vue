@@ -203,7 +203,7 @@ async function loadData(id) {
     }
   } catch (e) {
     console.error("Error al cargar:", e);
-    showAlerta('Error al cargar datos', 'error');
+    showAlerta(e?.message || 'Error al cargar datos', 'error');
     close();
   } finally {
     loading.value = false;

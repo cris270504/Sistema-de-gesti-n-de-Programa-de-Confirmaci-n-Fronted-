@@ -22,7 +22,7 @@ const abrir = async (id) => {
         const response = await confirmandosStore.fetchPerfilById(id);
         perfilActivo.value = response;
     } catch (error) {
-        showAlerta('Error al cargar la ficha del confirmando', 'error');
+        showAlerta(error?.message || 'Error al cargar la ficha del confirmando', 'error');
         cerrar();
     } finally {
         cargando.value = false;
