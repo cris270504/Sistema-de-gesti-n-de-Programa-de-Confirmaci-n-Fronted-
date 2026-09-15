@@ -686,7 +686,7 @@ function copiar(txt) {
                 <header class="lp-section__head">
                   <Building2 :size="15" class="lp-section__ico" /> Datos generales
                 </header>
-                <div class="grid gap-3 sm:grid-cols-2">
+                <div class="grid gap-3 sm:grid-cols-3">
                   <label class="text-sm">Nombre
                     <input v-model="edit.nombre" required maxlength="150" class="mt-1" />
                     <small v-if="editErrores.nombre" class="text-rose-500">{{ editErrores.nombre[0] }}</small>
@@ -724,64 +724,64 @@ function copiar(txt) {
                 </label>
               </section>
 
-              <section class="lp-section">
-                <header class="lp-section__head">
-                  <BookOpen :size="15" class="lp-section__ico" /> Tipo de programa
-                </header>
-                <div class="grid gap-3 sm:grid-cols-2">
+              <div class="lp-sections-grid">
+                <section class="lp-section lp-section--span2">
+                  <header class="lp-section__head">
+                    <ImageIcon :size="15" class="lp-section__ico" /> Logo base
+                  </header>
+                  <div class="flex items-center gap-3">
+                    <div class="lp-logobox lp-logobox--lg">
+                      <img v-if="editLogoPreview" :src="editLogoPreview" alt="" />
+                      <ImageIcon v-else :size="20" class="text-slate-300" />
+                    </div>
+                    <div class="min-w-0">
+                      <input ref="editLogoInput" type="file" accept="image/png,image/jpeg,image/webp"
+                        class="lp-file" @change="onEditLogo" />
+                      <div class="flex flex-wrap items-center gap-2">
+                        <button type="button" class="btn-outline btn-sm" :disabled="editLogoSubiendo"
+                          @click="$refs.editLogoInput.click()">
+                          <Upload :size="14" class="inline" />
+                          {{ editLogoSubiendo ? 'Subiendo…' : (editBranding.logo_url_proveedor ? 'Cambiar' : 'Subir logo') }}
+                        </button>
+                        <button v-if="editBranding.logo_url_proveedor" type="button" class="lp-link"
+                          :disabled="editLogoSubiendo" @click="quitarEditLogo">Quitar</button>
+                      </div>
+                      <small class="text-slate-400 block mt-1">
+                        <template v-if="editBranding.logo_url">El admin ya subió su propio logo; este solo se ve si lo quita.</template>
+                        <template v-else>Se muestra hasta que el admin de la parroquia suba el suyo.</template>
+                      </small>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="lp-section">
+                  <header class="lp-section__head">
+                    <BookOpen :size="15" class="lp-section__ico" /> Tipo de programa
+                  </header>
                   <label class="text-sm">Programa
                     <select v-model="editPrograma.tipo" class="mt-1">
                       <option v-for="[valor, etiqueta] in PROGRAMA_TIPOS" :key="valor" :value="valor">{{ etiqueta }}</option>
                     </select>
                   </label>
-                  <label v-if="editPrograma.tipo === 'otro'" class="text-sm">Nombre del programa
+                  <label v-if="editPrograma.tipo === 'otro'" class="text-sm block mt-2">Nombre del programa
                     <input v-model="editPrograma.nombre_otro" maxlength="60" class="mt-1" placeholder="Ej: Primera Reconciliación" />
                   </label>
-                </div>
-                <small class="text-slate-400 block mt-2">Define qué dice el navbar: "Sistema de Gestión del Programa de …".</small>
-              </section>
+                  <small class="text-slate-400 block mt-2">Define el navbar: "Programa de …".</small>
+                </section>
 
-              <section class="lp-section">
-                <header class="lp-section__head">
-                  <ImageIcon :size="15" class="lp-section__ico" /> Logo base
-                </header>
-                <div class="flex items-center gap-3">
-                  <div class="lp-logobox lp-logobox--lg">
-                    <img v-if="editLogoPreview" :src="editLogoPreview" alt="" />
-                    <ImageIcon v-else :size="20" class="text-slate-300" />
+                <section class="lp-section">
+                  <header class="lp-section__head">
+                    <LayoutTemplate :size="15" class="lp-section__ico" /> Plantilla
+                  </header>
+                  <div v-if="edit.es_plantilla" class="inline-flex items-center gap-2 text-sm text-emerald-700">
+                    <Check :size="15" /> Es la parroquia plantilla: las nuevas copian su ruta sacramental.
                   </div>
-                  <div class="min-w-0">
-                    <input ref="editLogoInput" type="file" accept="image/png,image/jpeg,image/webp"
-                      class="lp-file" @change="onEditLogo" />
-                    <div class="flex flex-wrap items-center gap-2">
-                      <button type="button" class="btn-outline btn-sm" :disabled="editLogoSubiendo"
-                        @click="$refs.editLogoInput.click()">
-                        <Upload :size="14" class="inline" />
-                        {{ editLogoSubiendo ? 'Subiendo…' : (editBranding.logo_url_proveedor ? 'Cambiar' : 'Subir logo') }}
-                      </button>
-                      <button v-if="editBranding.logo_url_proveedor" type="button" class="lp-link"
-                        :disabled="editLogoSubiendo" @click="quitarEditLogo">Quitar</button>
-                    </div>
-                    <small class="text-slate-400 block mt-1">
-                      <template v-if="editBranding.logo_url">El admin ya subió su propio logo; este solo se ve si lo quita.</template>
-                      <template v-else>Se muestra hasta que el admin de la parroquia suba el suyo.</template>
-                    </small>
-                  </div>
-                </div>
-              </section>
-
-              <section class="lp-section">
-                <header class="lp-section__head">
-                  <LayoutTemplate :size="15" class="lp-section__ico" /> Plantilla
-                </header>
-                <div v-if="edit.es_plantilla" class="inline-flex items-center gap-2 text-sm text-emerald-700">
-                  <Check :size="15" /> Esta es la parroquia plantilla. Las nuevas copian de aquí su ruta sacramental.
-                </div>
-                <button v-else type="button" class="btn-outline btn-sm" :disabled="marcandoPlantilla"
-                  @click="marcarComoPlantilla">
-                  {{ marcandoPlantilla ? 'Guardando…' : 'Usar como plantilla para nuevas parroquias' }}
-                </button>
-              </section>
+                  <button v-else type="button" class="btn-outline btn-sm" :disabled="marcandoPlantilla"
+                    @click="marcarComoPlantilla">
+                    {{ marcandoPlantilla ? 'Guardando…' : 'Usar como plantilla' }}
+                  </button>
+                </section>
+              </div>
             </div>
             <div class="modal-footer">
               <button type="button" class="btn-outline" data-bs-dismiss="modal" :disabled="savingEdit">Cancelar</button>
@@ -1154,8 +1154,8 @@ function copiar(txt) {
 /* Secciones del formulario de detalle: reemplaza los divisores + label
    suelto por bloques con cabecera propia, más fáciles de escanear. */
 .lp-section {
-  padding: 1rem 1.1rem;
-  margin-top: 1rem;
+  padding: 0.85rem 1rem;
+  margin-top: 0.75rem;
   border: 1px solid #eef1f5;
   border-radius: 12px;
   background: #fbfcfe;
@@ -1163,15 +1163,31 @@ function copiar(txt) {
 .lp-section__head {
   display: flex;
   align-items: center;
-  gap: 0.45rem;
-  margin-bottom: 0.85rem;
-  font-size: 0.76rem;
+  gap: 0.4rem;
+  margin-bottom: 0.65rem;
+  font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.03em;
   color: #475569;
 }
 .lp-section__ico { color: var(--parroquia-color, #6366f1); flex-shrink: 0; }
+
+/* Las 3 secciones secundarias no necesitan ser full-width: en 2 columnas se
+   lee igual de bien y el modal deja de ser un scroll larguísimo. Logo base
+   ocupa las 2 columnas (tiene más contenido); Tipo de programa y Plantilla
+   van una al lado de la otra. */
+.lp-sections-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+.lp-sections-grid .lp-section { margin-top: 0; }
+@media (min-width: 576px) {
+  .lp-sections-grid { grid-template-columns: 1fr 1fr; }
+  .lp-section--span2 { grid-column: 1 / -1; }
+}
 
 /* Fila "Parroquia activa": toggle switch en vez de un checkbox suelto y mal
    alineado junto a los demás campos. */
@@ -1180,8 +1196,8 @@ function copiar(txt) {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  margin-top: 0.85rem;
-  padding: 0.7rem 0.9rem;
+  margin-top: 0.65rem;
+  padding: 0.55rem 0.8rem;
   border-radius: 10px;
   background: #f0fdf4;
   cursor: pointer;
