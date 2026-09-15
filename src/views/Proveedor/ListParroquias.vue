@@ -28,6 +28,7 @@ const toggleMantenimiento = async () => {
     if (!seguro) return
     try {
       await systemStatus.desactivar()
+      await systemStatus.fetchStatus()
       showAlerta('Mantenimiento desactivado.', 'success')
     } catch (e) {
       showAlerta(e?.message || 'No se pudo desactivar el mantenimiento', 'error')
@@ -45,6 +46,7 @@ const toggleMantenimiento = async () => {
   if (!seguro) return
   try {
     await systemStatus.activar(mensajeMantenimiento.value.trim() || null)
+    await systemStatus.fetchStatus()
     showAlerta('Mantenimiento activado.', 'success')
   } catch (e) {
     showAlerta(e?.message || 'No se pudo activar el mantenimiento', 'error')
