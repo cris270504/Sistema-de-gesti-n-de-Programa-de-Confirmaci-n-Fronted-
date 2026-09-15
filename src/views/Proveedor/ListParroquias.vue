@@ -22,8 +22,18 @@ const alcanceMantenimiento = ref('todas') // 'todas' | 'parroquias'
 const parroquiasSeleccionadas = ref([]) // ids, solo si alcanceMantenimiento === 'parroquias'
 onMounted(() => { systemStatus.fetchStatus() })
 
+// Una parroquia inactiva ya no deja entrar a sus usuarios (bloqueo aparte, en
+// el login) -- no tiene sentido ofrecerla como blanco del mantenimiento.
+const parroquiasParaMantenimiento = computed(() => parroquias.value.filter(p => p.activa))
+
 const nombresSeleccionados = computed(() =>
-  parroquias.value.filter(p => parroquiasSeleccionadas.value.includes(p.id)).map(p => p.nombre))
+  parroquiasParaMantenimiento.value.filter(p => parroquiasSeleccionadas.value.includes(p.id)).map(p => p.nombre))
+
+const toggleParroquiaSeleccionada = (id) => {
+  const i = parroquiasSeleccionadas.value.indexOf(id)
+  if (i === -1) parroquiasSeleccionadas.value.push(id)
+  else parroquiasSeleccionadas.value.splice(i, 1)
+}
 
 const toggleMantenimiento = async () => {
   if (systemStatus.mantenimiento) {
@@ -447,17 +457,27 @@ function copiar(txt) {
 
       <!-- Por activar: elegir a quién afecta -->
       <div v-else class="lp-mant__alcance-picker">
-        <label class="lp-mant__radio">
-          <input type="radio" value="todas" v-model="alcanceMantenimiento" /> Todas las parroquias
-        </label>
-        <label class="lp-mant__radio">
-          <input type="radio" value="parroquias" v-model="alcanceMantenimiento" /> Parroquias específicas
-        </label>
-        <div v-if="alcanceMantenimiento === 'parroquias'" class="lp-mant__checklist">
-          <label v-for="p in parroquias" :key="p.id" class="lp-mant__check">
-            <input type="checkbox" :value="p.id" v-model="parroquiasSeleccionadas" /> {{ p.nombre }}
-          </label>
-          <span v-if="parroquias.length === 0" class="text-muted small">No hay parroquias.</span>
+        <div class="lp-seg" role="radiogroup" aria-label="Alcance del mantenimiento">
+          <button type="button" class="lp-seg__opt" :class="{ 'lp-seg__opt--on': alcanceMantenimiento === 'todas' }"
+            role="radio" :aria-checked="alcanceMantenimiento === 'todas'" @click="alcanceMantenimiento = 'todas'">
+            Todas las parroquias
+          </button>
+          <button type="button" class="lp-seg__opt" :class="{ 'lp-seg__opt--on': alcanceMantenimiento === 'parroquias' }"
+            role="radio" :aria-checked="alcanceMantenimiento === 'parroquias'" @click="alcanceMantenimiento = 'parroquias'">
+            Parroquias específicas
+          </button>
+        </div>
+        <div v-if="alcanceMantenimiento === 'parroquias'" class="lp-mant__chips">
+          <button v-for="p in parroquiasParaMantenimiento" :key="p.id" type="button" class="lp-chip"
+            :class="{ 'lp-chip--on': parroquiasSeleccionadas.includes(p.id) }"
+            :aria-pressed="parroquiasSeleccionadas.includes(p.id)"
+            @click="toggleParroquiaSeleccionada(p.id)">
+            <Check v-if="parroquiasSeleccionadas.includes(p.id)" :size="12" />
+            {{ p.nombre }}
+          </button>
+          <span v-if="parroquiasParaMantenimiento.length === 0" class="text-muted small">
+            No hay parroquias activas.
+          </span>
         </div>
       </div>
     </div>
@@ -831,25 +851,67 @@ function copiar(txt) {
 .lp-mant__alcance-activo { font-size: 0.8rem; }
 .lp-mant__alcance-picker {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.25rem 1rem;
-  font-size: 0.8rem;
-  padding-top: 0.5rem;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding-top: 0.6rem;
   border-top: 1px dashed #e2e8f0;
 }
-.lp-mant__radio { display: inline-flex; align-items: center; gap: 0.35rem; cursor: pointer; }
-.lp-mant__checklist {
+
+/* Segmented control: dos opciones mutuamente excluyentes, más claro que dos
+   radios sueltos y más fácil de tocar en celular. */
+.lp-seg {
+  display: inline-flex;
+  align-self: flex-start;
+  padding: 0.2rem;
+  border-radius: 0.65rem;
+  background: rgba(148, 163, 184, 0.15);
+  gap: 0.15rem;
+}
+.lp-seg__opt {
+  border: 0;
+  background: transparent;
+  padding: 0.4rem 0.85rem;
+  border-radius: 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+.lp-seg__opt:hover { color: #334155; }
+.lp-seg__opt--on {
+  background: #fff;
+  color: #92400e;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+}
+
+/* Chips de parroquia: click para sumar/sacar del alcance. */
+.lp-mant__chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.25rem 0.9rem;
-  width: 100%;
-  padding: 0.4rem 0.6rem;
-  margin-top: 0.15rem;
-  border-radius: 0.5rem;
-  background: rgba(255, 255, 255, 0.6);
+  gap: 0.4rem;
 }
-.lp-mant__check { display: inline-flex; align-items: center; gap: 0.3rem; cursor: pointer; }
+.lp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #475569;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.lp-chip:hover { border-color: #cbd5e1; }
+.lp-chip--on {
+  background: #fef3c7;
+  border-color: #f59e0b;
+  color: #92400e;
+  font-weight: 600;
+}
 @media (max-width: 767px) {
   .lp-mant__row { flex-direction: column; align-items: stretch; }
   .lp-mant__acciones { flex-direction: column; align-items: stretch; }
