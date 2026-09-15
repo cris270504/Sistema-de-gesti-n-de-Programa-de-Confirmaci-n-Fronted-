@@ -65,6 +65,16 @@ export const PROGRAMA_TIPOS = [
 ]
 const PROGRAMA_LABELS = Object.fromEntries(PROGRAMA_TIPOS)
 
+// Cómo se llama a la persona que participa del programa, según el tipo.
+// 'otro' usa un término genérico a propósito: no hay forma segura de
+// derivarlo del nombre libre del programa (ej. "Primera Reconciliación" no
+// implica que la persona se llame "penitente").
+const PERSONA_LABELS = {
+  comunion: ['Comulgante', 'Comulgantes'],
+  confirmacion: ['Confirmando', 'Confirmandos'],
+  otro: ['Participante', 'Participantes'],
+}
+
 // Etiqueta por defecto de un rol interno cuando la parroquia no definió una.
 const ROLES_DEFAULT = {
   'proveedor': 'Proveedor',
@@ -130,6 +140,16 @@ export const useParroquiaStore = defineStore('parroquia', {
       const tipo = s.configuracion?.programa_tipo || CONFIG_DEFAULTS.programa_tipo
       if (tipo === 'otro') return s.configuracion?.programa_nombre_otro || 'Formación'
       return PROGRAMA_LABELS[tipo] || PROGRAMA_LABELS.confirmacion
+    },
+    // Cómo llamar en la UI a la persona del programa ("Confirmando",
+    // "Comulgante", "Participante"...). Singular y plural.
+    personaLabel: (s) => {
+      const tipo = s.configuracion?.programa_tipo || CONFIG_DEFAULTS.programa_tipo
+      return (PERSONA_LABELS[tipo] || PERSONA_LABELS.confirmacion)[0]
+    },
+    personaLabelPlural: (s) => {
+      const tipo = s.configuracion?.programa_tipo || CONFIG_DEFAULTS.programa_tipo
+      return (PERSONA_LABELS[tipo] || PERSONA_LABELS.confirmacion)[1]
     },
     roleLabel: (s) => (rol) => (s.configuracion?.roles_labels?.[rol]) || prettify(rol),
     dashboardKpis: (s) => s.configuracion?.ui?.dashboard_kpis ?? CONFIG_DEFAULTS.ui.dashboard_kpis,

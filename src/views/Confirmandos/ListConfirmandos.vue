@@ -485,7 +485,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <AppPage title="Confirmandos" subtitle="Inscritos y ruta sacramental">
+    <AppPage :title="parroquiaStore.personaLabelPlural" subtitle="Inscritos y ruta sacramental">
         <template #actions>
             <input type="file" ref="fileInputRef" class="d-none" accept=".xlsx, .xls, .csv"
                 aria-label="Seleccionar archivo Excel o CSV para importar" @change="handleFileUpload">

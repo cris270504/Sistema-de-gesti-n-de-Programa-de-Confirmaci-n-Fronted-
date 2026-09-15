@@ -137,7 +137,7 @@ const confirmarRetiroJoven = async (joven) => {
           <div v-if="verKpi('confirmandos', 'ver todos los confirmandos')" class="col-sm-4">
             <div class="card border-0 shadow-sm rounded-4 text-center p-3">
               <h2 class="fw-bold mb-0 text-info">{{ metricas.activos }}</h2>
-              <p class="text-muted small mb-0">Confirmandos</p>
+              <p class="text-muted small mb-0">{{ parroquiaStore.personaLabelPlural }}</p>
               <RouterLink :to="{ name: 'confirmandos' }" class="stretched-link"></RouterLink>
             </div>
           </div>

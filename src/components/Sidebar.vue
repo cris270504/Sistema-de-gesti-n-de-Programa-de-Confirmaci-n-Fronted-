@@ -153,10 +153,10 @@ const menuSections = computed(() => {
     // configuración (configuracion.tipos_reunion).
     const tipos = parroquiaStore.tiposReunion || [];
     const opcionesAsistencia = [
-      { name: 'Confirmandos', to: { name: 'asistencias-confirmandos' } },
-      { name: 'Catequistas', to: { name: 'asistencias-catequistas' } },
-      { name: 'Apoderados', to: { name: 'asistencias-apoderados' } },
-    ].filter(o => tipos.includes(o.name));
+      { name: parroquiaStore.personaLabelPlural, filtroTipo: 'Confirmandos', to: { name: 'asistencias-confirmandos' } },
+      { name: 'Catequistas', filtroTipo: 'Catequistas', to: { name: 'asistencias-catequistas' } },
+      { name: 'Apoderados', filtroTipo: 'Apoderados', to: { name: 'asistencias-apoderados' } },
+    ].filter(o => tipos.includes(o.filtroTipo));
 
     if (opcionesAsistencia.length === 1) {
       seguimientoItems.push({ ...opcionesAsistencia[0], name: 'Asistencias', icon: ClipboardList, permission: 'ver todas las asistencias' });
@@ -198,7 +198,7 @@ const menuSections = computed(() => {
 
   // --- 3. SECCIÓN: PADRÓN (personas del programa) ---
   const padronItems = [
-    { name: 'Confirmandos', to: { name: 'confirmandos' }, icon: UserCircle, permission: 'ver todos los confirmandos' },
+    { name: parroquiaStore.personaLabelPlural, to: { name: 'confirmandos' }, icon: UserCircle, permission: 'ver todos los confirmandos' },
     { name: 'Grupos', to: { name: 'grupos' }, icon: UsersRound, permission: 'ver todos los grupos' },
   ];
   // Accesos directos a "Mi Grupo" para el catequista.
