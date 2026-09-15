@@ -1,5 +1,6 @@
 <script setup>
 import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { onBeforeRouteLeave } from 'vue-router'
 import {
   useParroquiaStore, CONFIG_DEFAULTS, PROGRAMA_TIPOS,
   DASHBOARD_KPIS, DASHBOARD_PANELES, MODULOS_OCULTABLES, CONFIRMANDOS_ESTADOS, CONFIRMANDO_CAMPOS,
@@ -139,6 +140,10 @@ async function quitarLogoActual() {
 const TIPOS_REUNION = ['Confirmandos', 'Catequistas', 'Apoderados']
 const saving = ref(false)
 const form = reactive(estructuraVacia())
+// Última foto de `form` tal como quedó cargado/guardado -- si el form actual
+// difiere, hay cambios sin guardar (avisamos antes de perderlos).
+const snapshotForm = ref(JSON.stringify(estructuraVacia()))
+const hayCambiosSinGuardar = computed(() => JSON.stringify(form) !== snapshotForm.value)
 
 // Vista previa del color EN VIVO sobre todo el sistema mientras se edita: se
 // publica en el store (solo si difiere del guardado) y DefaultLayout lo pinta.
@@ -241,11 +246,31 @@ function cargarDesdeStore() {
     logo_url_proveedor: c.branding?.logo_url_proveedor ?? '',
     color_primario: c.branding?.color_primario ?? '#2563eb',
   }
+  snapshotForm.value = JSON.stringify(form)
 }
 
 onMounted(async () => {
   await parroquiaStore.fetchConfiguracion()
   cargarDesdeStore()
+})
+
+const onBeforeUnload = (e) => {
+  if (!hayCambiosSinGuardar.value) return
+  e.preventDefault()
+  e.returnValue = ''
+}
+window.addEventListener('beforeunload', onBeforeUnload)
+onBeforeUnmount(() => window.removeEventListener('beforeunload', onBeforeUnload))
+
+onBeforeRouteLeave(async () => {
+  if (!hayCambiosSinGuardar.value) return true
+  return confirmar({
+    titulo: 'Tenés cambios sin guardar',
+    texto: 'Si salís ahora, se pierden los cambios que hiciste en esta pantalla.',
+    icono: 'warning',
+    confirmarTexto: 'Salir sin guardar',
+    cancelarTexto: 'Seguir editando',
+  })
 })
 
 async function guardar() {
@@ -584,6 +609,9 @@ const UMBRALES = [
       </section>
 
       <div class="cfg__bar">
+        <span v-if="hayCambiosSinGuardar && !saving" class="cfg__dirty">
+          <TriangleAlert :size="14" /> Tenés cambios sin guardar
+        </span>
         <button type="submit" class="btn-primary" :disabled="saving || form.tipos_reunion.length === 0">
           <Save :size="16" /> {{ saving ? 'Guardando…' : 'Guardar configuración' }}
         </button>
@@ -1132,8 +1160,19 @@ const UMBRALES = [
   padding: .9rem 0 .5rem;
   margin-top: .25rem;
   display: flex;
+  align-items: center;
   justify-content: flex-end;
+  gap: .75rem;
   background: linear-gradient(transparent, #f8fafc 45%);
+}
+
+.cfg__dirty {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  font-size: .78rem;
+  font-weight: 600;
+  color: #b45309;
 }
 
 .cfg__bar .btn-primary {
@@ -1154,10 +1193,16 @@ const UMBRALES = [
     position: static;
     background: none;
     padding: 1rem 0 0;
+    flex-direction: column-reverse;
+    align-items: stretch;
   }
 
   .cfg__bar .btn-primary {
     width: 100%;
+    justify-content: center;
+  }
+
+  .cfg__dirty {
     justify-content: center;
   }
 }
