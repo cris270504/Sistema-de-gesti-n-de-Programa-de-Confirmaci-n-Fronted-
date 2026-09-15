@@ -7,6 +7,10 @@ import { showAlerta, showErroresDeValidacion } from '@/funciones'
 export const CONFIG_DEFAULTS = {
   programa_inicio: null,
   programa_fin: null,
+  // 'comunion' | 'confirmacion' | 'otro'. Con 'otro', programa_nombre_otro
+  // lleva el nombre libre.
+  programa_tipo: 'confirmacion',
+  programa_nombre_otro: null,
   dias_ventana_justificacion: 21,
   tipos_reunion: ['Confirmandos', 'Catequistas', 'Apoderados'],
   umbrales_alerta: {
@@ -53,6 +57,13 @@ export const CONFIRMANDO_CAMPOS = ['celular', 'fecha_nacimiento', 'genero']
 
 // Cada cuánto, como mucho, se chequea si la config cambió (al enfocar la app).
 const REFRESH_MIN_MS = 30_000
+
+export const PROGRAMA_TIPOS = [
+  ['comunion', 'Comunión'],
+  ['confirmacion', 'Confirmación'],
+  ['otro', 'Otro'],
+]
+const PROGRAMA_LABELS = Object.fromEntries(PROGRAMA_TIPOS)
 
 // Etiqueta por defecto de un rol interno cuando la parroquia no definió una.
 const ROLES_DEFAULT = {
@@ -112,6 +123,14 @@ export const useParroquiaStore = defineStore('parroquia', {
     tiposReunion: (s) => s.configuracion?.tipos_reunion ?? CONFIG_DEFAULTS.tipos_reunion,
     procedencias: (s) => s.configuracion?.procedencias ?? CONFIG_DEFAULTS.procedencias,
     nombreApp: (s) => s.configuracion?.branding?.nombre_publico || s.parroquia?.nombre || 'SGPC',
+    // Nombre del programa para el navbar ("Sistema de Gestión del Programa
+    // de {{ programaNombre }}"): la etiqueta fija de comunion/confirmacion,
+    // o el texto libre cuando la parroquia eligió 'otro'.
+    programaNombre: (s) => {
+      const tipo = s.configuracion?.programa_tipo || CONFIG_DEFAULTS.programa_tipo
+      if (tipo === 'otro') return s.configuracion?.programa_nombre_otro || 'Formación'
+      return PROGRAMA_LABELS[tipo] || PROGRAMA_LABELS.confirmacion
+    },
     roleLabel: (s) => (rol) => (s.configuracion?.roles_labels?.[rol]) || prettify(rol),
     dashboardKpis: (s) => s.configuracion?.ui?.dashboard_kpis ?? CONFIG_DEFAULTS.ui.dashboard_kpis,
     dashboardPaneles: (s) => s.configuracion?.ui?.dashboard_paneles ?? CONFIG_DEFAULTS.ui.dashboard_paneles,

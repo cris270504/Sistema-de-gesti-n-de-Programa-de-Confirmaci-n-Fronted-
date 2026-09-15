@@ -3,11 +3,15 @@ import { ref, reactive, computed, onMounted, onUnmounted, onBeforeUnmount, nextT
 import { Modal } from 'bootstrap'
 import { Plus, Check, X, Copy, Building2, KeyRound, Eye, Search, Clock, Upload, Image as ImageIcon, Wrench } from 'lucide-vue-next'
 import { showAlerta, confirmar, slugify } from '@/funciones'
-import { listParroquias, crearParroquia, actualizarParroquia, getBrandingParroquia, setPlantillaParroquia } from '@/services/proveedor'
+import {
+  listParroquias, crearParroquia, actualizarParroquia, getBrandingParroquia, setPlantillaParroquia,
+  actualizarProgramaParroquia,
+} from '@/services/proveedor'
 import { subirLogo, quitarLogo } from '@/services/branding'
 import AppPage from '@/components/AppPage.vue'
 import { useMediaQuery } from '@/composables/useMediaQuery'
 import { useSystemStatusStore } from '@/stores/systemStatus'
+import { PROGRAMA_TIPOS } from '@/stores/parroquia'
 
 const esMovil = useMediaQuery('(max-width: 767px)')
 
@@ -114,6 +118,7 @@ const marcandoPlantilla = ref(false)
 
 // Branding en el detalle (ranura 'proveedor').
 const editBranding = reactive({ logo_url: '', logo_url_proveedor: '' })
+const editPrograma = reactive({ tipo: 'confirmacion', nombre_otro: '' })
 const editLogoInput = ref(null)
 const editLogoSubiendo = ref(false)
 const editLogoLocal = ref('')
@@ -296,12 +301,16 @@ async function abrirDetalle(p) {
   })
   editBranding.logo_url = ''
   editBranding.logo_url_proveedor = ''
+  editPrograma.tipo = 'confirmacion'
+  editPrograma.nombre_otro = ''
   getBrandingParroquia(p.id)
-    .then((b) => {
-      editBranding.logo_url = b?.logo_url ?? ''
-      editBranding.logo_url_proveedor = b?.logo_url_proveedor ?? ''
+    .then(({ branding, programa_tipo, programa_nombre_otro }) => {
+      editBranding.logo_url = branding?.logo_url ?? ''
+      editBranding.logo_url_proveedor = branding?.logo_url_proveedor ?? ''
+      editPrograma.tipo = programa_tipo || 'confirmacion'
+      editPrograma.nombre_otro = programa_nombre_otro || ''
     })
-    .catch(() => { /* sin branding aún */ })
+    .catch(() => { /* sin config aún */ })
   nextTick(() => {
     detalleModal ??= new Modal(detalleModalRef.value, { backdrop: 'static' })
     detalleModal.show()
@@ -309,6 +318,10 @@ async function abrirDetalle(p) {
 }
 
 async function guardarDetalle() {
+  if (editPrograma.tipo === 'otro' && !editPrograma.nombre_otro.trim()) {
+    showAlerta('Indicá el nombre del programa', 'warning')
+    return
+  }
   savingEdit.value = true
   editErrores.value = {}
   try {
@@ -319,6 +332,10 @@ async function guardarDetalle() {
       activa: edit.activa,
     }
     const { parroquia } = await actualizarParroquia(edit.id, payload)
+    await actualizarProgramaParroquia(edit.id, {
+      programa_tipo: editPrograma.tipo,
+      programa_nombre_otro: editPrograma.nombre_otro.trim(),
+    })
     const i = parroquias.value.findIndex(p => p.id === edit.id)
     if (i !== -1) parroquias.value[i] = { ...parroquias.value[i], ...parroquia }
     detalleModal?.hide()
@@ -664,6 +681,21 @@ function copiar(txt) {
               <p v-if="!edit.activa" class="mt-3 text-xs text-amber-600">
                 Con la parroquia inactiva, sus usuarios no podrán iniciar sesión.
               </p>
+
+              <div class="mt-4 border-t pt-4">
+                <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Tipo de programa</p>
+                <div class="grid gap-3 sm:grid-cols-2">
+                  <label class="text-sm">Programa
+                    <select v-model="editPrograma.tipo" class="mt-1">
+                      <option v-for="[valor, etiqueta] in PROGRAMA_TIPOS" :key="valor" :value="valor">{{ etiqueta }}</option>
+                    </select>
+                  </label>
+                  <label v-if="editPrograma.tipo === 'otro'" class="text-sm">Nombre del programa
+                    <input v-model="editPrograma.nombre_otro" maxlength="60" class="mt-1" placeholder="Ej: Primera Reconciliación" />
+                  </label>
+                </div>
+                <small class="text-slate-400 block mt-1">Define qué dice el navbar: "Sistema de Gestión del Programa de …".</small>
+              </div>
 
               <div class="mt-4 border-t pt-4">
                 <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Logo base</p>

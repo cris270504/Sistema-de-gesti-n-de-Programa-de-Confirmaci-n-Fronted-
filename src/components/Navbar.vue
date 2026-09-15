@@ -35,7 +35,7 @@ const goToProfile = () => {
 
       <Church class="hidden h-5 w-5 shrink-0 text-primary sm:block" aria-hidden="true" />
       <p class="mb-0 truncate text-base font-semibold text-gray-700 sm:text-lg">
-        <span class="hidden sm:inline">Sistema de Gestión del Programa de Confirmación</span>
+        <span class="hidden sm:inline">Sistema de Gestión del Programa de {{ parroquiaStore.programaNombre }}</span>
         <span class="sm:hidden">{{ tituloCorto }}</span>
       </p>
     </div>

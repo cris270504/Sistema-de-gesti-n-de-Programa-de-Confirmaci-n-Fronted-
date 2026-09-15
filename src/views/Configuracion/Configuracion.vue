@@ -1,7 +1,7 @@
 <script setup>
 import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import {
-  useParroquiaStore, CONFIG_DEFAULTS,
+  useParroquiaStore, CONFIG_DEFAULTS, PROGRAMA_TIPOS,
   DASHBOARD_KPIS, DASHBOARD_PANELES, MODULOS_OCULTABLES, CONFIRMANDOS_ESTADOS, CONFIRMANDO_CAMPOS,
 } from '@/stores/parroquia'
 import {
@@ -190,6 +190,8 @@ function estructuraVacia() {
   return {
     programa_inicio: '',
     programa_fin: '',
+    programa_tipo: CONFIG_DEFAULTS.programa_tipo,
+    programa_nombre_otro: '',
     dias_ventana_justificacion: 21,
     tipos_reunion: [],
     umbrales_alerta: { ...CONFIG_DEFAULTS.umbrales_alerta },
@@ -211,6 +213,8 @@ function cargarDesdeStore() {
   const c = parroquiaStore.configuracion
   form.programa_inicio = c.programa_inicio ?? ''
   form.programa_fin = c.programa_fin ?? ''
+  form.programa_tipo = c.programa_tipo ?? CONFIG_DEFAULTS.programa_tipo
+  form.programa_nombre_otro = c.programa_nombre_otro ?? ''
   form.dias_ventana_justificacion = c.dias_ventana_justificacion ?? 21
   form.tipos_reunion = [...(c.tipos_reunion ?? CONFIG_DEFAULTS.tipos_reunion)]
   form.umbrales_alerta = { ...CONFIG_DEFAULTS.umbrales_alerta, ...(c.umbrales_alerta ?? {}) }
@@ -249,6 +253,8 @@ async function guardar() {
   const payload = {
     programa_inicio: form.programa_inicio || null,
     programa_fin: form.programa_fin || null,
+    programa_tipo: form.programa_tipo,
+    programa_nombre_otro: form.programa_tipo === 'otro' ? form.programa_nombre_otro.trim() : null,
     dias_ventana_justificacion: Number(form.dias_ventana_justificacion),
     tipos_reunion: form.tipos_reunion,
     umbrales_alerta: Object.fromEntries(
@@ -388,6 +394,19 @@ const UMBRALES = [
         </header>
         <div class="card__body">
           <div class="grid-fields grid-fields--sm">
+            <div class="field">
+              <label>Tipo de programa</label>
+              <select v-model="form.programa_tipo" class="inp">
+                <option v-for="[valor, etiqueta] in PROGRAMA_TIPOS" :key="valor" :value="valor">{{ etiqueta }}</option>
+              </select>
+            </div>
+            <div class="field" v-if="form.programa_tipo === 'otro'">
+              <label>Nombre del programa</label>
+              <input v-model="form.programa_nombre_otro" type="text" maxlength="60" class="inp"
+                placeholder="Ej: Primera Reconciliación" />
+            </div>
+          </div>
+          <div class="grid-fields grid-fields--sm mt-3">
             <div class="field">
               <label>Inicio</label>
               <input v-model="form.programa_inicio" type="date" class="inp" />

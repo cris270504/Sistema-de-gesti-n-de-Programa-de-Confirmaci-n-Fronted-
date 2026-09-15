@@ -35,15 +35,40 @@ export const crearParroquia = async (payload) => {
   return data // { message, parroquia, admin: { email, temp_password } }
 }
 
-// Branding de una parroquia (el proveedor puede leer cualquier fila por RLS).
+// Branding + tipo de programa de una parroquia (el proveedor puede leer
+// cualquier fila por RLS).
 export const getBrandingParroquia = async (id) => {
   const { data, error } = await supabase
     .from('parroquia_configuraciones')
-    .select('branding')
+    .select('branding, programa_tipo, programa_nombre_otro')
     .eq('parroquia_id', Number(id))
     .maybeSingle()
   if (error) throw errorLegible(error)
-  return data?.branding ?? {}
+  return {
+    branding: data?.branding ?? {},
+    programa_tipo: data?.programa_tipo ?? 'confirmacion',
+    programa_nombre_otro: data?.programa_nombre_otro ?? '',
+  }
+}
+
+// El proveedor escribe directo sobre parroquia_configuraciones de CUALQUIER
+// parroquia (RLS: app_parroquia_ok admite cualquier fila cuando es_proveedor).
+// A diferencia del admin de la parroquia, el proveedor no pasa por
+// fn_guardar_configuracion (esa RPC opera sobre "mi propia" parroquia vía
+// app_current_parroquia_id(), que para el proveedor es NULL).
+export const actualizarProgramaParroquia = async (parroquiaId, { programa_tipo, programa_nombre_otro }) => {
+  const { data, error } = await supabase
+    .from('parroquia_configuraciones')
+    .update({
+      programa_tipo,
+      programa_nombre_otro: programa_tipo === 'otro' ? (programa_nombre_otro || null) : null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('parroquia_id', Number(parroquiaId))
+    .select('programa_tipo, programa_nombre_otro')
+    .single()
+  if (error) throw errorLegible(error)
+  return data
 }
 
 export const actualizarParroquia = async (id, payload) => {
