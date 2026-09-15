@@ -80,12 +80,21 @@ from pg_policies
 where schemaname = 'public'
   and (
     (qual is not null and qual ~ '(app_is_privileged|app_es_proveedor|app_current_parroquia_id|app_current_user_id)\(\)'
-       and qual !~ '\(select\s+(app_is_privileged|app_es_proveedor|app_current_parroquia_id|app_current_user_id)\(\)\)')
+       and qual !~* '\(\s*select\s+(app_is_privileged|app_es_proveedor|app_current_parroquia_id|app_current_user_id)\(\)')
     or
     (with_check is not null and with_check ~ '(app_is_privileged|app_es_proveedor|app_current_parroquia_id|app_current_user_id)\(\)'
-       and with_check !~ '\(select\s+(app_is_privileged|app_es_proveedor|app_current_parroquia_id|app_current_user_id)\(\)\)')
+       and with_check !~* '\(\s*select\s+(app_is_privileged|app_es_proveedor|app_current_parroquia_id|app_current_user_id)\(\)')
   )
 order by tablename, policyname;
+
+-- Nota: la primera corrida de este bloque (2026-09-17) mostró falsos
+-- positivos para las 8 tablas de justificaciones porque Postgres muestra
+-- el wrap ya aplicado como `( SELECT fn() AS fn)` -- mayúscula y con alias
+-- -- y la versión anterior de este regex exigía minúscula y cierre
+-- inmediato. Corregido con `!~*` (case-insensitive) y sin exigir el cierre
+-- exacto. Si volvés a ver una tabla que ya sabés que está arreglada en esta
+-- lista, es señal de que Postgres cambió otra vez el formato de impresión
+-- -- confirmar a mano antes de asumir que es un bug real.
 
 -- ---------------------------------------------------------------------
 -- 5) Policies RESTRICTIVE que referencian OTRA tabla vía subquery no
