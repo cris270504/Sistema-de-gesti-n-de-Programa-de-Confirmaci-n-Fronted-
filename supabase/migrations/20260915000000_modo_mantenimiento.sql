@@ -24,6 +24,11 @@ on conflict (id) do nothing;
 alter table public.system_status enable row level security;
 alter table public.system_status force row level security;
 
+-- RLS solo filtra filas; sin el GRANT de tabla, Postgres rechaza la operación
+-- antes de evaluar ninguna policy (mismo código 42501, fácil de confundir con
+-- "la policy me está bloqueando").
+grant select, update on public.system_status to authenticated;
+
 drop policy if exists system_status_select on public.system_status;
 create policy system_status_select on public.system_status
     for select

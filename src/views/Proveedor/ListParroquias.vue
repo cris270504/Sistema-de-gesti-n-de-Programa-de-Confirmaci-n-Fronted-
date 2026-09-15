@@ -387,15 +387,8 @@ function copiar(txt) {
     <div class="lp-mant" :class="{ 'lp-mant--on': systemStatus.mantenimiento }">
       <div class="lp-mant__info">
         <Wrench :size="18" class="flex-shrink-0" />
-        <div>
-          <div class="lp-mant__titulo">
-            Modo mantenimiento: {{ systemStatus.mantenimiento ? 'ACTIVADO' : 'desactivado' }}
-          </div>
-          <div class="lp-mant__desc">
-            {{ systemStatus.mantenimiento
-              ? 'Todas las personas logueadas (menos vos) están viendo la pantalla de mantenimiento ahora mismo.'
-              : 'Al activarlo, cualquier persona logueada (de cualquier parroquia, menos vos) ve una pantalla de mantenimiento en vez del sistema.' }}
-          </div>
+        <div class="lp-mant__titulo">
+          Modo mantenimiento: {{ systemStatus.mantenimiento ? 'ACTIVADO' : 'desactivado' }}
         </div>
       </div>
       <div class="lp-mant__acciones">
@@ -742,21 +735,22 @@ function copiar(txt) {
   background: #fffbeb;
   color: #92400e;
 }
-.lp-mant__info { display: flex; align-items: flex-start; gap: 0.6rem; }
+.lp-mant__info { display: flex; align-items: center; gap: 0.6rem; }
 .lp-mant__titulo { font-weight: 700; font-size: 0.85rem; }
-.lp-mant__desc { font-size: 0.78rem; opacity: 0.85; max-width: 46ch; }
-.lp-mant__acciones { display: flex; align-items: center; gap: 0.5rem; }
+.lp-mant__acciones { display: flex; align-items: center; gap: 0.5rem; flex: 1 1 auto; justify-content: flex-end; }
 .lp-mant__input {
   font-size: 0.82rem;
-  padding: 0.4rem 0.65rem;
+  padding: 0.5rem 0.75rem;
   border-radius: 0.5rem;
   border: 1px solid #cbd5e1;
-  min-width: 220px;
+  flex: 1 1 auto;
+  min-width: 280px;
+  max-width: 420px;
 }
 @media (max-width: 767px) {
   .lp-mant { flex-direction: column; align-items: stretch; }
   .lp-mant__acciones { flex-direction: column; align-items: stretch; }
-  .lp-mant__input { min-width: 0; }
+  .lp-mant__input { min-width: 0; max-width: none; }
 }
 .lp-count {
   display: inline-flex;
