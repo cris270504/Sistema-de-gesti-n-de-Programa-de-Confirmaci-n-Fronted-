@@ -663,15 +663,17 @@ function copiar(txt) {
         <div class="modal-content">
           <div class="modal-header lp-modal-head">
             <div class="lp-modal-head__icon"><Building2 :size="20" /></div>
-            <div class="min-w-0">
-              <h5 class="modal-title mb-0">{{ edit.nombre }}</h5>
+            <div class="min-w-0 flex-grow-1">
+              <h5 class="modal-title mb-0 truncate">{{ edit.nombre }}</h5>
               <div class="lp-modal-head__slug">
-                <Globe :size="11" class="inline" /> {{ edit.slug }}
-                <span class="lp-dot" :class="edit.activa ? 'lp-dot--on' : 'lp-dot--off'"></span>
-                {{ edit.activa ? 'Activa' : 'Inactiva' }}
+                <span class="lp-modal-head__slugtxt"><Globe :size="11" class="inline flex-shrink-0" /> {{ edit.slug }}</span>
+                <span class="lp-modal-head__estado">
+                  <span class="lp-dot" :class="edit.activa ? 'lp-dot--on' : 'lp-dot--off'"></span>
+                  {{ edit.activa ? 'Activa' : 'Inactiva' }}
+                </span>
               </div>
             </div>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" :disabled="savingEdit"></button>
+            <button type="button" class="btn-close flex-shrink-0" data-bs-dismiss="modal" :disabled="savingEdit"></button>
           </div>
           <form @submit.prevent="guardarDetalle">
             <div class="modal-body">
@@ -1144,11 +1146,26 @@ function copiar(txt) {
 }
 .lp-modal-head__slug {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.2rem 0.5rem;
   font-size: 0.76rem;
   color: #94a3b8;
+}
+.lp-modal-head__slugtxt {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-family: ui-monospace, monospace;
+}
+.lp-modal-head__estado { display: inline-flex; align-items: center; gap: 0.3rem; flex-shrink: 0; }
+@media (max-width: 480px) {
+  .lp-modal-head__icon { width: 34px; height: 34px; }
+  .lp-modal-head__slugtxt { max-width: 55vw; }
 }
 
 /* Secciones del formulario de detalle: reemplaza los divisores + label
