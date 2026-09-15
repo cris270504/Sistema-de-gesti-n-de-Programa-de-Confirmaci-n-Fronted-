@@ -406,7 +406,8 @@ const rechazarCumplimientoSwal = async (item) => {
                                                 <Check :size="18" stroke-width="2.5" />
                                             </button>
                                             <button @click="rechazarCumplimientoSwal(item)"
-                                                class="btn-action btn-soft-danger" title="Marcar como no cumplido">
+                                                class="btn-action btn-soft-danger" title="Marcar como no cumplido"
+                                                aria-label="Marcar como no cumplido">
                                                 <X :size="18" stroke-width="2.5" />
                                             </button>
                                         </template>
@@ -488,7 +489,8 @@ const rechazarCumplimientoSwal = async (item) => {
                                     :title="puedeMarcarCumplido(item) ? '' : `Recién se puede validar desde el ${formatFechaFalta(item.fecha_acuerdo)}`">
                                     <Check :size="15" /> Cumplió
                                 </button>
-                                <button @click="rechazarCumplimientoSwal(item)" class="btn-action btn-soft-danger" title="No cumplió">
+                                <button @click="rechazarCumplimientoSwal(item)" class="btn-action btn-soft-danger" title="No cumplió"
+                                    aria-label="Marcar como no cumplido">
                                     <X :size="16" />
                                 </button>
                             </template>

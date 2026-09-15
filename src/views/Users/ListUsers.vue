@@ -159,6 +159,7 @@ onMounted(() => {
             </button>
             <button class="btn-action btn-soft-danger" :disabled="gruposDe(u) > 0"
               :title="gruposDe(u) > 0 ? 'Tiene grupos asignados: reasígnalos o desactívalo' : 'Eliminar'"
+              :aria-label="gruposDe(u) > 0 ? 'Tiene grupos asignados: reasígnalos o desactívalo' : `Eliminar usuario ${u.name}`"
               @click="removeUser(u.id, u.name)">
               <Trash :size="18" />
             </button>

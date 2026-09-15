@@ -235,6 +235,7 @@ const handleDelete = async (role) => {
                       class="btn-action btn-soft-danger"
                       :disabled="esProtegido(role.name)"
                       :title="esProtegido(role.name) ? 'Rol protegido' : 'Eliminar'"
+                      :aria-label="esProtegido(role.name) ? 'Rol protegido' : `Eliminar rol ${role.name}`"
                       @click="handleDelete(role)"
                     >
                       <Trash :size="16" />

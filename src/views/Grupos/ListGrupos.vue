@@ -149,6 +149,7 @@ onMounted(() => {
                                     </button>
 
                                     <button class="btn-action btn-soft-danger" title="Eliminar"
+                                        :aria-label="`Eliminar grupo ${g.nombre}`"
                                         :disabled="borrandoId === g.id" @click="remove(g.id, g.nombre)">
                                         <Trash :size="18" />
                                     </button>
