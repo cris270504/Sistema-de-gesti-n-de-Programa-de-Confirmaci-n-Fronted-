@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { getUpcomingReuniones } from '@/services/reunions'
 import { createReunion, deleteReunionById, getReunionById, getReunionsList, updateReunion, contarAsistenciasReunion } from '../services/reunions';
 import { confirmarEliminacion, showAlerta, showErroresDeValidacion } from '@/funciones'
+import { useParroquiaStore } from '@/stores/parroquia'
 
 const FRESH_MS = 30_000
 
@@ -61,7 +62,7 @@ export const useReunionesStore = defineStore('reuniones', {
                 }
                 return reunion;
             } catch (e) {
-                this.error = e?.response?.data?.message || e?.message || `Error al obtener reunion ${id}`
+                this.error = e?.message || `Error al obtener reunion ${id}`
                 showAlerta(this.error, 'error');
                 throw e;
             } finally {
@@ -84,7 +85,7 @@ export const useReunionesStore = defineStore('reuniones', {
                 );
                 return created
             } catch (e) {
-                showErroresDeValidacion(e?.response?.data?.errors || e)
+                showErroresDeValidacion(e)
                 throw e
             }
         },
@@ -103,7 +104,7 @@ export const useReunionesStore = defineStore('reuniones', {
                 showAlerta('Reunión actualizada correctamente', 'success')
                 return updated
             } catch (e) {
-                showErroresDeValidacion(e?.response?.data?.errors || e)
+                showErroresDeValidacion(e)
                 throw e
             }
         },
@@ -136,7 +137,7 @@ export const useReunionesStore = defineStore('reuniones', {
                 showAlerta('Reunión eliminada correctamente', 'success')
                 return true
             } catch (e) {
-                this.error = e?.response?.data?.message || e?.message || 'No se pudo eliminar la reunión'
+                this.error = e?.message || 'No se pudo eliminar la reunión'
                 showAlerta(this.error, 'error')
                 return false
             }
@@ -147,7 +148,7 @@ export const useReunionesStore = defineStore('reuniones', {
 
             if (this.upcomingItems.length === 0) this.loading = true
 
-            this._inflightUpcoming = getUpcomingReuniones()
+            this._inflightUpcoming = getUpcomingReuniones(useParroquiaStore().zonaHoraria)
                 .then((data) => {
                     this.upcomingItems = data
                     this.lastFetchUpcoming = Date.now()

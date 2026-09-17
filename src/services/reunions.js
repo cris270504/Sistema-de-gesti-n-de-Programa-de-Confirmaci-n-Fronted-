@@ -26,9 +26,22 @@ export function getReunionById(id) {
   return unwrap(supabase.from('reunions').select(COLS).eq('id', Number(id)).single())
 }
 
-export function getUpcomingReuniones() {
-  // `reunions.fecha` es timestamp sin zona → comparamos con una marca local sin `Z`.
-  const ahora = new Date().toISOString().slice(0, 19)
+// `reunions.fecha` es timestamp sin zona (hora local de la parroquia). "Ahora"
+// hay que expresarlo en esa misma zona (no en UTC) para que la comparación no
+// se desfase según dónde esté la parroquia — ver parroquia.zonaHoraria.
+function ahoraEnZona(timeZone) {
+  const partes = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false,
+  }).formatToParts(new Date())
+  const get = (tipo) => partes.find((p) => p.type === tipo)?.value
+  return `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}:${get('second')}`
+}
+
+export function getUpcomingReuniones(timeZone = 'America/Lima') {
+  const ahora = ahoraEnZona(timeZone)
   return unwrap(
     supabase.from('reunions')
       .select(COLS)
