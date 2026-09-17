@@ -50,21 +50,21 @@ const submit = async () => {
 </script>
 
 <template>
-    <div class="flex flex-col items-center justify-center min-h-screen bg-gray-100 px-4 py-12">
-        <div class="w-full max-w-md bg-white rounded-lg shadow-md p-6 md:p-8">
+    <div class="flex flex-col items-center justify-center min-h-screen bg-gray-100 dark:bg-slate-900 px-4 py-12">
+        <div class="w-full max-w-md !bg-white dark:!bg-slate-800 rounded-lg shadow-md p-6 md:p-8">
             <div class="text-center mb-8">
                 <img src="@/assets/logo.png" alt="Logo App" class="mx-auto h-49 w-auto mb-4" />
-                <h2 class="text-2xl font-bold text-gray-900">
+                <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-50">
                     Iniciar Sesión
                 </h2>
-                <p class="mt-2 text-sm text-gray-600">
+                <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
                     Ingresa tus credenciales para acceder
                 </p>
             </div>
 
             <form class="space-y-6" @submit.prevent="submit">
                 <div>
-                    <label for="login" class="block text-sm font-medium text-gray-700 mb-1">
+                    <label for="login" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Correo o DNI
                     </label>
                     <input id="login" v-model="draft.login" type="text" autocomplete="username" required
@@ -74,11 +74,11 @@ const submit = async () => {
 
                 <div>
                     <div class="flex items-center justify-between mb-1">
-                        <label for="password" class="block text-sm font-medium text-gray-700">
+                        <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                             Contraseña
                         </label>
                         <button type="button" @click="avisoContrasena"
-                            class="text-sm font-medium text-indigo-600 hover:text-indigo-700">
+                            class="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300">
                             ¿Olvidaste tu contraseña?
                         </button>
                     </div>

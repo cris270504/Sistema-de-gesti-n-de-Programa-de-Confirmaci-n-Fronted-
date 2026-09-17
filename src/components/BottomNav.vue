@@ -89,6 +89,14 @@ const isActive = (to) => route.name === to.name
   color: var(--parroquia-color, #2563eb);
 }
 
+:root[data-bs-theme="dark"] .bottomnav {
+  background: #1e293b;
+  border-top-color: #334155;
+}
+:root[data-bs-theme="dark"] .bottomnav__item {
+  color: #94a3b8;
+}
+
 @media (min-width: 768px) {
   .bottomnav { display: none; }
 }

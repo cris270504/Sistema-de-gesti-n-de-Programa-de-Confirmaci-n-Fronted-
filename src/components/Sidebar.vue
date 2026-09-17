@@ -268,7 +268,7 @@ defineExpose({ toggleSidebar });
 <template>
   <div :class="[
     'relative flex flex-col border-r backdrop-blur-md transition-all duration-300 ease-in-out',
-    drawerMode ? 'h-full w-full bg-white p-4' : 'h-screen bg-white/80',
+    drawerMode ? 'h-full w-full !bg-white dark:!bg-slate-800 p-4' : 'h-screen !bg-white/80 dark:!bg-slate-800/90',
     !drawerMode && (isSidebarOpen ? 'w-72 p-4' : 'w-20 p-2')
   ]">
     <!-- Header del Sidebar -->
@@ -277,13 +277,13 @@ defineExpose({ toggleSidebar });
       <div v-if="expanded" class="inline-flex items-center gap-2">
         <img :src="parroquiaStore.brandingLogo || defaultLogo" alt="Logo" class="h-10 w-auto object-contain"
           @error="e => (e.target.src = defaultLogo)" />
-        <h5 class="block text-xl font-bold tracking-tight text-slate-800 truncate max-w-[160px]"
+        <h5 class="block text-xl font-bold tracking-tight text-slate-800 dark:text-slate-100 truncate max-w-[160px]"
           :title="parroquiaStore.nombreApp">
           {{ parroquiaStore.nombreApp }}
         </h5>
       </div>
       <button @click="onHeaderButton"
-        class="rounded p-2 text-slate-500 hover:bg-slate-100 hover:text-primary transition-colors focus:outline-none">
+        class="rounded p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary transition-colors focus:outline-none">
         <X v-if="expanded" class="h-6 w-6" aria-hidden="true" />
         <Menu v-else class="h-6 w-6" aria-hidden="true" />
       </button>
@@ -299,7 +299,7 @@ defineExpose({ toggleSidebar });
           {{ section.title }}
         </div>
         <!-- Divisor visual cuando está colapsado -->
-        <div v-else-if="idx !== 0" class="border-t border-slate-200 mx-4 mb-2 mt-1"></div>
+        <div v-else-if="idx !== 0" class="border-t border-slate-200 dark:border-slate-700 mx-4 mb-2 mt-1"></div>
 
         <div class="flex flex-col gap-1.5">
           <template v-for="item in section.items" :key="item.name">
@@ -346,8 +346,8 @@ defineExpose({ toggleSidebar });
                   v-slot="{ navigate, href }">
                   <a :href="href" @click="navigate" @mouseenter="prefetchRoute(child.to?.name)" @focus="prefetchRoute(child.to?.name)"
                     class="nav-link group child-link py-1.5 px-3 rounded-lg flex items-center gap-2"
-                    :class="isChildActive(child) ? 'text-primary bg-primary/5 font-semibold' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'">
-                    <div class="w-1.5 h-1.5 rounded-full" :class="isChildActive(child) ? 'bg-primary' : 'bg-slate-300'">
+                    :class="isChildActive(child) ? 'text-primary bg-primary/5 font-semibold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-700'">
+                    <div class="w-1.5 h-1.5 rounded-full" :class="isChildActive(child) ? 'bg-primary' : 'bg-slate-300 dark:bg-slate-600'">
                     </div>
                     <span class="truncate text-[0.85rem]">{{ child.name }}</span>
                   </a>
@@ -362,7 +362,7 @@ defineExpose({ toggleSidebar });
 
     <!-- Footer Logout -->
     <div class="mt-auto border-t pt-3">
-      <button @click="handleLogout" class="nav-link w-full text-red-600 hover:bg-red-50 hover:text-red-700 font-medium"
+      <button @click="handleLogout" class="nav-link w-full text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-700 dark:hover:text-red-300 font-medium"
         :class="!expanded ? 'justify-center' : ''">
         <LogOut class="h-5 w-5 shrink-0" :class="expanded ? 'mr-3' : 'mx-auto'" aria-hidden="true" />
         <span v-if="expanded" class="text-sm">Cerrar sesión</span>
@@ -405,6 +405,10 @@ defineExpose({ toggleSidebar });
   background-color: #eff6ff;
   color: var(--color-primary);
 }
+
+:root[data-bs-theme="dark"] .nav-link--idle { color: #94a3b8; }
+:root[data-bs-theme="dark"] .nav-link--idle:hover { background-color: #334155; color: #f1f5f9; }
+:root[data-bs-theme="dark"] .nav-link--active { background-color: #1e3a5f; }
 
 /* Indicador azul a la izquierda */
 .active-indicator {

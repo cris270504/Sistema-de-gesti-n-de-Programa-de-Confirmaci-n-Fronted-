@@ -1,6 +1,17 @@
 <!DOCTYPE html>
 <html lang="">
 <head>
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('sgpc-theme');
+          if (t !== 'dark' && t !== 'light') {
+            t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          }
+          document.documentElement.setAttribute('data-bs-theme', t);
+        } catch (e) {}
+      })();
+    </script>
     <meta charset="UTF-8">
     <link rel="icon" type="image/png" href="/logoNav.png?v=2">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">

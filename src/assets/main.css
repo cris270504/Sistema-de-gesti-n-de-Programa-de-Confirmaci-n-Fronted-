@@ -1,6 +1,12 @@
 @import "tailwindcss";
 @reference "tailwindcss";
 
+/* El `dark:` de Tailwind reacciona al mismo atributo `data-bs-theme` que ya usa
+   Bootstrap 5.3+ para sus color modes (en vez de `prefers-color-scheme`), para
+   que un solo interruptor (ver src/composables/useTheme.js) controle ambos
+   frameworks a la vez. */
+@custom-variant dark (&:where([data-bs-theme="dark"], [data-bs-theme="dark"] *));
+
 /* ===== INTEGRACIÓN CON BOOTSTRAP (mientras dure la migración de la Fase 8) =====
    Se probó envolver Bootstrap en su propio cascade layer para que las utilidades de
    Tailwind le ganaran a los resets de Bootstrap sobre elementos sin clase (ej.
@@ -106,12 +112,12 @@ body {
   font-family: var(--font-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI",
     Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-  @apply antialiased text-gray-800 bg-gray-50 transition-colors duration-300 ease-in-out;
+  @apply antialiased text-gray-800 dark:text-gray-100 bg-gray-50 dark:bg-slate-900 transition-colors duration-300 ease-in-out;
 }
 
 /* ===== LINKS ===== */
 a {
-  @apply text-indigo-600 hover:text-indigo-700 font-medium transition-colors duration-200;
+  @apply text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium transition-colors duration-200;
 }
 
 /* ===== TITULOS ===== */
@@ -121,7 +127,7 @@ h3,
 h4,
 h5,
 h6 {
-  @apply font-semibold text-gray-900;
+  @apply font-semibold text-gray-900 dark:text-gray-50;
 }
 h1 {
   @apply text-3xl;
@@ -137,8 +143,8 @@ h3 {
 input,
 select,
 textarea {
-  @apply w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700
-         focus:border-indigo-500 focus:ring-indigo-200/50 transition-all duration-200;
+  @apply w-full rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-gray-700 dark:text-gray-100
+         focus:border-indigo-500 focus:ring-indigo-200/50 dark:focus:ring-indigo-500/30 transition-all duration-200;
 }
 
 /* ===== BOTONES =====
@@ -179,7 +185,7 @@ textarea {
   background-color: color-mix(in srgb, var(--parroquia-color, #2563eb), #000 12%) !important;
 }
 .btn-secondary {
-  @apply bg-gray-200 text-gray-800 hover:bg-gray-300;
+  @apply bg-gray-200 dark:bg-slate-700 text-gray-800 dark:text-gray-100 hover:bg-gray-300 dark:hover:bg-slate-600;
 }
 .btn-danger {
   @apply bg-rose-600 text-white hover:bg-rose-700 focus-visible:ring-rose-500;
@@ -188,7 +194,7 @@ textarea {
   @apply bg-green-600 text-white hover:bg-green-700 focus-visible:ring-green-500;
 }
 .btn-outline {
-  @apply border border-gray-300 text-gray-700 bg-white hover:bg-gray-50;
+  @apply border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-200 bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700;
 }
 
 /* ===== BOTONES DE ACCIÓN TIPO ÍCONO (una sola fuente para TODO el sistema) =====
@@ -254,15 +260,27 @@ textarea {
 .btn-icon-edit:hover   { background-color: #2563eb; color: #fff; border-color: #2563eb; transform: translateY(-1px); }
 .btn-icon-delete:hover { background-color: #dc2626; color: #fff; border-color: #dc2626; transform: translateY(-1px); }
 
+/* Variantes dark de los botones "soft"/ícono de arriba. Los estados :hover ya
+   usan el color sólido saturado y funcionan igual en ambos temas. */
+:root[data-bs-theme="dark"] .btn-soft-primary   { background-color: #1e3a5f; color: #93c5fd; border-color: #2c4a70; }
+:root[data-bs-theme="dark"] .btn-soft-info      { background-color: #164e56; color: #67e8f9; border-color: #1c5f68; }
+:root[data-bs-theme="dark"] .btn-soft-warning   { background-color: #4a3412; color: #fbbf24; border-color: #5c4118; }
+:root[data-bs-theme="dark"] .btn-soft-danger    { background-color: #4c1d1d; color: #fca5a5; border-color: #5c2424; }
+:root[data-bs-theme="dark"] .btn-soft-success   { background-color: #14432a; color: #86efac; border-color: #1a5334; }
+:root[data-bs-theme="dark"] .btn-soft-secondary { background-color: #334155; color: #cbd5e1; border-color: #3f4f64; }
+:root[data-bs-theme="dark"] .btn-soft-suggest   { background-color: #3b2f5e; color: #c4b5fd; border-color: #493a70; }
+:root[data-bs-theme="dark"] .btn-icon-edit      { background-color: #1e3a5f; color: #93c5fd; border-color: #2c4a70; }
+:root[data-bs-theme="dark"] .btn-icon-delete    { background-color: #4c1d1d; color: #fca5a5; border-color: #5c2424; }
+
 /* ===== TARJETAS ===== */
 .card {
-  @apply bg-white border border-gray-200 rounded-xl shadow-sm p-4 transition-colors duration-300;
+  @apply bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl shadow-sm p-4 transition-colors duration-300;
 }
 .card-header {
-  @apply font-semibold text-gray-800 mb-2;
+  @apply font-semibold text-gray-800 dark:text-gray-100 mb-2;
 }
 .card-body {
-  @apply text-sm text-gray-600;
+  @apply text-sm text-gray-600 dark:text-gray-300;
 }
 
 /* ===== MODAL UNIFICADO =====
@@ -309,6 +327,25 @@ textarea {
   gap: .5rem;
 }
 
+/* Modo oscuro: Bootstrap ya oscurece el fondo de .modal-content por su cuenta
+   vía data-bs-theme; esto solo pisa lo que el CSS de arriba hardcodea. */
+:root[data-bs-theme="dark"] .modal-content { border-color: #334155 !important; }
+:root[data-bs-theme="dark"] .modal-header {
+  background: #1e293b !important;
+  color: #f1f5f9 !important;
+  border-bottom-color: #334155 !important;
+}
+:root[data-bs-theme="dark"] .modal-header .modal-title,
+:root[data-bs-theme="dark"] .modal-header h5,
+:root[data-bs-theme="dark"] .modal-header h4 { color: #f1f5f9 !important; }
+:root[data-bs-theme="dark"] .modal-header p,
+:root[data-bs-theme="dark"] .modal-header small,
+:root[data-bs-theme="dark"] .modal-header .text-white-50 { color: #94a3b8 !important; }
+:root[data-bs-theme="dark"] .modal-footer {
+  background: #0f172a !important;
+  border-top-color: #334155 !important;
+}
+
 /* En celular todos los modales ocupan el ancho disponible (modal-lg/xl incluidos)
    con el cuerpo desplazable, en vez de desbordar la pantalla. */
 @media (max-width: 575.98px) {
@@ -342,9 +379,10 @@ textarea {
 
 /* ===== SUPERFICIE ESTÁNDAR (contenedor blanco de listas/tablas) ===== */
 .surface {
-  @apply bg-white rounded-xl shadow-sm overflow-hidden;
+  @apply bg-white dark:bg-slate-800 rounded-xl shadow-sm overflow-hidden;
   border: 1px solid #e5e7eb;
 }
+:root[data-bs-theme="dark"] .surface { border-color: #334155; }
 .surface--pad {
   @apply p-4 md:p-5;
 }
@@ -352,7 +390,7 @@ textarea {
   @apply overflow-x-auto;
 }
 .empty-state {
-  @apply py-16 text-center text-gray-500 text-sm;
+  @apply py-16 text-center text-gray-500 dark:text-gray-400 text-sm;
 }
 
 /* ===== TABLAS ===== */
@@ -391,15 +429,17 @@ table {
   /* Oculta la primera celda cuando es solo un número de fila (#/N°). */
   .cards-sm--hide-first td:first-child { display: none !important; }
 }
+:root[data-bs-theme="dark"] .cards-sm tr { border-color: #334155 !important; background: #1e293b !important; }
+:root[data-bs-theme="dark"] .cards-sm tr:hover { background: #1e293b !important; }
 thead {
-  @apply bg-gray-100 text-gray-700;
+  @apply bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-200;
 }
 th,
 td {
-  @apply px-4 py-2 border-b border-gray-200 align-middle;
+  @apply px-4 py-2 border-b border-gray-200 dark:border-slate-700 align-middle;
 }
 tbody tr:hover {
-  @apply bg-gray-50;
+  @apply bg-gray-50 dark:bg-slate-700/50;
 }
 
 /* ===== SCROLLBAR ===== */
@@ -452,16 +492,16 @@ tbody tr:hover {
   @apply flex items-center gap-3 rounded-md border px-4 py-3 text-sm shadow-sm;
 }
 .alert-info {
-  @apply border-indigo-300 bg-indigo-50 text-indigo-700;
+  @apply border-indigo-300 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300;
 }
 .alert-success {
-  @apply border-green-300 bg-green-50 text-green-700;
+  @apply border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300;
 }
 .alert-warning {
-  @apply border-amber-300 bg-amber-50 text-amber-700;
+  @apply border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300;
 }
 .alert-error {
-  @apply border-rose-300 bg-rose-50 text-rose-700;
+  @apply border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-950 text-rose-700 dark:text-rose-300;
 }
 
 /* ===== TOOLTIP ===== */

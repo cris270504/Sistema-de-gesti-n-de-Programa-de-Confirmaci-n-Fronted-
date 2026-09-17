@@ -113,6 +113,14 @@ onUnmounted(() => { document.body.style.overflow = '' })
     margin-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
 }
 
+:root[data-bs-theme="dark"] .main-content {
+    background-color: #0f172a;
+}
+:root[data-bs-theme="dark"] .app-footer {
+    background: #1e293b;
+    border-top-color: #334155;
+}
+
 /* ===== Móvil / tablet: barra lateral como cajón ===== */
 @media (max-width: 1023px) {
     .sidebar-host {
