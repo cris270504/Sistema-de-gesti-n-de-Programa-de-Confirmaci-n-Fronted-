@@ -27,7 +27,6 @@ export const useConfirmandosStore = defineStore('confirmandos', {
         },
         loading: false,
         error: null,
-        stats: {},
         lastFetch: 0,
         _inflight: null,
     }),
@@ -62,7 +61,6 @@ export const useConfirmandosStore = defineStore('confirmandos', {
                 .then((response) => {
                     this.items = response;
                     this.lastFetch = Date.now();
-                    this.fetchMetricas();
                 })
                 .catch((e) => {
                     this.error = e?.message || 'Error al listar Confirmandos';
@@ -73,29 +71,6 @@ export const useConfirmandosStore = defineStore('confirmandos', {
                 });
 
             return this._inflight;
-        },
-
-        // 3. NUEVA ACCIÓN ORDINARIA QUE SE CONECTA AL CONTROLADOR DE LARAVEL
-        fetchMetricas() {
-            try {
-                // 1. Contamos directamente desde el arreglo que ya tenemos en memoria (this.items)
-                const activos = this.items.filter(c => c.estado === 'en_preparacion').length;
-                const retirados = this.items.filter(c => c.estado === 'retirado').length;
-                const confirmados = this.items.filter(c => c.estado === 'confirmado').length;
-
-                const total = this.items.length || 1; // Evita división por 0
-
-                // 2. Almacenamos el cálculo consolidado en el state
-                this.stats = {
-                    activos,
-                    retirados,
-                    confirmados,
-                    tasaRetencion: Number(((activos / total) * 100).toFixed(1)),
-                    tasaDesercion: Number(((retirados / total) * 100).toFixed(1))
-                };
-            } catch (e) {
-                console.error('Error al calcular métricas locales:', e);
-            }
         },
 
         /**
@@ -163,7 +138,6 @@ export const useConfirmandosStore = defineStore('confirmandos', {
                 }
 
                 this.items.unshift(created);
-                await this.fetchMetricas(); // Recalcular totales
 
                 showAlerta(`Confirmando ${created.nombres} ${created.apellidos} creado correctamente.`, 'success');
                 return created;
@@ -187,7 +161,6 @@ export const useConfirmandosStore = defineStore('confirmandos', {
                     this.items[idx] = { ...this.items[idx], ...updated };
                 }
 
-                await this.fetchMetricas(); // Recalcular por si cambió un estado
                 showAlerta('Confirmando actualizado correctamente', 'success');
                 return updated;
             } catch (e) {
@@ -225,7 +198,6 @@ export const useConfirmandosStore = defineStore('confirmandos', {
             try {
                 await deleteConfirmandoById(confirmandoId);
                 this.items = this.items.filter(c => c.id !== confirmandoId);
-                await this.fetchMetricas(); // Recalcular totales
 
                 showAlerta('Confirmando eliminado correctamente', 'success');
                 return true;
@@ -239,7 +211,7 @@ export const useConfirmandosStore = defineStore('confirmandos', {
         async importarExcel(formData) {
             try {
                 const response = await importarConfirmandosExcel(formData);
-                await this.fetchAll({ force: true }); // Recarga masiva e indirectamente ejecuta métricas
+                await this.fetchAll({ force: true }); // Recarga masiva
                 return response;
             } catch (error) {
                 throw error;
@@ -268,7 +240,6 @@ export const useConfirmandosStore = defineStore('confirmandos', {
                 }
             }
             this.lastFetch = Date.now(); // el estado local quedó al día
-            this.fetchMetricas();
         },
 
         async registrarRetiro(id, nombre) {
@@ -284,7 +255,6 @@ export const useConfirmandosStore = defineStore('confirmandos', {
             try {
                 await retirarConfirmandoById(confirmandoId, motivo);
                 this._parchearEstado(confirmandoId, 'retirado', { motivo_retiro: motivo, fecha_retiro: new Date().toISOString() });
-                await this.fetchMetricas();
                 showAlerta('Confirmando retirado del programa.', 'success');
                 return true;
             } catch (e) {
@@ -312,7 +282,6 @@ export const useConfirmandosStore = defineStore('confirmandos', {
             try {
                 await reingresarConfirmandoById(confirmandoId);
                 this._parchearEstado(confirmandoId, 'en_preparacion', { motivo_retiro: null, fecha_retiro: null });
-                await this.fetchMetricas();
                 showAlerta('Confirmando reingresado al programa.', 'success');
                 return true;
             } catch (e) {
