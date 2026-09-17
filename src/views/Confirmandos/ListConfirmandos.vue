@@ -1080,40 +1080,4 @@ onUnmounted(() => {
 .dashed-border {
     border-style: dashed !important;
 }
-
-.popover-backdrop {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(15, 23, 42, 0.2);
-    backdrop-filter: blur(2px);
-    z-index: 1040;
-}
-
-/* Caja central flotante */
-.mini-dialog {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 1050;
-    border: none;
-}
-
-/* Animaciones de aparición */
-.popover-anim-enter-active {
-    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.popover-anim-leave-active {
-    transition: all 0.15s ease;
-}
-
-.popover-anim-enter-from,
-.popover-anim-leave-to {
-    opacity: 0;
-    transform: translate(-50%, -40%) scale(0.9);
-}
 </style>

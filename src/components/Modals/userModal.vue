@@ -342,29 +342,9 @@ async function submitUpdate() {
     ESTÉTICA "BLUE HEADER"
   ========================================= */
 
-/* 1. ESTRUCTURA */
-.modal-content {
-  border: none;
-  border-radius: 1rem;
-  background-color: #f8fafc;
-  /* Gris nube */
-  overflow: hidden;
-  /* Para que el header no se salga de las esquinas */
-  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
-}
-
-/* 2. HEADER COLORIDO */
-.modal-header {
-  /* Degradado Azul Real a un tono un poco más oscuro */
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-  color: white;
-  padding: 1.5rem 2rem;
-  border-bottom: none;
-}
-
-.text-white-50 {
-  color: rgba(255, 255, 255, 0.75) !important;
-}
+/* La estructura del modal (marco, cabecera, footer) usa el estilo global
+   unificado de src/assets/main.css (mismas propiedades con !important, esta
+   copia local quedaba inerte). Acá solo lo propio del formulario. */
 
 /* 3. BODY & INPUTS */
 .modal-body {
@@ -440,13 +420,7 @@ async function submitUpdate() {
   color: #ffffff !important;
 }
 
-/* 5. FOOTER */
-.modal-footer {
-  padding: 1rem 2rem 1.5rem;
-  border-top: 1px solid #e2e8f0;
-}
-
-/* Botones */
+/* 5. BOTONES */
 .btn-primary {
   background-color: #2563eb;
   border-color: #2563eb;
