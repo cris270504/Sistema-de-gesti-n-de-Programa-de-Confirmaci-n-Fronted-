@@ -130,14 +130,21 @@ export function updateConfirmando(id, confirmando) {
 // confirmando) cuyo nombre o apellido contiene `q`. La RLS de apoderados acota por
 // parroquia y grupo. Se de-duplica en cliente (el embed !inner repite fila por
 // cada confirmando ligado).
+// Escapa los comodines de ILIKE ("%" y "_") para que un término de búsqueda
+// que los contenga se trate como texto literal, no como wildcard.
+function escaparPatronIlike(str) {
+  return str.replace(/[\\%_]/g, '\\$&')
+}
+
 export async function buscarApoderados(q) {
   const termino = (q ?? '').trim()
   if (termino.length < 3) return []
+  const patron = escaparPatronIlike(termino)
   const rows = await unwrap(
     supabase
       .from('apoderados')
       .select('id, nombres, apellidos, celular, confirmando_apoderado!inner(confirmando_id)')
-      .or(`nombres.ilike.*${termino}*,apellidos.ilike.*${termino}*`)
+      .or(`nombres.ilike.*${patron}*,apellidos.ilike.*${patron}*`)
       .order('apellidos')
       .limit(24),
   )
