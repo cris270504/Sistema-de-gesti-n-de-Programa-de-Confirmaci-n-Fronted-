@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, nextTick, onUnmounted } from 'vue';
 import { useConfirmandosStore } from '@/stores/confirmandos'; // Ajusta la ruta de tu store
 import { Phone, Users } from 'lucide-vue-next'; // Íconos que usamos en el diseño
 import { showAlerta } from '@/funciones'; // Ajusta la ruta de tus alertas
@@ -9,14 +9,32 @@ const confirmandosStore = useConfirmandosStore();
 const modalVisible = ref(false);
 const cargando = ref(false);
 const perfilActivo = ref(null);
+const dialogRef = ref(null);
+
+// Este modal no usa la instancia Modal de Bootstrap (es un diálogo Teleport
+// armado a mano), así que no dispara show.bs.modal/hidden.bs.modal y el
+// composable attachModalFocusReturn no aplica acá. Se replica el mismo
+// contrato de accesibilidad que el resto de los modales a mano: guardar
+// quién abrió, mover el foco al diálogo, devolverlo al cerrar, y cerrar con Escape.
+let elementoQueAbrio = null;
+
+const onKeydown = (e) => {
+    if (e.key === 'Escape') cerrar();
+};
 
 // Esta función es la que llamarán las otras vistas
 const abrir = async (id) => {
     if (!id) return;
-    
+
+    elementoQueAbrio = document.activeElement;
+    document.addEventListener('keydown', onKeydown);
+
     modalVisible.value = true;
     cargando.value = true;
     perfilActivo.value = null;
+
+    await nextTick();
+    dialogRef.value?.focus();
 
     try {
         const response = await confirmandosStore.fetchPerfilById(id);
@@ -32,7 +50,14 @@ const abrir = async (id) => {
 const cerrar = () => {
     modalVisible.value = false;
     perfilActivo.value = null;
+    document.removeEventListener('keydown', onKeydown);
+    elementoQueAbrio?.focus?.();
+    elementoQueAbrio = null;
 };
+
+onUnmounted(() => {
+    document.removeEventListener('keydown', onKeydown);
+});
 
 // Helper de fechas integrado al componente
 const formatFechaFalta = (dateStr) => {
@@ -52,8 +77,8 @@ defineExpose({ abrir });
         <div v-if="modalVisible" class="popover-backdrop" aria-hidden="true" @click="cerrar"></div>
 
         <transition name="popover-anim">
-            <div v-if="modalVisible" class="mini-dialog shadow-lg rounded-4 bg-white p-0" role="dialog"
-                aria-modal="true" aria-labelledby="perfilConfirmandoLabel" style="width: 700px; max-width: 95vw;">
+            <div v-if="modalVisible" ref="dialogRef" class="mini-dialog shadow-lg rounded-4 bg-white p-0" role="dialog"
+                tabindex="-1" aria-modal="true" aria-labelledby="perfilConfirmandoLabel" style="width: 700px; max-width: 95vw; outline: none;">
 
                 <!-- 1. SKELETON LOADER (ESTADO DE CARGA) -->
                 <div v-if="cargando" class="placeholder-glow d-flex flex-column" style="height: 100%;" role="status"
