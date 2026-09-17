@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useParroquiaStore } from '@/stores/parroquia'
+import { confirmar } from '@/funciones'
 import { Church, UserCircle, LogOut, Menu } from 'lucide-vue-next'
 
 const authStore = useAuthStore()
@@ -13,7 +14,14 @@ defineEmits(['toggle-drawer'])
 
 const tituloCorto = computed(() => parroquiaStore.branding?.nombre_publico || 'SGPC')
 
-const handleLogout = () => {
+const handleLogout = async () => {
+  const ok = await confirmar({
+    titulo: '¿Cerrar sesión?',
+    texto: 'Tendrás que volver a iniciar sesión para continuar.',
+    icono: 'question',
+    confirmarTexto: 'Sí, cerrar sesión',
+  })
+  if (!ok) return
   authStore.logout()
 }
 
