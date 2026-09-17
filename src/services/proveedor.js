@@ -78,10 +78,18 @@ export const actualizarProgramaParroquia = async (
   return data
 }
 
+// Columnas que el proveedor puede escribir sobre `parroquias`. Filtra `id` y
+// `created_at` para evitar que un payload armado por spread de un objeto más
+// grande pise columnas que no debería (mismo patrón que soloEscribibles en
+// services/reunions.js).
+const PARROQUIA_WRITE_COLS = ['nombre', 'slug', 'activa', 'zona_horaria']
+const soloEscribiblesParroquia = (obj) =>
+  Object.fromEntries(PARROQUIA_WRITE_COLS.filter(k => obj?.[k] !== undefined).map(k => [k, obj[k]]))
+
 export const actualizarParroquia = async (id, payload) => {
   const { data, error } = await supabase
     .from('parroquias')
-    .update(payload)
+    .update(soloEscribiblesParroquia(payload))
     .eq('id', Number(id))
     .select('id, nombre, slug, activa, zona_horaria, created_at')
     .single()
