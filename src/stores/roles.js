@@ -21,7 +21,7 @@ export const useRolesStore = defineStore('roles', {
       try {
         this.items = await getRolesList(params)
       } catch (e) {
-        this.error = e?.response?.data?.message || e?.message || 'Error al listar roles'
+        this.error = e?.message || 'Error al listar roles'
         showAlerta(this.error, 'error')
       } finally {
         this.loading = false
@@ -38,7 +38,7 @@ export const useRolesStore = defineStore('roles', {
         else this.items[idx] = role
         return role
       } catch (e) {
-        this.error = e?.response?.data?.message || e?.message || 'Error al obtener el rol'
+        this.error = e?.message || 'Error al obtener el rol'
         showAlerta(this.error, 'error')
         throw e
       } finally {
@@ -59,7 +59,7 @@ export const useRolesStore = defineStore('roles', {
         showAlerta('Rol creado correctamente', 'success')
         return created
       } catch (e) {
-        showErroresDeValidacion(e?.response?.data?.errors || e)
+        showErroresDeValidacion(e)
         throw e
       }
     },
@@ -76,10 +76,7 @@ export const useRolesStore = defineStore('roles', {
         showAlerta('Rol actualizado correctamente', 'success')
         return updated
       } catch (e) {
-        showErroresDeValidacion(e?.response?.data?.errors || e)
-        if (!e?.response?.data?.errors) {
-          showAlerta(e?.response?.data?.message || e?.message || 'Error al actualizar el rol', 'error')
-        }
+        showErroresDeValidacion(e)
         throw e
       }
     },
@@ -102,7 +99,7 @@ export const useRolesStore = defineStore('roles', {
         showAlerta('Rol eliminado correctamente', 'success')
         return true
       } catch (e) {
-        this.error = e?.response?.data?.message || e?.message || 'No se pudo eliminar el rol'
+        this.error = e?.message || 'No se pudo eliminar el rol'
         showAlerta(this.error, 'error')
         return false
       }

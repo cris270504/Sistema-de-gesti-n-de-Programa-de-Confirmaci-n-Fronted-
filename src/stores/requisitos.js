@@ -52,7 +52,7 @@ export const useRequisitosStore = defineStore('requisitos', {
         }
         return requisito;
       } catch (e) {
-        this.error = e?.response?.data?.message || e?.message || `Error al obtener requisito ${id}`
+        this.error = e?.message || `Error al obtener requisito ${id}`
         showAlerta(this.error, 'error');
         throw e;
       } finally {
@@ -76,7 +76,7 @@ export const useRequisitosStore = defineStore('requisitos', {
         );
         return created
       } catch (e) {
-        showErroresDeValidacion(e?.response?.data?.errors || e)
+        showErroresDeValidacion(e)
         throw e
       }
     },
@@ -96,7 +96,7 @@ export const useRequisitosStore = defineStore('requisitos', {
         showAlerta('Requisito actualizado correctamente', 'success')
         return updated
       } catch (e) {
-        showErroresDeValidacion(e?.response?.data?.errors || e)
+        showErroresDeValidacion(e)
         throw e
       }
     },
@@ -118,7 +118,7 @@ export const useRequisitosStore = defineStore('requisitos', {
         showAlerta('Requisito eliminado correctamente', 'success')
         return true
       } catch (e) {
-        this.error = e?.response?.data?.message || e?.message || 'No se pudo eliminar el requisito'
+        this.error = e?.message || 'No se pudo eliminar el requisito'
         showAlerta(this.error, 'error')
         return false
       }

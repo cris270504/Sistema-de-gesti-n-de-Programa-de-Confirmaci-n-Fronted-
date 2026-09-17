@@ -252,7 +252,7 @@ export const useParroquiaStore = defineStore('parroquia', {
         showAlerta('Configuración guardada', 'success')
         return true
       } catch (e) {
-        showErroresDeValidacion(e?.response?.data?.errors || e)
+        showErroresDeValidacion(e)
         return false
       }
     },

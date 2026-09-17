@@ -53,7 +53,7 @@ export const useUsersStore = defineStore('users', {
         }
         return user;
       } catch (e) {
-        this.error = e?.response?.data?.message || e?.message || `Error al obtener usuario ${id}`
+        this.error = e?.message || `Error al obtener usuario ${id}`
         showAlerta(this.error, 'error');
         throw e;
       } finally {
@@ -81,7 +81,7 @@ export const useUsersStore = defineStore('users', {
         );
         return created
       } catch (e) {
-        showErroresDeValidacion(e?.response?.data?.errors || e)
+        showErroresDeValidacion(e)
         throw e
       }
     },
@@ -104,10 +104,7 @@ export const useUsersStore = defineStore('users', {
         showAlerta('Usuario actualizado correctamente', 'success')
         return updated
       } catch (e) {
-        showErroresDeValidacion(e?.response?.data?.errors || e)
-        if (!e?.response?.data?.errors) {
-          showAlerta(e?.response?.data?.message || e?.message || 'Error al actualizar usuario', 'error');
-        }
+        showErroresDeValidacion(e)
         throw e
       }
     },
@@ -131,7 +128,7 @@ export const useUsersStore = defineStore('users', {
         showAlerta(activar ? 'Usuario activado' : 'Usuario desactivado', 'success')
         return true
       } catch (e) {
-        showAlerta(e?.response?.data?.message || e?.message || 'No se pudo cambiar el estado', 'error')
+        showAlerta(e?.message || 'No se pudo cambiar el estado', 'error')
         return false
       }
     },
@@ -156,7 +153,7 @@ export const useUsersStore = defineStore('users', {
         return true
       } catch (e) {
         // Se muestra en el diálogo, no como banner persistente en la vista.
-        showAlerta(e?.response?.data?.message || e?.message || 'No se pudo eliminar el usuario', 'error')
+        showAlerta(e?.message || 'No se pudo eliminar el usuario', 'error')
         return false
       }
     },

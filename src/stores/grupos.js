@@ -32,7 +32,7 @@ export const useGruposStore = defineStore('grupos', {
                     this.lastFetch = Date.now()
                 })
                 .catch((e) => {
-                    this.error = e?.response?.data?.message || e?.message || 'Error al listar grupos'
+                    this.error = e?.message || 'Error al listar grupos'
                     showAlerta(this.error, 'error')
                 })
                 .finally(() => {
@@ -64,7 +64,7 @@ export const useGruposStore = defineStore('grupos', {
                 }
                 return grupo;
             } catch (e) {
-                this.error = e?.response?.data?.message || e?.message || `Error al obtener grupo ${id}`
+                this.error = e?.message || `Error al obtener grupo ${id}`
                 showAlerta(this.error, 'error');
                 throw e;
             } finally {
@@ -90,7 +90,7 @@ export const useGruposStore = defineStore('grupos', {
                 );
                 return created
             } catch (e) {
-                showErroresDeValidacion(e?.response?.data?.errors || e)
+                showErroresDeValidacion(e)
                 throw e
             }
         },
@@ -107,14 +107,10 @@ export const useGruposStore = defineStore('grupos', {
                 const idx = this.items.findIndex(c => c.id === id)
                 if (idx !== -1) this.items[idx] = updated
 
-                if (!updated) {
-                    throw new Error('La API no devolvió un confirmando actualizado.');
-                }
-
                 showAlerta('Grupo actualizado correctamente', 'success')
                 return updated
             } catch (e) {
-                showErroresDeValidacion(e?.response?.data?.errors || e)
+                showErroresDeValidacion(e)
                 throw e
             }
         },
@@ -149,7 +145,7 @@ export const useGruposStore = defineStore('grupos', {
                 showAlerta('Grupo eliminado correctamente', 'success')
                 return true
             } catch (e) {
-                this.error = e?.response?.data?.message || e?.message || 'No se pudo eliminar el grupo'
+                this.error = e?.message || 'No se pudo eliminar el grupo'
                 showAlerta(this.error, 'error')
                 return false
             }
@@ -170,7 +166,7 @@ export const useGruposStore = defineStore('grupos', {
 
                 return response;
             } catch (e) {
-                showErroresDeValidacion(e?.response?.data?.errors || e);
+                showErroresDeValidacion(e);
                 throw e;
             }
         },
@@ -189,7 +185,7 @@ export const useGruposStore = defineStore('grupos', {
                 }
                 return response;
             } catch (e) {
-                showErroresDeValidacion(e?.response?.data?.errors || e);
+                showErroresDeValidacion(e);
                 throw e;
             }
         },
@@ -262,8 +258,7 @@ export const useGruposStore = defineStore('grupos', {
 
                 return response; // Devolvemos la respuesta para mostrar el mensaje en la vista
             } catch (e) {
-                // Manejo de errores estándar
-                showErroresDeValidacion(e?.response?.data?.errors || e);
+                showErroresDeValidacion(e);
                 throw e;
             } finally {
                 this.loading = false;
