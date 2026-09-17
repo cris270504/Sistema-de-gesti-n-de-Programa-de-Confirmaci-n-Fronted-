@@ -71,8 +71,9 @@ const save = async () => {
     <div class="modal fade" ref="modalRef" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content !border-0 !rounded-2xl !shadow-lg overflow-hidden">
-                <div class="!p-6" style="background: linear-gradient(135deg, var(--color-primary) 0%, #1e293b 150%);">
+                <div class="!p-6 flex justify-between items-center" style="background: linear-gradient(135deg, var(--color-primary) 0%, #1e293b 150%);">
                     <h5 class="modal-title font-bold text-white flex items-center"><IdCard class="h-5 w-5 !mr-2" aria-hidden="true" />Asignar Catequistas</h5>
+                    <button type="button" class="btn-close btn-close-white" @click="close" aria-label="Cerrar"></button>
                 </div>
                 <div class="modal-body p-0">
                     <div v-if="loadingUsers" class="!p-4 !text-center"><div class="spinner-border !text-primary"></div></div>

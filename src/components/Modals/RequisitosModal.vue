@@ -92,7 +92,7 @@ defineExpose({ open, hide });
                     <h5 class="modal-title flex items-center !gap-2 !m-0 fs-6">
                         <FileText :size="18"/> Documentos de {{ docDraft.nombre }}
                     </h5>
-                    <button type="button" class="btn-close shadow-none" @click="hide"></button>
+                    <button type="button" class="btn-close shadow-none" @click="hide" aria-label="Cerrar"></button>
                 </div>
 
                 <div class="modal-body p-0">

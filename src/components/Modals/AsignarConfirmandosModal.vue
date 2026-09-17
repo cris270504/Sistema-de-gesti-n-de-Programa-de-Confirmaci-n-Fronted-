@@ -105,7 +105,7 @@ const save = async () => {
             <div class="modal-content !border-0 !rounded-2xl !shadow-lg overflow-hidden">
                 <div class="!p-6 flex justify-between items-center" style="background: linear-gradient(135deg, var(--color-primary) 0%, #1e293b 150%);">
                     <h5 class="modal-title font-bold text-white flex items-center"><Users class="h-5 w-5 !mr-2" aria-hidden="true" />Asignar Confirmandos</h5>
-                    <button type="button" class="btn-close btn-close-white" @click="close"></button>
+                    <button type="button" class="btn-close btn-close-white" @click="close" aria-label="Cerrar"></button>
                 </div>
                 <div class="!bg-gray-50 border-b !p-3">
                     <div class="input-group">

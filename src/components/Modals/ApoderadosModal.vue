@@ -40,7 +40,7 @@ defineExpose({ open });
                     <h5 class="modal-title flex items-center !gap-2 !m-0 fs-6">
                         <ShieldCheck :size="18" /> Apoderados de {{ viewData.nombreConfirmando }}
                     </h5>
-                    <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                 </div>
                 <div class="modal-body p-0">
                     <div class="divide-y divide-gray-100">

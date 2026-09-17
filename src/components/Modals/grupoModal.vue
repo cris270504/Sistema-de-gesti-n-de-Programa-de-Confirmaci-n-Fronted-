@@ -142,7 +142,7 @@ async function submitUpdate() {
             </h5>
             <p class="small mb-0">Gestión de grupos pastorales.</p>
           </div>
-          <button type="button" class="btn-close" @click="close" aria-label="Close"></button>
+          <button type="button" class="btn-close" @click="close" aria-label="Cerrar"></button>
         </div>
 
         <div class="modal-body">
