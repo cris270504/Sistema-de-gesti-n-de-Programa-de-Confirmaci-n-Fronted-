@@ -12,6 +12,7 @@ export const useSystemStatusStore = defineStore('systemStatus', {
         loaded: false,
         saving: false,
         _unsubscribe: null,
+        _inflight: null,
     }),
 
     getters: {
@@ -36,15 +37,25 @@ export const useSystemStatusStore = defineStore('systemStatus', {
             this.parroquiaIds = data.parroquia_ids ?? []
         },
 
+        // Deduplicado con _inflight: el router (guard de mantenimiento, primera
+        // navegación) y App.vue (onMounted) pueden llamar a esto casi al mismo
+        // tiempo; sin dedupe dispararía dos requests.
         async fetchStatus() {
-            try {
-                this._aplicar(await getSystemStatus())
-                this.loaded = true
-            } catch {
-                // Si falla la lectura (ej. sin sesión todavía), no bloqueamos por
-                // defecto: mejor dejar pasar que trabar a todo el mundo por un
-                // error transitorio de red.
-            }
+            if (this._inflight) return this._inflight
+            this._inflight = getSystemStatus()
+                .then((data) => {
+                    this._aplicar(data)
+                    this.loaded = true
+                })
+                .catch(() => {
+                    // Si falla la lectura (ej. sin sesión todavía), no bloqueamos por
+                    // defecto: mejor dejar pasar que trabar a todo el mundo por un
+                    // error transitorio de red.
+                })
+                .finally(() => {
+                    this._inflight = null
+                })
+            return this._inflight
         },
 
         // Se llama una vez al arrancar la app (App.vue), igual que

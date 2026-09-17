@@ -46,9 +46,13 @@ export function rutaRedirectSegura(fullPath) {
   return fullPath
 }
 
-// Los permisos se refrescan desde el backend como mucho una vez antes de bloquear
-// con /403 (por si el localStorage traía permisos viejos).
-let permisosYaRefrescados = false
+// Los permisos se refrescan desde el backend antes de bloquear con /403 (por si
+// el localStorage traía permisos viejos o el usuario recibió un rol/permiso
+// nuevo en caliente). Throttle en vez de "una sola vez en toda la sesión": así
+// un permiso nuevo se recoge en la próxima ruta sin permiso cacheado, sin
+// convertirse en un refresh-loop si el usuario simplemente no tiene el permiso.
+let ultimoRefrescoPermisos = 0
+const REFRESCO_PERMISOS_MIN_MS = 10_000
 
 // Módulos que la parroquia ocultó (Configuración → Módulos del menú). Se lee de
 // localStorage directo para no acoplar el router al store de parroquia.
@@ -267,9 +271,17 @@ router.beforeEach(async (to) => {
   const esProveedor = auth.user?.roles?.includes('proveedor');
 
   // Modo mantenimiento: bloquea a cualquier logueado que no sea el proveedor
-  // (es quien lo activa/desactiva, necesita poder entrar). El store ya trae el
-  // valor cacheado desde App.vue; esto no espera a ningún fetch.
-  if (logged && !esProveedor && useSystemStatusStore().bloqueaAlUsuarioActual && to.name !== 'mantenimiento') {
+  // (es quien lo activa/desactiva, necesita poder entrar). En navegaciones
+  // normales el store ya trae el valor cacheado/sincronizado en vivo desde
+  // App.vue; pero en un hard-reload a una ruta protegida esta es la PRIMERA
+  // navegación y corre antes de que App.vue haya montado y pedido el estado
+  // (fetchStatus dedupe con _inflight, así que esto no duplica esa llamada).
+  // Sin esperar acá, una parroquia bloqueada podía entrar un instante.
+  const systemStatus = useSystemStatusStore();
+  if (logged && !esProveedor && !systemStatus.loaded) {
+    await systemStatus.fetchStatus();
+  }
+  if (logged && !esProveedor && systemStatus.bloqueaAlUsuarioActual && to.name !== 'mantenimiento') {
     return { name: 'mantenimiento' };
   }
 
@@ -303,10 +315,11 @@ router.beforeEach(async (to) => {
     const permsArray = Array.isArray(requiredPerms) ? requiredPerms : [requiredPerms];
     let ok = permsArray.every(p => auth.user?.permissions?.includes(p));
 
-    // Los permisos guardados pueden estar desfasados (cambió un rol, migración nueva…).
-    // Antes de mandar a /403, refrescamos una vez desde el backend y reevaluamos.
-    if (!ok && !permisosYaRefrescados) {
-      permisosYaRefrescados = true;
+    // Los permisos guardados pueden estar desfasados (cambió un rol, migración nueva,
+    // un permiso nuevo concedido en caliente…). Antes de mandar a /403, refrescamos
+    // desde el backend y reevaluamos (con throttle: no en cada chequeo fallido).
+    if (!ok && Date.now() - ultimoRefrescoPermisos > REFRESCO_PERMISOS_MIN_MS) {
+      ultimoRefrescoPermisos = Date.now();
       await auth.refrescarUsuario({ force: true });
       ok = permsArray.every(p => auth.user?.permissions?.includes(p));
     }
