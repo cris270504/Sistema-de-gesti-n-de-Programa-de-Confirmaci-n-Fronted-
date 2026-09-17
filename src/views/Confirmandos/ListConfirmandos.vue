@@ -56,9 +56,13 @@ const gruposStore = useGruposStore();
 const authStore = useAuthStore();
 const parroquiaStore = useParroquiaStore();
 
-// NOTA: Como Laravel ahora devuelve "get()", items trae todo el array.
-const { items: confirmandos, loading, error } = storeToRefs(confirmandosStore);
-const { fetchAll: fetchAllConfirmandos, remove: _removeConfirmando } = confirmandosStore;
+// `items`/`fetchAll` (lista completa) los sigue necesitando el generador de
+// grupos (abrirGenerador, más abajo) para calcular quién no tiene grupo — se
+// carga recién ahí, on-demand, no acá. La tabla usa `pagina`/`fetchPaginado`
+// (paginación server-side): confirmandos crece sin límite (histórico
+// multi-año) y ya no se trae entero al montar la vista.
+const { items: confirmandos, pagina, pagination, loading, error } = storeToRefs(confirmandosStore);
+const { fetchAll: fetchAllConfirmandos, fetchPaginado, remove: _removeConfirmando } = confirmandosStore;
 
 const borrandoId = ref(null);
 async function removeConfirmando(id, nombre) {
@@ -78,7 +82,7 @@ async function accionEstado(accion, c) {
     try {
         if (accion === 'retirar') await confirmandosStore.registrarRetiro(c.id, nombre);
         else await confirmandosStore.reingresar(c.id, nombre);
-        // el store parchea el estado en memoria; la lista se re-filtra sola.
+        // el store refresca la página actual del listado server-side sola.
     } finally {
         borrandoId.value = null;
     }
@@ -107,70 +111,37 @@ const filtros = ref({
     procedencia: 'todos'
 });
 
-// Paginación Local (Frontend)
-const currentPage = ref(1);
-const itemsPerPage = 25;
+// --- FILTRADO Y PAGINACIÓN SERVER-SIDE ---
+// El servidor ya devuelve la página filtrada (services/confirmandos.js:
+// getConfirmandosPaginado). Cambiar cualquier filtro vuelve a la página 1.
+const aplicarFiltros = () => {
+    fetchPaginado({ page: 1, filters: { ...filtros.value } });
+};
 
-// Resetear a la página 1 cada vez que el usuario escriba o cambie un filtro
-watch(filtros, () => {
-    currentPage.value = 1;
-}, { deep: true });
+// Debounce solo en el buscador de texto: los selects/radios de estado,
+// grupo y procedencia disparan la consulta al instante.
+let searchDebounceTimer = null;
+watch(() => filtros.value.search, () => {
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(aplicarFiltros, 300);
+});
+watch(() => [filtros.value.estado, filtros.value.grupo, filtros.value.procedencia], () => {
+    clearTimeout(searchDebounceTimer);
+    aplicarFiltros();
+});
 
 const limpiarFiltros = () => {
     filtros.value = { search: '', estado: 'todos', grupo: 'todos', procedencia: 'todos' };
 };
 
-// --- LÓGICA DE FILTRADO INSTANTÁNEO ---
-const filteredConfirmandos = computed(() => {
-    let lista = confirmandos.value || [];
-
-    // 1. Filtro de Estado
-    if (filtros.value.estado !== 'todos') {
-        lista = lista.filter(c => c.estado === filtros.value.estado);
-    }
-
-    // 2. Filtro de Procedencia
-    if (filtros.value.procedencia !== 'todos') {
-        lista = lista.filter(c => {
-            if (!c.grupo || !c.grupo.procedencia) return false;
-            const procNormalizada = c.grupo.procedencia.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-            return procNormalizada === filtros.value.procedencia;
-        });
-    }
-
-    // 3. Filtro de Grupo
-    if (filtros.value.grupo !== 'todos') {
-        if (filtros.value.grupo === 'sin_grupo') {
-            lista = lista.filter(c => !c.grupo_id);
-        } else {
-            lista = lista.filter(c => c.grupo_id === Number(filtros.value.grupo));
-        }
-    }
-
-    // 4. Buscador por texto (Búsqueda súper rápida que ignora tildes y mayúsculas)
-    const query = filtros.value.search.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    if (query) {
-        lista = lista.filter(c => {
-            const fullName = `${c.nombres} ${c.apellidos}`.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-            return fullName.includes(query);
-        });
-    }
-
-    return lista;
-});
-
-// --- LÓGICA DE PAGINACIÓN LOCAL ---
-const totalPages = computed(() => Math.ceil(filteredConfirmandos.value.length / itemsPerPage));
-
-const paginatedConfirmandos = computed(() => {
-    const start = (currentPage.value - 1) * itemsPerPage;
-    const end = start + itemsPerPage;
-    return filteredConfirmandos.value.slice(start, end);
+const totalPages = computed(() => {
+    const total = pagina.value.total || 0;
+    return total > 0 ? Math.ceil(total / pagination.value.pageSize) : 0;
 });
 
 const cambiarPagina = (page) => {
     if (page >= 1 && page <= totalPages.value) {
-        currentPage.value = page;
+        fetchPaginado({ page });
     }
 };
 
@@ -279,6 +250,12 @@ const initGeneradorModal = () => {
 };
 
 const abrirGenerador = async () => {
+    // La tabla ya no trae la lista completa (paginación server-side); el
+    // generador sí la necesita entera para calcular quién no tiene grupo, así
+    // que se carga acá, on-demand, solo cuando se abre este modal.
+    if (confirmandos.value.length === 0) {
+        await fetchAllConfirmandos();
+    }
     if (gruposStore.items.length === 0) {
         await gruposStore.fetchAll();
     }
@@ -349,6 +326,7 @@ const generarGruposApi = async () => {
             confirmandosStore.aplicarAsignaciones(response.asignaciones, response.grupos || []);
         } else {
             await fetchAllConfirmandos({ force: true });
+            await fetchPaginado({ force: true });
         }
     } catch (error) {
         console.error("Error en la vista:", error);
@@ -388,7 +366,7 @@ const abrirEditar = (id) => {
     hasPendingConfirmandoAction.value = true;
 };
 
-const recargarTabla = () => fetchAllConfirmandos({ force: true });
+const recargarTabla = () => fetchPaginado({ force: true });
 
 const formatGenero = (genero) => {
     if (!genero) return '---';
@@ -445,7 +423,7 @@ const openApoderadosModal = async (confirmando) => {
 let detachApoderadosFocusReturn = () => {};
 
 onMounted(() => {
-    fetchAllConfirmandos();
+    fetchPaginado({ filters: { ...filtros.value } });
 
     if (authStore.can('ver todos los grupos') && gruposStore.items.length === 0) {
         gruposStore.fetchAll().catch(e => console.error(e));
@@ -598,8 +576,7 @@ onUnmounted(() => {
                     </thead>
                     <TableSkeleton v-if="loading" :columns="8" />
                     <tbody v-else>
-                        <!-- ➔ ACTUALIZADO: Evalúa filteredConfirmandos -->
-                        <tr v-if="!filteredConfirmandos || filteredConfirmandos.length === 0">
+                        <tr v-if="!pagina.items || pagina.items.length === 0">
                             <td colspan="8" class="text-center py-5">
                                 <div class="d-flex flex-column align-items-center justify-content-center">
                                     <Users :size="48" class="text-muted opacity-25 mb-3" />
@@ -621,10 +598,9 @@ onUnmounted(() => {
                             </td>
                         </tr>
 
-                        <!-- ➔ ACTUALIZADO: Itera sobre paginatedConfirmandos -->
-                        <tr v-for="(c, index) in paginatedConfirmandos" :key="c.id" class="hover-row">
+                        <tr v-for="(c, index) in pagina.items" :key="c.id" class="hover-row">
                             <td class="py-2 text-center text-muted fw-medium">
-                                {{ (currentPage - 1) * itemsPerPage + index + 1 }}
+                                {{ (pagination.page - 1) * pagination.pageSize + index + 1 }}
                             </td>
                             <td class="py-2">
                                 <div class="d-flex align-items-center">
@@ -723,29 +699,28 @@ onUnmounted(() => {
                     </tbody>
                 </table>
 
-                <!-- ➔ ACTUALIZADO: Paginador frontend -->
                 <nav v-if="totalPages > 1 && !loading" aria-label="Paginación de confirmandos"
                     class="d-flex justify-content-between align-items-center p-3 bg-white border-top">
                     <div class="text-muted small">
-                        Mostrando página <span class="fw-bold">{{ currentPage }}</span> de <span class="fw-bold">{{
-                            totalPages }}</span> (Total: {{ filteredConfirmandos.length }}
+                        Mostrando página <span class="fw-bold">{{ pagination.page }}</span> de <span class="fw-bold">{{
+                            totalPages }}</span> (Total: {{ pagina.total }}
                         resultados)
                     </div>
                     <ul class="pagination pagination-sm mb-0">
-                        <li class="page-item" :class="{ disabled: currentPage === 1 }">
+                        <li class="page-item" :class="{ disabled: pagination.page === 1 }">
                             <button class="page-link" aria-label="Página anterior"
-                                :disabled="currentPage === 1" @click="cambiarPagina(currentPage - 1)">Anterior</button>
+                                :disabled="pagination.page === 1" @click="cambiarPagina(pagination.page - 1)">Anterior</button>
                         </li>
 
                         <li v-for="page in totalPages" :key="page" class="page-item"
-                            :class="{ active: page === currentPage }">
-                            <button class="page-link" :aria-current="page === currentPage ? 'page' : undefined"
+                            :class="{ active: page === pagination.page }">
+                            <button class="page-link" :aria-current="page === pagination.page ? 'page' : undefined"
                                 :aria-label="`Ir a la página ${page}`" @click="cambiarPagina(page)">{{ page }}</button>
                         </li>
 
-                        <li class="page-item" :class="{ disabled: currentPage === totalPages }">
+                        <li class="page-item" :class="{ disabled: pagination.page === totalPages }">
                             <button class="page-link" aria-label="Página siguiente"
-                                :disabled="currentPage === totalPages" @click="cambiarPagina(currentPage + 1)">Siguiente</button>
+                                :disabled="pagination.page === totalPages" @click="cambiarPagina(pagination.page + 1)">Siguiente</button>
                         </li>
                     </ul>
                 </nav>

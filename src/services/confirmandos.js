@@ -26,11 +26,22 @@ function aplanarM2M(rows, puente, entidad, pivotCols) {
   return Array.isArray(rows) ? rows.map(flat) : flat(rows)
 }
 
-const SELECT_LISTA =
-  'id, nombres, apellidos, fecha_nacimiento, genero, celular, estado, grupo_id,' +
-  ' fecha_retiro, motivo_retiro,' +
-  ' grupo:grupos(id, nombre, color, procedencia),' +
-  ' confirmando_sacramento(estado, sacramento:sacramentos(id, nombre))'
+// `innerGrupo` cambia el embed de grupo a `!inner`: hace falta cuando se
+// filtra por `grupo.procedencia` (PostgREST solo permite filtrar sobre una
+// relación embebida cuando el join es inner).
+function selectListaConFiltro({ innerGrupo = false } = {}) {
+  const grupoEmbed = innerGrupo
+    ? 'grupo:grupos!inner(id, nombre, color, procedencia)'
+    : 'grupo:grupos(id, nombre, color, procedencia)'
+  return (
+    'id, nombres, apellidos, fecha_nacimiento, genero, celular, estado, grupo_id,' +
+    ' fecha_retiro, motivo_retiro,' +
+    ` ${grupoEmbed},` +
+    ' confirmando_sacramento(estado, sacramento:sacramentos(id, nombre))'
+  )
+}
+
+const SELECT_LISTA = selectListaConFiltro()
 
 const SELECT_DETALLE =
   '*,' +
@@ -51,6 +62,52 @@ export async function getConfirmandosList() {
     supabase.from('confirmandos').select(SELECT_LISTA).order('id', { ascending: false }),
   )
   return rows.map((r) => aplanarM2M(r, 'confirmando_sacramento', 'sacramento', ['estado']))
+}
+
+// Escapa los comodines de ILIKE ("%" y "_") para que un término de búsqueda
+// que los contenga se trate como texto literal, no como wildcard.
+function escaparPatronIlike(str) {
+  return str.replace(/[\\%_]/g, '\\$&')
+}
+
+// Misma normalización que hacía el filtro en el cliente (ListConfirmandos.vue):
+// minúsculas + sin tildes. `confirmandos.nombre_busqueda` (columna generada,
+// migración 20260918010000) guarda "nombres + apellidos" con la misma regla,
+// para que ambos lados del ILIKE queden en la misma forma.
+function normalizarBusqueda(str) {
+  return (str ?? '').toString().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim()
+}
+
+// Paginación server-side para ListConfirmandos.vue: la lista completa crece sin
+// límite (histórico multi-año) y ya no se trae entera al cliente. `getConfirmandosList`
+// (arriba) se mantiene intacta para las pantallas que sí necesitan el dataset
+// completo (AsignacionGrupo, AsignarConfirmandosModal, Cumpleanos).
+export async function getConfirmandosPaginado({ page = 1, pageSize = 25, filters = {} } = {}) {
+  const { search = '', estado = 'todos', grupo = 'todos', procedencia = 'todos' } = filters
+
+  let query = supabase
+    .from('confirmandos')
+    .select(selectListaConFiltro({ innerGrupo: procedencia !== 'todos' }), { count: 'exact' })
+
+  if (estado !== 'todos') query = query.eq('estado', estado)
+
+  if (grupo === 'sin_grupo') query = query.is('grupo_id', null)
+  else if (grupo !== 'todos') query = query.eq('grupo_id', Number(grupo))
+
+  if (procedencia !== 'todos') query = query.eq('grupo.procedencia', procedencia)
+
+  const termino = normalizarBusqueda(search)
+  if (termino) query = query.ilike('nombre_busqueda', `%${escaparPatronIlike(termino)}%`)
+
+  const from = (page - 1) * pageSize
+  const to = page * pageSize - 1
+  query = query.order('id', { ascending: false }).range(from, to)
+
+  const { data, error, count } = await query
+  if (error) throw errorLegible(error)
+
+  const items = (data ?? []).map((r) => aplanarM2M(r, 'confirmando_sacramento', 'sacramento', ['estado']))
+  return { items, total: count ?? 0 }
 }
 
 export async function getConfirmandoById(id) {
@@ -130,12 +187,6 @@ export function updateConfirmando(id, confirmando) {
 // confirmando) cuyo nombre o apellido contiene `q`. La RLS de apoderados acota por
 // parroquia y grupo. Se de-duplica en cliente (el embed !inner repite fila por
 // cada confirmando ligado).
-// Escapa los comodines de ILIKE ("%" y "_") para que un término de búsqueda
-// que los contenga se trate como texto literal, no como wildcard.
-function escaparPatronIlike(str) {
-  return str.replace(/[\\%_]/g, '\\$&')
-}
-
 export async function buscarApoderados(q) {
   const termino = (q ?? '').trim()
   if (termino.length < 3) return []

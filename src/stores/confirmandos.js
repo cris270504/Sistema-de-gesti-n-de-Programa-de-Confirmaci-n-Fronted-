@@ -4,6 +4,7 @@ import {
     deleteConfirmandoById,
     getConfirmandoById,
     getConfirmandosList,
+    getConfirmandosPaginado,
     updateConfirmando,
     importarConfirmandosExcel,
     retirarConfirmandoById,
@@ -19,16 +20,26 @@ const FRESH_MS = 30_000
 
 export const useConfirmandosStore = defineStore('confirmandos', {
     state: () => ({
+        // Lista completa, sin paginar — la usan AsignacionGrupo.vue,
+        // AsignarConfirmandosModal.vue y Cumpleanos/listCumpleanos.vue, que
+        // necesitan el dataset entero. No confundir con `pagina` de abajo.
         items: [],
-        pagination: {
-            currentPage: 1,
-            lastPage: 1,
-            total: 0
-        },
         loading: false,
         error: null,
         lastFetch: 0,
         _inflight: null,
+
+        // Vista paginada server-side, usada solo por ListConfirmandos.vue (el
+        // único caso con crecimiento real sin límite). Estado separado a
+        // propósito: convertir `items` en "solo la página actual" rompería en
+        // silencio las otras pantallas de arriba, que necesitan el listado
+        // completo.
+        pagina: { items: [], total: 0 },
+        pagination: { page: 1, pageSize: 25 },
+        filters: { search: '', estado: 'todos', grupo: 'todos', procedencia: 'todos' },
+        _inflightPaginado: null,
+        lastFetchPaginado: 0,
+        lastFetchKeyPaginado: null,
     }),
 
     getters: {
@@ -71,6 +82,66 @@ export const useConfirmandosStore = defineStore('confirmandos', {
                 });
 
             return this._inflight;
+        },
+
+        /**
+         * Paginación server-side para ListConfirmandos.vue. Mismo patrón de
+         * dedupe + ventana de frescura que `fetchAll`, pero contra `pagina`/
+         * `pagination`/`filters` (no toca `items`). Cambiar de página o de
+         * filtros siempre vuelve a pedir al backend.
+         */
+        async fetchPaginado({ force = false, page, pageSize, filters } = {}) {
+            if (this._inflightPaginado) return this._inflightPaginado;
+
+            const filtrosCambiaron = filters !== undefined && JSON.stringify(filters) !== JSON.stringify(this.filters);
+            if (filtrosCambiaron) {
+                this.filters = filters;
+                this.pagination.page = 1;
+            } else if (page !== undefined) {
+                this.pagination.page = page;
+            }
+            if (pageSize !== undefined) this.pagination.pageSize = pageSize;
+
+            const key = JSON.stringify({ page: this.pagination.page, pageSize: this.pagination.pageSize, filters: this.filters });
+            if (!force && this.lastFetchKeyPaginado === key && Date.now() - this.lastFetchPaginado < FRESH_MS) {
+                return;
+            }
+
+            if (this.pagina.items.length === 0) this.loading = true;
+            this.error = null;
+
+            this._inflightPaginado = getConfirmandosPaginado({
+                page: this.pagination.page,
+                pageSize: this.pagination.pageSize,
+                filters: this.filters,
+            })
+                .then((response) => {
+                    this.pagina.items = response.items;
+                    this.pagina.total = response.total;
+                    this.lastFetchPaginado = Date.now();
+                    this.lastFetchKeyPaginado = key;
+                })
+                .catch((e) => {
+                    this.error = e?.message || 'Error al listar Confirmandos';
+                })
+                .finally(() => {
+                    this.loading = false;
+                    this._inflightPaginado = null;
+                });
+
+            return this._inflightPaginado;
+        },
+
+        // Las acciones de mutación de abajo (add/save/remove/registrarRetiro/
+        // reingresar/aplicarAsignaciones) siguen parcheando `items` en memoria
+        // igual que antes. Además, si la vista paginada está activa (alguien
+        // ya llamó a fetchPaginado), la refrescan: no se puede parchear una
+        // página de forma confiable (el total y los límites de página pueden
+        // cambiar), así que se vuelve a pedir al backend.
+        async _refrescarPaginaSiActiva() {
+            if (this.pagina.items.length > 0) {
+                await this.fetchPaginado({ force: true });
+            }
         },
 
         /**
@@ -138,6 +209,7 @@ export const useConfirmandosStore = defineStore('confirmandos', {
                 }
 
                 this.items.unshift(created);
+                await this._refrescarPaginaSiActiva();
 
                 showAlerta(`Confirmando ${created.nombres} ${created.apellidos} creado correctamente.`, 'success');
                 return created;
@@ -160,6 +232,7 @@ export const useConfirmandosStore = defineStore('confirmandos', {
                 if (idx !== -1) {
                     this.items[idx] = { ...this.items[idx], ...updated };
                 }
+                await this._refrescarPaginaSiActiva();
 
                 showAlerta('Confirmando actualizado correctamente', 'success');
                 return updated;
@@ -198,6 +271,7 @@ export const useConfirmandosStore = defineStore('confirmandos', {
             try {
                 await deleteConfirmandoById(confirmandoId);
                 this.items = this.items.filter(c => c.id !== confirmandoId);
+                await this._refrescarPaginaSiActiva();
 
                 showAlerta('Confirmando eliminado correctamente', 'success');
                 return true;
@@ -212,6 +286,7 @@ export const useConfirmandosStore = defineStore('confirmandos', {
             try {
                 const response = await importarConfirmandosExcel(formData);
                 await this.fetchAll({ force: true }); // Recarga masiva
+                await this._refrescarPaginaSiActiva();
                 return response;
             } catch (error) {
                 throw error;
@@ -223,7 +298,7 @@ export const useConfirmandosStore = defineStore('confirmandos', {
          * confirmando_id -> grupo_id + lista de grupos), sin re-descargar toda la
          * lista de confirmandos.
          */
-        aplicarAsignaciones(asignaciones = {}, grupos = []) {
+        async aplicarAsignaciones(asignaciones = {}, grupos = []) {
             const gruposPorId = new Map(grupos.map(g => [Number(g.id), g]));
             for (const [confId, grupoId] of Object.entries(asignaciones)) {
                 const c = this.items.find(x => x.id === Number(confId));
@@ -240,6 +315,7 @@ export const useConfirmandosStore = defineStore('confirmandos', {
                 }
             }
             this.lastFetch = Date.now(); // el estado local quedó al día
+            await this._refrescarPaginaSiActiva();
         },
 
         async registrarRetiro(id, nombre) {
@@ -255,6 +331,7 @@ export const useConfirmandosStore = defineStore('confirmandos', {
             try {
                 await retirarConfirmandoById(confirmandoId, motivo);
                 this._parchearEstado(confirmandoId, 'retirado', { motivo_retiro: motivo, fecha_retiro: new Date().toISOString() });
+                await this._refrescarPaginaSiActiva();
                 showAlerta('Confirmando retirado del programa.', 'success');
                 return true;
             } catch (e) {
@@ -282,6 +359,7 @@ export const useConfirmandosStore = defineStore('confirmandos', {
             try {
                 await reingresarConfirmandoById(confirmandoId);
                 this._parchearEstado(confirmandoId, 'en_preparacion', { motivo_retiro: null, fecha_retiro: null });
+                await this._refrescarPaginaSiActiva();
                 showAlerta('Confirmando reingresado al programa.', 'success');
                 return true;
             } catch (e) {
