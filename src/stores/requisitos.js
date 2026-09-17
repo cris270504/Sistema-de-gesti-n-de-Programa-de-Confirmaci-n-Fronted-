@@ -1,16 +1,11 @@
 import { defineStore } from 'pinia'
-import { confirmarEliminacion, showAlerta, showErroresDeValidacion } from '@/funciones'
+import { showAlerta } from '@/funciones'
 import { createRequisito, deleteRequisitoById, getRequisitoById, getRequisitoList, updateRequisito } from '../services/requisitos';
-
-const FRESH_MS = 30_000
+import { crudState, crudActions } from './crudStoreFactory'
 
 export const useRequisitosStore = defineStore('requisitos', {
   state: () => ({
-    items: [],
-    loading: false,
-    error: null,
-    lastFetch: 0,
-    _inflight: null,
+    ...crudState(),
   }),
 
   getters: {
@@ -19,20 +14,14 @@ export const useRequisitosStore = defineStore('requisitos', {
   },
 
   actions: {
-    async fetchAll({ force = false } = {}) {
-      if (this._inflight) return this._inflight;
-      if (!force && this.items.length > 0 && Date.now() - this.lastFetch < FRESH_MS) return;
-
-      if (this.items.length === 0) this.loading = true;
-      this.error = null;
-
-      this._inflight = getRequisitoList()
-        .then((data) => { this.items = data; this.lastFetch = Date.now(); })
-        .catch((e) => { this.error = e?.message || 'Error al listar requisitos'; })
-        .finally(() => { this.loading = false; this._inflight = null; });
-
-      return this._inflight;
-    },
+    ...crudActions({
+      list: getRequisitoList,
+      create: createRequisito,
+      update: updateRequisito,
+      remove: deleteRequisitoById,
+      entityLabel: 'requisito',
+      extract: (r) => r?.requisito,
+    }),
 
     async fetchById(id) {
       const existing = this.byId(id);
@@ -57,70 +46,6 @@ export const useRequisitosStore = defineStore('requisitos', {
         throw e;
       } finally {
         this.loading = false
-      }
-    },
-
-    async add(Payload) {
-      try {
-        const response = await createRequisito(Payload);
-        const created = response?.requisito;
-        if (!created) {
-          throw new Error('La API no devolvió un requisito válido.');
-        }
-
-        this.items.unshift(created)
-
-        showAlerta(
-          `Requisito creado correctamente.`,
-          'success'
-        );
-        return created
-      } catch (e) {
-        showErroresDeValidacion(e)
-        throw e
-      }
-    },
-
-    async save(id, requisito) {
-      try {
-        const response = await updateRequisito(id, requisito);
-        const updated = response?.requisito;
-
-        if (!updated) {
-          throw new Error('La API no devolvió un requisito actualizado.');
-        }
-
-        const idx = this.items.findIndex(u => u.id === id)
-        if (idx !== -1) this.items[idx] = updated
-
-        showAlerta('Requisito actualizado correctamente', 'success')
-        return updated
-      } catch (e) {
-        showErroresDeValidacion(e)
-        throw e
-      }
-    },
-
-    async remove(id, nombre) {
-      const Id = Number(id);
-
-      const ok = await confirmarEliminacion(nombre || `requisito con ID ${Id}`)
-      if (!ok) {
-        showAlerta('Operación cancelada', 'info')
-        return false
-      }
-
-      try {
-        await deleteRequisitoById(Id)
-
-        this.items = this.items.filter(u => u.id !== Id)
-
-        showAlerta('Requisito eliminado correctamente', 'success')
-        return true
-      } catch (e) {
-        this.error = e?.message || 'No se pudo eliminar el requisito'
-        showAlerta(this.error, 'error')
-        return false
       }
     },
   },

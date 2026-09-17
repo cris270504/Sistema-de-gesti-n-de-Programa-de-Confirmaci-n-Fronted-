@@ -2,16 +2,11 @@ import { defineStore } from 'pinia'
 import { getUsersList, createUser, updateUser, deleteUserById, getUserById, setUserEstado } from '@/services/users'
 import { confirmar, showAlerta, showErroresDeValidacion } from '@/funciones'
 import { useGruposStore } from './grupos';
-
-const FRESH_MS = 30_000
+import { crudState, crudActions } from './crudStoreFactory'
 
 export const useUsersStore = defineStore('users', {
   state: () => ({
-    items: [],
-    loading: false,
-    error: null,
-    lastFetch: 0,
-    _inflight: null,
+    ...crudState(),
   }),
 
   getters: {
@@ -20,20 +15,19 @@ export const useUsersStore = defineStore('users', {
   },
 
   actions: {
-    async fetchAll({ force = false } = {}) {
-      if (this._inflight) return this._inflight;
-      if (!force && this.items.length > 0 && Date.now() - this.lastFetch < FRESH_MS) return;
+    ...crudActions({
+      list: getUsersList,
+      create: createUser,
+      update: updateUser,
+      remove: deleteUserById,
+      entityLabel: 'usuario',
+      extract: (r) => r?.user,
+    }),
 
-      if (this.items.length === 0) this.loading = true;
-      this.error = null;
-
-      this._inflight = getUsersList()
-        .then((data) => { this.items = data; this.lastFetch = Date.now(); })
-        .catch((e) => { this.error = e?.message || 'Error al listar usuarios'; })
-        .finally(() => { this.loading = false; this._inflight = null; });
-
-      return this._inflight;
-    },
+    // Solo fetchAll usa el patrón genérico: add (mensaje con contraseña
+    // temporal), save (sync con gruposStore.updateCatechistDetails) y remove
+    // (texto de confirmación propio) tienen efectos que el factory no
+    // replica, así que se sobreescriben tal cual debajo.
 
     async fetchById(id) {
       const existingUser = this.byId(id);

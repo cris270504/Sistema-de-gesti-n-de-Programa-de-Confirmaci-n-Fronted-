@@ -3,18 +3,22 @@ import { getUpcomingReuniones } from '@/services/reunions'
 import { createReunion, deleteReunionById, getReunionById, getReunionsList, updateReunion, contarAsistenciasReunion } from '../services/reunions';
 import { confirmarEliminacion, showAlerta, showErroresDeValidacion } from '@/funciones'
 import { useParroquiaStore } from '@/stores/parroquia'
+import { crudState } from './crudStoreFactory'
 
 const FRESH_MS = 30_000
 
+// NOTA: este store NO usa crudActions() del factory (solo crudState() para
+// el estado base). "Reunión" es femenino y los mensajes del factory son
+// fijos en masculino ("creado"/"actualizado"/"eliminado") — migrar add/
+// save/remove rompería la concordancia de género ("Reunión creado" en vez
+// de "Reunión creada"). Además fetchAll muestra alerta en error (el factory
+// lo deja silencioso) y remove tiene la regla de negocio de no borrar una
+// reunión con asistencia registrada. Ver crudStoreFactory.js.
 export const useReunionesStore = defineStore('reuniones', {
     state: () => ({
-        items: [],
+        ...crudState(),
         upcomingItems: [],
-        loading: false,
-        error: null,
-        lastFetch: 0,
         lastFetchUpcoming: 0,
-        _inflight: null,
         _inflightUpcoming: null,
     }),
     getters: {

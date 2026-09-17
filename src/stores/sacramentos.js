@@ -1,17 +1,12 @@
 import { defineStore } from 'pinia'
-import { confirmarEliminacion, showAlerta, showErroresDeValidacion } from '@/funciones'
+import { confirmarEliminacion, showAlerta } from '@/funciones'
 import { useGruposStore } from './grupos';
 import { createSacramento, deleteSacramentoById, getSacramentoById, getSacramentosList, updateSacramento } from '../services/sacramentos';
-
-const FRESH_MS = 30_000
+import { crudState, crudActions } from './crudStoreFactory'
 
 export const useSacramentosStore = defineStore('sacramentos', {
     state: () => ({
-        items: [],
-        loading: false,
-        error: null,
-        lastFetch: 0,
-        _inflight: null,
+        ...crudState(),
     }),
 
     getters: {
@@ -20,20 +15,17 @@ export const useSacramentosStore = defineStore('sacramentos', {
     },
 
     actions: {
-        async fetchAll({ force = false } = {}) {
-            if (this._inflight) return this._inflight;
-            if (!force && this.items.length > 0 && Date.now() - this.lastFetch < FRESH_MS) return;
+        ...crudActions({
+            list: getSacramentosList,
+            create: createSacramento,
+            update: updateSacramento,
+            remove: deleteSacramentoById,
+            entityLabel: 'sacramento',
+            extract: (r) => r?.sacramento,
+        }),
 
-            if (this.items.length === 0) this.loading = true;
-            this.error = null;
-
-            this._inflight = getSacramentosList()
-                .then((data) => { this.items = data; this.lastFetch = Date.now(); })
-                .catch((e) => { this.error = e?.message || 'Error al listar sacramentos'; })
-                .finally(() => { this.loading = false; this._inflight = null; });
-
-            return this._inflight;
-        },
+        // remove tiene lógica propia (resuelve el nombre vía byId si no se lo
+        // pasan, para el diálogo de confirmación) que el factory no replica.
 
         async fetchById(id) {
             const existingSacramento = this.byId(id);
@@ -58,47 +50,6 @@ export const useSacramentosStore = defineStore('sacramentos', {
                 throw e;
             } finally {
                 this.loading = false
-            }
-        },
-
-        async add(SacramentoPayload) {
-            try {
-                const response = await createSacramento(SacramentoPayload);
-                const created = response?.sacramento;
-                if (!created) {
-                    throw new Error('La API no devolvió un sacramento válido.');
-                }
-
-                this.items.unshift(created)
-
-                showAlerta(
-                    `Sacramento creado correctamente.`,
-                    'success'
-                );
-                return created
-            } catch (e) {
-                showErroresDeValidacion(e)
-                throw e
-            }
-        },
-
-        async save(id, sacramento) {
-            try {
-                const response = await updateSacramento(id, sacramento);
-                const updated = response?.sacramento;
-
-                if (!updated) {
-                    throw new Error('La API no devolvió un sacramento actualizado.');
-                }
-
-                const idx = this.items.findIndex(u => u.id === id)
-                if (idx !== -1) this.items[idx] = updated
-
-                showAlerta('Sacramento actualizado correctamente', 'success')
-                return updated
-            } catch (e) {
-                showErroresDeValidacion(e)
-                throw e
             }
         },
 

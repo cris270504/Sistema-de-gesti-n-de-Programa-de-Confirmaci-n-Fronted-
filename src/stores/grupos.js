@@ -1,16 +1,13 @@
 import { defineStore } from 'pinia'
 import { confirmarEliminacion, showAlerta, showErroresDeValidacion } from '@/funciones'
 import { createGrupo, deleteGrupoById, getGrupoById, getGruposList, syncCatequists, updateGrupo, syncConfirmandos, getApoderadosByGrupo, generarGruposEquitativos } from '../services/grupos';
+import { crudState, crudActions } from './crudStoreFactory'
 
 const FRESH_MS = 30_000
 
 export const useGruposStore = defineStore('grupos', {
     state: () => ({
-        items: [],
-        loading: false,
-        error: null,
-        lastFetch: 0,
-        _inflight: null,
+        ...crudState(),
     }),
 
     getters: {
@@ -19,6 +16,21 @@ export const useGruposStore = defineStore('grupos', {
     },
 
     actions: {
+        ...crudActions({
+            list: getGruposList,
+            create: createGrupo,
+            update: updateGrupo,
+            remove: deleteGrupoById,
+            entityLabel: 'grupo',
+            extract: (r) => r?.grupo,
+        }),
+
+        // Solo save usa el patrón genérico: fetchAll muestra alerta en error
+        // (a diferencia del factory, que lo deja silencioso en this.error),
+        // add incluye el nombre del grupo en el mensaje de éxito, y remove
+        // tiene la regla de negocio de no borrar un grupo con confirmandos
+        // asignados — ninguna de las tres se replica en el factory.
+
         async fetchAll({ force = false } = {}) {
             if (this._inflight) return this._inflight
             if (!force && this.items.length > 0 && Date.now() - this.lastFetch < FRESH_MS) return
@@ -89,26 +101,6 @@ export const useGruposStore = defineStore('grupos', {
                     'success'
                 );
                 return created
-            } catch (e) {
-                showErroresDeValidacion(e)
-                throw e
-            }
-        },
-
-        async save(id, grupo) {
-            try {
-                const response = await updateGrupo(id, grupo);
-                const updated = response?.grupo;
-
-                if (!updated) {
-                    throw new Error('La API no devolvió un grupo actualizado.');
-                }
-
-                const idx = this.items.findIndex(c => c.id === id)
-                if (idx !== -1) this.items[idx] = updated
-
-                showAlerta('Grupo actualizado correctamente', 'success')
-                return updated
             } catch (e) {
                 showErroresDeValidacion(e)
                 throw e

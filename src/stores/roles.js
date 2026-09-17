@@ -1,12 +1,11 @@
 import { defineStore } from 'pinia'
-import { confirmarEliminacion, showAlerta, showErroresDeValidacion } from '@/funciones'
+import { showAlerta, showErroresDeValidacion } from '@/funciones'
 import { createRoles, deleteRoles, getRoles, getRolesList, updateRoles } from '@/services/roles'
+import { crudState, crudActions } from './crudStoreFactory'
 
 export const useRolesStore = defineStore('roles', {
   state: () => ({
-    items: [],
-    loading: false,
-    error: null,
+    ...crudState(),
   }),
 
   getters: {
@@ -15,6 +14,18 @@ export const useRolesStore = defineStore('roles', {
   },
 
   actions: {
+    ...crudActions({
+      list: getRolesList,
+      create: createRoles,
+      update: updateRoles,
+      remove: deleteRoles,
+      entityLabel: 'rol',
+      extract: (r) => r?.role || r,
+    }),
+
+    // fetchAll (sin caché, pasa `params` a getRolesList) y add (upsert por id
+    // en vez de unshift siempre) tienen lógica propia distinta del patrón
+    // genérico del factory: se conservan tal cual, sobreescribiendo el spread.
     async fetchAll(params = {}) {
       this.loading = true
       this.error = null
@@ -64,45 +75,5 @@ export const useRolesStore = defineStore('roles', {
       }
     },
 
-    async save(id, payload) {
-      try {
-        const response = await updateRoles(id, payload)
-        const updated = response?.role || response
-        if (!updated?.id) {
-          throw new Error('La API no devolvió un rol actualizado.')
-        }
-        const idx = this.items.findIndex(r => r.id === Number(id))
-        if (idx !== -1) this.items[idx] = updated
-        showAlerta('Rol actualizado correctamente', 'success')
-        return updated
-      } catch (e) {
-        showErroresDeValidacion(e)
-        throw e
-      }
-    },
-
-    /**
-     * Confirma y, si aceptan, elimina el rol desde el store
-     * @param {number|string} id
-     * @param {string} nombre
-     */
-    async remove(id, nombre) {
-      const ok = await confirmarEliminacion(nombre || `rol con ID ${id}`)
-      if (!ok) {
-        showAlerta('Operación cancelada', 'info')
-        return false
-      }
-
-      try {
-        await deleteRoles(id)
-        this.items = this.items.filter(r => r.id !== Number(id))
-        showAlerta('Rol eliminado correctamente', 'success')
-        return true
-      } catch (e) {
-        this.error = e?.message || 'No se pudo eliminar el rol'
-        showAlerta(this.error, 'error')
-        return false
-      }
-    },
   },
 })
