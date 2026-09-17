@@ -316,4 +316,23 @@ async function submitUpdate() {
   background-color: #f1f5f9;
   color: #0f172a;
 }
+
+/* ===== MODO OSCURO ===== */
+:root[data-bs-theme="dark"] .form-control {
+  background-color: #0f172a;
+  border-color: #475569;
+  color: #e2e8f0;
+}
+:root[data-bs-theme="dark"] .bg-blue-soft {
+  background-color: #1e2547 !important;
+  border-color: #475569;
+  color: #93c5fd !important;
+}
+:root[data-bs-theme="dark"] .modal-footer {
+  border-top-color: #334155;
+}
+:root[data-bs-theme="dark"] .btn-outline-secondary:hover {
+  background-color: #334155;
+  color: #f1f5f9;
+}
 </style>

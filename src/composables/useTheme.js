@@ -2,16 +2,15 @@ import { ref, computed } from 'vue'
 
 const STORAGE_KEY = 'sgpc-theme'
 
-function prefiereOscuro() {
-  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false
-}
-
+// Por defecto el sistema arranca en claro (decisión explícita del producto,
+// no se usa prefers-color-scheme como fallback): solo se respeta lo que el
+// usuario haya elegido antes con el toggle.
 function leerTemaInicial() {
   try {
     const guardado = localStorage.getItem(STORAGE_KEY)
     if (guardado === 'dark' || guardado === 'light') return guardado
   } catch { /* localStorage bloqueado (modo privado, etc.) */ }
-  return prefiereOscuro() ? 'dark' : 'light'
+  return 'light'
 }
 
 function aplicarTema(valor) {

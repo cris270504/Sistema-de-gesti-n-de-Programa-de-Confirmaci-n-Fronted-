@@ -71,4 +71,16 @@ const { toasts } = storeToRefs(uiStore)
 .toast-anim-leave-active {
   position: absolute;
 }
+
+/* ===== MODO OSCURO ===== */
+:root[data-bs-theme="dark"] .toast-item {
+  background: #1e293b;
+  border-color: #14532d;
+}
+:root[data-bs-theme="dark"] .toast-item__msg { color: #f1f5f9; }
+:root[data-bs-theme="dark"] .toast-item__close { color: #64748b; }
+:root[data-bs-theme="dark"] .toast-item__close:hover {
+  background: #334155;
+  color: #cbd5e1;
+}
 </style>

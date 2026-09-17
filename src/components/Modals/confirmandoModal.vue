@@ -662,4 +662,33 @@ async function submitUpdate() {
   background-color: #f1f5f9;
   color: #0f172a;
 }
+
+/* ===== MODO OSCURO =====
+   Este modal redefine localmente form-control/btn-soft-primary/bg-*-subtle
+   con colores propios (gana por scoping a los de main.css). */
+:root[data-bs-theme="dark"] .form-control,
+:root[data-bs-theme="dark"] .form-select {
+  background-color: #0f172a;
+  border-color: #475569;
+  color: #e2e8f0;
+}
+:root[data-bs-theme="dark"] .bg-blue-soft {
+  background-color: #1e2547 !important;
+  border-color: #475569;
+  color: #93c5fd !important;
+}
+:root[data-bs-theme="dark"] .bg-primary-subtle {
+  background-color: #1e2547 !important;
+  color: #c7d2fe;
+  border-color: #3730a3;
+}
+:root[data-bs-theme="dark"] .btn-soft-primary {
+  background-color: #1e3a5f;
+  color: #93c5fd;
+  border-color: #2c4a70;
+}
+:root[data-bs-theme="dark"] .btn-outline-secondary:hover {
+  background-color: #334155;
+  color: #f1f5f9;
+}
 </style>

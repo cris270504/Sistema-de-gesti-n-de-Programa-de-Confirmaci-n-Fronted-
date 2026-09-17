@@ -415,4 +415,58 @@ const borrarSacramento = (sac) => sacramentosStore.remove(sac.id, sac.nombre);
   .rs-card__actions,
   .rs-doc__actions { opacity: 1; }
 }
+
+/* ===== MODO OSCURO =====
+   Esta vista tiene su propio sistema de tarjetas (rs-*) con colores
+   hardcodeados — se le agrega la contraparte oscura acá, misma paleta que el
+   resto del sistema. */
+:root[data-bs-theme="dark"] .rs-add {
+  border-color: #475569;
+  background: #1e293b;
+  color: #e2e8f0;
+}
+:root[data-bs-theme="dark"] .rs-add:hover { background: #334155; border-color: #64748b; }
+
+:root[data-bs-theme="dark"] .rs-newbar {
+  background: #1e2547;
+  border-color: #3730a3;
+  color: #c7d2fe;
+}
+:root[data-bs-theme="dark"] .rs-newbar__x { color: #a5b4fc; }
+
+:root[data-bs-theme="dark"] .rs-input {
+  background: #0f172a;
+  border-color: #475569;
+  color: #f1f5f9;
+}
+
+:root[data-bs-theme="dark"] .rs-card {
+  border-color: #334155;
+  background: #1e293b;
+}
+:root[data-bs-theme="dark"] .rs-card__head {
+  border-bottom-color: #334155;
+  background: #0f172a;
+}
+:root[data-bs-theme="dark"] .rs-card__ico {
+  background: #1e2547;
+  color: #a5b4fc;
+}
+:root[data-bs-theme="dark"] .rs-card__title { color: #f1f5f9; }
+:root[data-bs-theme="dark"] .rs-card__count {
+  color: #94a3b8;
+  background: #334155;
+}
+
+:root[data-bs-theme="dark"] .rs-check__item { color: #94a3b8; }
+:root[data-bs-theme="dark"] .rs-check__item:hover { background: #334155; }
+:root[data-bs-theme="dark"] .rs-check__box { border-color: #475569; }
+:root[data-bs-theme="dark"] .rs-check__item.is-on { color: #5eead4; }
+
+:root[data-bs-theme="dark"] .rs-docs__title { color: #94a3b8; }
+:root[data-bs-theme="dark"] .rs-doc { border-bottom-color: #334155; }
+:root[data-bs-theme="dark"] .rs-doc__name { color: #e2e8f0; }
+:root[data-bs-theme="dark"] .rs-ico { color: #94a3b8; }
+:root[data-bs-theme="dark"] .rs-ico:hover { background: #334155; color: #cbd5e1; }
+:root[data-bs-theme="dark"] .rs-ico--danger:hover { background: #4c1d1d; color: #fca5a5; }
 </style>

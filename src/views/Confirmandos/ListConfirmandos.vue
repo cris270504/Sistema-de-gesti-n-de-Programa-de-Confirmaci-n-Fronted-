@@ -834,4 +834,21 @@ onUnmounted(() => {
 .dashed-border {
     border-style: dashed !important;
 }
+
+/* ===== MODO OSCURO ===== */
+:root[data-bs-theme="dark"] .page-subtitle { color: #94a3b8; }
+:root[data-bs-theme="dark"] .icon-box {
+    background-color: #334155;
+    border-color: #475569;
+}
+:root[data-bs-theme="dark"] .bg-light-gray {
+    background-color: #0f172a;
+    border-bottom-color: #334155;
+}
+:root[data-bs-theme="dark"] .hover-row:hover td { background-color: #334155; }
+:root[data-bs-theme="dark"] .hover-row td {
+    border-bottom-color: #334155;
+    color: #e2e8f0;
+}
+:root[data-bs-theme="dark"] .badge-soft-group { background-color: #1e293b; }
 </style>

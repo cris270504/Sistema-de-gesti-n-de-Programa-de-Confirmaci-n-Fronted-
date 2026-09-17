@@ -751,4 +751,24 @@ const rechazarCumplimientoSwal = async (item) => {
     border-left: 5px solid #f59e0b !important;
     /* Barra naranja/amarilla de advertencia */
 }
+
+/* ===== MODO OSCURO ===== */
+:root[data-bs-theme="dark"] .bg-success-subtle {
+    background-color: #14432a !important;
+    color: #86efac !important;
+}
+:root[data-bs-theme="dark"] .bg-warning-subtle {
+    background-color: #4a3412 !important;
+    color: #fbbf24 !important;
+}
+:root[data-bs-theme="dark"] .hover-row:hover {
+    background-color: #334155;
+}
+:root[data-bs-theme="dark"] .fila-alerta-amarilla td {
+    background-color: #4a3412 !important;
+    border-color: #7c5e17 !important;
+}
+:root[data-bs-theme="dark"] .fila-alerta-amarilla:hover td {
+    background-color: #5c4118 !important;
+}
 </style>

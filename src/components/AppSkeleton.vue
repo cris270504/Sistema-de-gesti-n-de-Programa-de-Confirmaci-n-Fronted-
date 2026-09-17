@@ -65,4 +65,13 @@ defineProps({
 .sk-row .sk-line { margin: 0; }
 .sk-row--head { border-top: 0; background: #f8fafc; }
 .sk-row--head .sk-line { background: #d8dee9; }
+
+:root[data-bs-theme="dark"] .sk-card {
+  border-color: #334155;
+  background: #1e293b;
+}
+:root[data-bs-theme="dark"] .sk-line { background: #334155; }
+:root[data-bs-theme="dark"] .sk-row { border-top-color: #334155; }
+:root[data-bs-theme="dark"] .sk-row--head { background: #0f172a; }
+:root[data-bs-theme="dark"] .sk-row--head .sk-line { background: #475569; }
 </style>

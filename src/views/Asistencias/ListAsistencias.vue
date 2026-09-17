@@ -1410,4 +1410,38 @@ tr.opacity-75:hover td {
 .text-xs {
     font-size: 0.75rem;
 }
+
+/* ===== MODO OSCURO =====
+   Esta vista redefine localmente los "-subtle" (bg-success-subtle, etc.) con
+   colores propios en vez de los de Bootstrap — quedan sin variante oscura por
+   defecto, se le agrega acá. */
+:root[data-bs-theme="dark"] .asis-btn {
+    border-color: #475569;
+    background: #1e293b;
+    color: #94a3b8;
+}
+:root[data-bs-theme="dark"] .matrix-table th,
+:root[data-bs-theme="dark"] .matrix-table td {
+    border-color: #334155 !important;
+}
+:root[data-bs-theme="dark"] .sticky-col {
+    border-right-color: #334155 !important;
+}
+:root[data-bs-theme="dark"] .cell-interactive:hover .cell-content {
+    background-color: #334155;
+}
+:root[data-bs-theme="dark"] .bg-success-subtle { background-color: #14432a !important; }
+:root[data-bs-theme="dark"] .bg-warning-subtle { background-color: #4a3412 !important; }
+:root[data-bs-theme="dark"] .bg-info-subtle { background-color: #164e56 !important; }
+:root[data-bs-theme="dark"] .bg-danger-subtle { background-color: #4c1d1d !important; }
+:root[data-bs-theme="dark"] .bg-primary-subtle { background-color: #1e3a5f !important; }
+:root[data-bs-theme="dark"] .popover-arrow { background: #1e293b; }
+:root[data-bs-theme="dark"] .btn-status {
+    background-color: #1e293b;
+    color: #94a3b8;
+}
+:root[data-bs-theme="dark"] .btn-status-success:hover { background-color: #14432a; color: #4ade80; }
+:root[data-bs-theme="dark"] .btn-status-warning:hover { background-color: #4a3412; color: #fbbf24; }
+:root[data-bs-theme="dark"] .btn-status-info:hover { background-color: #164e56; color: #67e8f9; }
+:root[data-bs-theme="dark"] .btn-status-danger:hover { background-color: #4c1d1d; color: #f87171; }
 </style>

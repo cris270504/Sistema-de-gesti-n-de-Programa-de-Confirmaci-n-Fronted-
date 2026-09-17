@@ -410,4 +410,20 @@ onUnmounted(() => {
     }
     :deep(.fc-list-event-title) { white-space: normal; }
 }
+
+/* ===== MODO OSCURO =====
+   :deep() sin selector propio antes compila a global (sin scoping) — se
+   scopea a mano vía `.surface` (el contenedor propio de esta vista que
+   envuelve el calendario) para no afectar otras vistas con FullCalendar
+   (ListCronograma.vue colorea sus botones con --parroquia-color, no necesita
+   este fix). */
+:root[data-bs-theme="dark"] .surface :deep(.fc-button-primary) {
+  background-color: #334155;
+  color: #e2e8f0;
+  border-color: #475569;
+}
+:root[data-bs-theme="dark"] .surface :deep(.fc-button-primary:hover) {
+  background-color: #475569;
+  color: #f1f5f9;
+}
 </style>

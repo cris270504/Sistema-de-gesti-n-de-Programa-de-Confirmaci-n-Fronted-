@@ -5,9 +5,7 @@
       (function () {
         try {
           var t = localStorage.getItem('sgpc-theme');
-          if (t !== 'dark' && t !== 'light') {
-            t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-          }
+          if (t !== 'dark' && t !== 'light') t = 'light';
           document.documentElement.setAttribute('data-bs-theme', t);
         } catch (e) {}
       })();

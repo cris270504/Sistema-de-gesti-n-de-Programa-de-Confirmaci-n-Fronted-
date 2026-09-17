@@ -28,14 +28,8 @@ describe('useTheme', () => {
     expect(document.documentElement.getAttribute('data-bs-theme')).toBe('dark')
   })
 
-  it('sin preferencia guardada, cae a prefers-color-scheme', async () => {
+  it('sin preferencia guardada, arranca en claro aunque el SO prefiera oscuro', async () => {
     const { useTheme } = await importarConTema({ prefiereOscuro: true })
-    const { esOscuro } = useTheme()
-    expect(esOscuro.value).toBe(true)
-  })
-
-  it('sin preferencia guardada ni del SO, arranca en claro', async () => {
-    const { useTheme } = await importarConTema({ prefiereOscuro: false })
     const { esOscuro } = useTheme()
     expect(esOscuro.value).toBe(false)
     expect(document.documentElement.getAttribute('data-bs-theme')).toBe('light')

@@ -365,4 +365,33 @@ onMounted(() => {
 .btn-primary:hover {
   background-color: #1d4ed8;
 }
+
+/* ===== MODO OSCURO ===== */
+:root[data-bs-theme="dark"] .seg {
+  border-color: #475569;
+  background: #0f172a;
+}
+:root[data-bs-theme="dark"] .seg__btn { color: #94a3b8; }
+:root[data-bs-theme="dark"] .seg__btn:hover:not(.seg__btn--on) { color: #f1f5f9; }
+:root[data-bs-theme="dark"] .seg__btn--on { background: #334155; }
+
+:root[data-bs-theme="dark"] .user-card {
+  border-color: #334155;
+  background: #1e293b;
+}
+:root[data-bs-theme="dark"] .user-card:hover { border-color: #475569; }
+:root[data-bs-theme="dark"] .user-card--off { background: #0f172a; }
+:root[data-bs-theme="dark"] .icon-box {
+  background-color: #334155;
+  border-color: #475569;
+}
+:root[data-bs-theme="dark"] .user-card__name { color: #f1f5f9; }
+:root[data-bs-theme="dark"] .user-card__contact {
+  border-top-color: #334155;
+  color: #94a3b8;
+}
+:root[data-bs-theme="dark"] .user-badge-off {
+  color: #cbd5e1;
+  background: #334155;
+}
 </style>

@@ -644,4 +644,19 @@ onUnmounted(() => {
   font-size: 1.1em;
   background-color: #d1e7dd !important;
 }
+
+/* ===== MODO OSCURO =====
+   :deep() sin selector propio antes compila a global (sin scoping) — se
+   scopea a mano vía `.surface` (el contenedor propio de esta vista que
+   envuelve el calendario) para no afectar otras vistas con FullCalendar. */
+:root[data-bs-theme="dark"] .surface :deep(.fc-day-today) {
+  background-color: rgba(37, 99, 235, 0.15) !important;
+}
+:root[data-bs-theme="dark"] .surface :deep(.fc-day-today:hover) {
+  background-color: rgba(37, 99, 235, 0.25) !important;
+}
+:root[data-bs-theme="dark"] .surface :deep(.fc-day-today .fc-daygrid-day-number) {
+  color: #93c5fd;
+  background-color: rgba(37, 99, 235, 0.25) !important;
+}
 </style>

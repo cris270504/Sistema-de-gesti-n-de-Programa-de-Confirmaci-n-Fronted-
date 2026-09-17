@@ -512,6 +512,96 @@ tbody tr:hover {
   @apply opacity-100;
 }
 
+/* ===== MODO OSCURO: UTILIDADES DE BOOTSTRAP SIN data-bs-theme =====
+   .bg-light/.bg-white/.text-muted/.text-secondary/.text-dark son colores
+   LITERALES en Bootstrap (a diferencia de .bg-body/.text-body-secondary, que sí
+   cambian con data-bs-theme) — se usan por toda la app en inputs, selects,
+   badges y encabezados de tabla. Un solo override acá cubre todos esos usos de
+   una vez, en vez de tocar cada vista una por una. */
+:root[data-bs-theme="dark"] .bg-light {
+  background-color: #334155 !important;
+  color: #e2e8f0 !important;
+}
+:root[data-bs-theme="dark"] .bg-white {
+  background-color: #1e293b !important;
+}
+:root[data-bs-theme="dark"] .text-muted {
+  color: #94a3b8 !important;
+}
+:root[data-bs-theme="dark"] .text-secondary {
+  color: #94a3b8 !important;
+}
+:root[data-bs-theme="dark"] .text-dark {
+  color: #f1f5f9 !important;
+}
+:root[data-bs-theme="dark"] .badge.bg-light {
+  border-color: #475569 !important;
+}
+
+/* ===== MODO OSCURO: FULLCALENDAR (Cronograma/Cumpleaños) =====
+   FullCalendar define su fondo/bordes vía variables CSS propias, no vía
+   data-bs-theme. Se sobreescriben esas variables cuando el tema es oscuro;
+   cada vista puede seguir definiendo las suyas propias para el modo claro. */
+:root[data-bs-theme="dark"] .fc {
+  --fc-border-color: #334155;
+  --fc-page-bg-color: #1e293b;
+  --fc-neutral-bg-color: #0f172a;
+  --fc-list-event-hover-bg-color: #334155;
+  --fc-today-bg-color: rgba(37, 99, 235, 0.15);
+}
+/* ListCronograma.vue fuerza background-color: #fff !important directamente
+   en estos contenedores (no usa la variable --fc-page-bg-color) — hace falta
+   pisarlo con la misma especificidad+importancia; al ser más específico
+   (:root[data-bs-theme="dark"] + selector) gana sin importar el orden de
+   carga entre este archivo y el <style> del componente. */
+:root[data-bs-theme="dark"] .fc,
+:root[data-bs-theme="dark"] .fc-view-harness,
+:root[data-bs-theme="dark"] .fc-scroller,
+:root[data-bs-theme="dark"] .fc-daygrid-body,
+:root[data-bs-theme="dark"] .fc-scrollgrid,
+:root[data-bs-theme="dark"] .fc-scrollgrid-section {
+  background-color: #1e293b !important;
+}
+:root[data-bs-theme="dark"] .fc-daygrid-day:hover {
+  background-color: #334155 !important;
+}
+:root[data-bs-theme="dark"] .fc-toolbar-title {
+  color: #f1f5f9 !important;
+}
+:root[data-bs-theme="dark"] .fc .fc-col-header-cell {
+  color: #e2e8f0;
+}
+:root[data-bs-theme="dark"] .fc .fc-daygrid-day-number,
+:root[data-bs-theme="dark"] .fc .fc-list-day-text,
+:root[data-bs-theme="dark"] .fc .fc-list-day-side-text {
+  color: #cbd5e1;
+}
+:root[data-bs-theme="dark"] .fc .fc-list-empty {
+  background-color: #1e293b;
+  color: #94a3b8;
+}
+
+/* ===== MODO OSCURO: SWEETALERT2 (showAlerta/confirmar) =====
+   SweetAlert2 trae su propio tema claro fijo, ajeno a data-bs-theme. */
+:root[data-bs-theme="dark"] .swal2-popup {
+  background: #1e293b !important;
+  color: #e2e8f0 !important;
+}
+:root[data-bs-theme="dark"] .swal2-title,
+:root[data-bs-theme="dark"] .swal2-html-container {
+  color: #f1f5f9 !important;
+}
+:root[data-bs-theme="dark"] .swal2-close {
+  color: #94a3b8 !important;
+}
+:root[data-bs-theme="dark"] .swal2-input,
+:root[data-bs-theme="dark"] .swal2-textarea,
+:root[data-bs-theme="dark"] .swal2-select {
+  background: #0f172a !important;
+  border-color: #334155 !important;
+  color: #e2e8f0 !important;
+}
+
 /* ===== BRANDING POR PARROQUIA =====
    El color de la parroquia se aplica en runtime como estilo inline en <html> desde
    src/lib/tema.js (--parroquia-color, --color-primary, --bs-primary/-rgb) — gana a
