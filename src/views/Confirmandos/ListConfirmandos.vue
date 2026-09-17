@@ -2,7 +2,7 @@
 import { useConfirmandosStore } from '../../stores/confirmandos';
 import { useGruposStore } from '../../stores/grupos';
 import { storeToRefs } from 'pinia';
-import { onMounted, onUnmounted, ref, computed, nextTick, watch, defineAsyncComponent } from 'vue';
+import { onMounted, onUnmounted, ref, nextTick, watch, defineAsyncComponent } from 'vue';
 import {
     Pencil, Trash, Plus, User, Phone, Calendar, Users,
     Wand2, Trash2, Save, Upload, Eye, Search, X, ArrowRight, Info,
@@ -11,8 +11,10 @@ import {
 import { useAuthStore } from '@/stores/auth';
 import { useParroquiaStore } from '@/stores/parroquia';
 import { Modal } from 'bootstrap';
-import { showAlerta } from '@/funciones';
 import { attachModalFocusReturn } from '@/composables/useModalFocusReturn';
+import { useImportExcel } from '@/composables/useImportExcel';
+import { useGeneradorGrupos, ESTRATEGIAS } from '@/composables/useGeneradorGrupos';
+import { useConfirmandosFilters } from '@/composables/useConfirmandosFilters';
 import TableSkeleton from '@/components/TableSkeleton.vue';
 import AppPage from '@/components/AppPage.vue';
 
@@ -56,20 +58,19 @@ const gruposStore = useGruposStore();
 const authStore = useAuthStore();
 const parroquiaStore = useParroquiaStore();
 
-// `items`/`fetchAll` (lista completa) los sigue necesitando el generador de
-// grupos (abrirGenerador, más abajo) para calcular quién no tiene grupo — se
-// carga recién ahí, on-demand, no acá. La tabla usa `pagina`/`fetchPaginado`
-// (paginación server-side): confirmandos crece sin límite (histórico
-// multi-año) y ya no se trae entero al montar la vista.
-const { items: confirmandos, pagina, pagination, loading, error } = storeToRefs(confirmandosStore);
-const { fetchAll: fetchAllConfirmandos, fetchPaginado, remove: _removeConfirmando } = confirmandosStore;
+// La tabla usa `pagina`/`fetchPaginado` (paginación server-side): confirmandos
+// crece sin límite (histórico multi-año) y ya no se trae entero al montar la
+// vista. `items`/`fetchAll` (lista completa) los sigue necesitando el
+// generador de grupos — se cargan recién ahí, on-demand (ver
+// useGeneradorGrupos.js).
+const { pagina, pagination, loading, error } = storeToRefs(confirmandosStore);
 
 const borrandoId = ref(null);
 async function removeConfirmando(id, nombre) {
     if (borrandoId.value) return;
     borrandoId.value = id;
     try {
-        await _removeConfirmando(id, nombre);
+        await confirmandosStore.remove(id, nombre);
     } finally {
         borrandoId.value = null;
     }
@@ -103,247 +104,29 @@ watch(modalRef, (instance) => {
     }
 });
 
-// Objeto central de filtros. El estado inicial lo define la parroquia en Configuración.
-const filtros = ref({
-    search: '',
-    estado: parroquiaStore.confirmandosEstadoDefault,
-    grupo: 'todos',
-    procedencia: 'todos'
-});
+// --- FILTROS + PAGINACIÓN, IMPORTACIÓN EXCEL Y GENERADOR DE GRUPOS ---
+// Extraídos a composables (src/composables/): este componente ya solo
+// coordina lo que le es propio (borrado, fila, modal de apoderados).
+const recargarTabla = () => confirmandosStore.fetchPaginado({ force: true });
 
-// --- FILTRADO Y PAGINACIÓN SERVER-SIDE ---
-// El servidor ya devuelve la página filtrada (services/confirmandos.js:
-// getConfirmandosPaginado). Cambiar cualquier filtro vuelve a la página 1.
-const aplicarFiltros = () => {
-    fetchPaginado({ page: 1, filters: { ...filtros.value } });
-};
+const { filtros, limpiarFiltros, totalPages, cambiarPagina, gruposDisponibles } = useConfirmandosFilters();
 
-// Debounce solo en el buscador de texto: los selects/radios de estado,
-// grupo y procedencia disparan la consulta al instante.
-let searchDebounceTimer = null;
-watch(() => filtros.value.search, () => {
-    clearTimeout(searchDebounceTimer);
-    searchDebounceTimer = setTimeout(aplicarFiltros, 300);
-});
-watch(() => [filtros.value.estado, filtros.value.grupo, filtros.value.procedencia], () => {
-    clearTimeout(searchDebounceTimer);
-    aplicarFiltros();
-});
+const {
+    fileInputRef, isImporting, initImportModal, abrirImportModal, triggerImport,
+    handleFileUpload, dispose: disposeImportExcel,
+} = useImportExcel(recargarTabla);
 
-const limpiarFiltros = () => {
-    filtros.value = { search: '', estado: 'todos', grupo: 'todos', procedencia: 'todos' };
-};
-
-const totalPages = computed(() => {
-    const total = pagina.value.total || 0;
-    return total > 0 ? Math.ceil(total / pagination.value.pageSize) : 0;
-});
-
-const cambiarPagina = (page) => {
-    if (page >= 1 && page <= totalPages.value) {
-        fetchPaginado({ page });
-    }
-};
-
-// --- SELECTOR DE GRUPOS DISPONIBLES (EN CASCADA) ---
-const gruposDisponibles = computed(() => {
-    let grupos = authStore.can('ver todos los grupos') ? gruposStore.items : (authStore.user?.grupos || []);
-
-    if (filtros.value.procedencia !== 'todos') {
-        grupos = grupos.filter(g => {
-            if (!g.procedencia) return false;
-            const procNormalizada = g.procedencia.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-            return procNormalizada === filtros.value.procedencia;
-        });
-    }
-    return grupos;
-});
-
-// Si cambia la procedencia, reseteamos el grupo
-watch(() => filtros.value.procedencia, () => {
-    filtros.value.grupo = 'todos';
-});
-
-// --- LÓGICA DE IMPORTACIÓN EXCEL ---
-const fileInputRef = ref(null);
-const isImporting = ref(false);
-const importModalInstance = ref(null);
-let detachImportFocusReturn = () => {};
-
-const initImportModal = () => {
-    const el = document.getElementById('importFormatModal');
-    if (el) {
-        importModalInstance.value = new Modal(el);
-        detachImportFocusReturn = attachModalFocusReturn(el);
-    }
-};
-
-const abrirImportModal = () => importModalInstance.value?.show();
-const triggerImport = () => fileInputRef.value.click();
-
-const handleFileUpload = async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    const allowedExtensions = ['xls', 'xlsx', 'csv'];
-    const fileExtension = file.name.split('.').pop().toLowerCase();
-
-    if (!allowedExtensions.includes(fileExtension)) {
-        showAlerta('Por favor, sube un archivo Excel (.xls, .xlsx) o CSV', 'warning');
-        event.target.value = '';
-        return;
-    }
-
-    importModalInstance.value?.hide();
-    const formData = new FormData();
-    formData.append('archivo', file);
-
-    isImporting.value = true;
-    try {
-        const response = await confirmandosStore.importarExcel(formData);
-        showAlerta(response.message || 'Importación completada con éxito', 'success');
-        recargarTabla();
-    } catch (error) {
-        let errorMsg = 'Error al importar el archivo.';
-        if (error.response?.data?.errors) {
-            const errores = Object.values(error.response.data.errors).flat();
-            errorMsg = errores.join('\n');
-        } else if (error.response?.data?.message) {
-            errorMsg = error.response.data.message;
-        }
-        showAlerta(errorMsg, 'error');
-    } finally {
-        isImporting.value = false;
-        event.target.value = '';
-    }
-};
+const {
+    generadorModalInstance, loadingGenerador, groupNames, stats, estrategiaGrupos, prediccion,
+    initGeneradorModal, abrirGenerador, addGroupInput, removeGroupInput, generarGruposApi,
+    dispose: disposeGenerador,
+} = useGeneradorGrupos();
 
 // --- LÓGICA DE APODERADOS ---
 const apoderadosModalInstance = ref(null);
 const selectedApoderados = ref([]);
 const selectedConfirmandoName = ref('');
 const loadingApoderados = ref(false);
-
-// --- LÓGICA GENERADOR DE GRUPOS ---
-const generadorModalInstance = ref(null);
-const loadingGenerador = ref(false);
-const groupNames = ref(['']);
-const stats = ref({ hombres: 0, mujeres: 0, total: 0 });
-const periodoActual = '2026';
-
-// Criterio del reparto (por corrida, no config persistente).
-const estrategiaGrupos = ref('genero');
-const ESTRATEGIAS = [
-    ['genero', 'Por género'],
-    ['edad', 'Por edad'],
-    ['ninguno', 'Sin criterio'],
-];
-
-let detachGeneradorFocusReturn = () => {};
-
-const initGeneradorModal = () => {
-    const el = document.getElementById('generadorGruposModal');
-    if (el) {
-        generadorModalInstance.value = new Modal(el);
-        detachGeneradorFocusReturn = attachModalFocusReturn(el);
-    }
-};
-
-const abrirGenerador = async () => {
-    // La tabla ya no trae la lista completa (paginación server-side); el
-    // generador sí la necesita entera para calcular quién no tiene grupo, así
-    // que se carga acá, on-demand, solo cuando se abre este modal.
-    if (confirmandos.value.length === 0) {
-        await fetchAllConfirmandos();
-    }
-    if (gruposStore.items.length === 0) {
-        await gruposStore.fetchAll();
-    }
-    if (gruposStore.items.length > 0) {
-        groupNames.value = gruposStore.items.map(g => g.nombre);
-    } else {
-        groupNames.value = ['Grupo Nuevo 1'];
-    }
-    // El reparto solo considera confirmandos EN PREPARACIÓN sin grupo, dentro del
-    // rango de edad configurado (igual que fn_generar_grupos_equitativo). El motor
-    // devuelve luego la lista exacta de no asignados con su motivo.
-    const { min, max } = parroquiaStore.gruposEdad;
-    const edadDe = (iso) => {
-        if (!iso) return null;
-        const h = new Date(), n = new Date(iso + 'T00:00:00');
-        let e = h.getFullYear() - n.getFullYear();
-        if (h.getMonth() < n.getMonth() || (h.getMonth() === n.getMonth() && h.getDate() < n.getDate())) e--;
-        return e;
-    };
-    const enRango = (c) => {
-        const e = edadDe(c.fecha_nacimiento);
-        if (e == null) return true; // sin fecha → el motor lo incluye
-        return (min == null || e >= min) && (max == null || e <= max);
-    };
-    const sinGrupo = confirmandos.value.filter(c => !c.grupo_id && c.estado === 'en_preparacion' && enRango(c));
-    stats.value = {
-        total: sinGrupo.length,
-        hombres: sinGrupo.filter(c => c.genero === 'm' || c.genero === 'M').length,
-        mujeres: sinGrupo.filter(c => c.genero === 'f' || c.genero === 'F').length
-    };
-    generadorModalInstance.value?.show();
-};
-
-const addGroupInput = () => groupNames.value.push(`Grupo Nuevo ${groupNames.value.length + 1}`);
-const removeGroupInput = (index) => {
-    if (groupNames.value.length > 1) groupNames.value.splice(index, 1);
-};
-
-const generarGruposApi = async () => {
-    if (groupNames.value.some(n => n.trim() === '')) return showAlerta('Todos los grupos deben tener nombre', 'warning');
-    if (stats.value.total === 0) return showAlerta('No hay confirmandos sin grupo para asignar.', 'warning');
-
-    loadingGenerador.value = true;
-    try {
-        const response = await gruposStore.generateGroups({
-            nombres_grupos: groupNames.value,
-            periodo: periodoActual,
-            estrategia: estrategiaGrupos.value,
-        });
-        generadorModalInstance.value?.hide();
-
-        const sinAsignar = response.no_asignados ?? [];
-        if (sinAsignar.length > 0) {
-            const lista = sinAsignar
-                .map(c => `• ${c.apellidos}, ${c.nombres} — ${c.motivo}`)
-                .join('\n');
-            showAlerta(
-                `${response.message}\n\n${sinAsignar.length} confirmando(s) quedaron sin grupo:\n${lista}\n\n` +
-                `Ajusta el rango de edad en Configuración o corrige sus datos y vuelve a generar.`,
-                'warning',
-            );
-        } else {
-            showAlerta(response.message, 'success');
-        }
-        // El backend devuelve el mapa de asignaciones: parcheamos la lista en memoria
-        // en vez de re-descargar los ~458 kB de confirmandos.
-        if (response.asignaciones) {
-            confirmandosStore.aplicarAsignaciones(response.asignaciones, response.grupos || []);
-        } else {
-            await fetchAllConfirmandos({ force: true });
-            await fetchPaginado({ force: true });
-        }
-    } catch (error) {
-        console.error("Error en la vista:", error);
-    } finally {
-        loadingGenerador.value = false;
-    }
-};
-
-const prediccion = computed(() => {
-    const numGrupos = groupNames.value.length;
-    if (numGrupos === 0 || stats.value.total === 0) return null;
-    return {
-        hombres: Math.floor(stats.value.hombres / numGrupos),
-        mujeres: Math.floor(stats.value.mujeres / numGrupos),
-        total: Math.floor(stats.value.total / numGrupos)
-    };
-});
 
 // --- FUNCIONES AUXILIARES RESTAURADAS ---
 const abrirCrear = () => {
@@ -365,8 +148,6 @@ const abrirEditar = (id) => {
     pendingConfirmandoId.value = id;
     hasPendingConfirmandoAction.value = true;
 };
-
-const recargarTabla = () => fetchPaginado({ force: true });
 
 const formatGenero = (genero) => {
     if (!genero) return '---';
@@ -423,7 +204,7 @@ const openApoderadosModal = async (confirmando) => {
 let detachApoderadosFocusReturn = () => {};
 
 onMounted(() => {
-    fetchPaginado({ filters: { ...filtros.value } });
+    confirmandosStore.fetchPaginado({ filters: { ...filtros.value } });
 
     if (authStore.can('ver todos los grupos') && gruposStore.items.length === 0) {
         gruposStore.fetchAll().catch(e => console.error(e));
@@ -454,11 +235,9 @@ onMounted(() => {
 
 onUnmounted(() => {
     detachApoderadosFocusReturn();
-    detachGeneradorFocusReturn();
-    detachImportFocusReturn();
     apoderadosModalInstance.value?.dispose();
-    generadorModalInstance.value?.dispose();
-    importModalInstance.value?.dispose();
+    disposeGenerador();
+    disposeImportExcel();
 });
 </script>
 
