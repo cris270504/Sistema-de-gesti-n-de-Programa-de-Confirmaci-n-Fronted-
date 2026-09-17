@@ -9,18 +9,11 @@ import { useParroquiaStore } from '@/stores/parroquia'
 import { useSystemStatusStore } from '@/stores/systemStatus'
 import { supabase } from '@/lib/supabase'
 
-// Heartbeat a Supabase mientras alguien tiene la app abierta: mantiene el
-// proyecto (plan Free) "activo" y evita que se pause por inactividad. NO cubre
-// el caso de que nadie abra la app en ~7 días — para eso hay un pinger externo
-// (ver docs/PLAN-MIGRACION-SUPABASE.md, checklist de cutover).
-const HEALTH_URL = `${import.meta.env.VITE_SUPABASE_URL}/auth/v1/health`
-const HEARTBEAT_INTERVAL_MS = 13 * 60 * 1000 // 13 minutos
-
-let heartbeatId = null
-
-const pingHealth = () => {
-  fetch(HEALTH_URL, { method: 'GET', cache: 'no-store' }).catch(() => {})
-}
+// El keep-alive de Supabase (evitar que el proyecto del plan Free se pause por
+// inactividad) lo hace un pinger externo dedicado (ver
+// docs/PLAN-MIGRACION-SUPABASE.md, checklist de cutover). Antes también se
+// pingueaba desde acá cada 13 min, duplicado: con N pestañas abiertas eran N
+// pings redundantes por cliente para un trabajo que ya cubre el pinger.
 
 // Al volver a la pestaña: traer la config de la parroquia si cambió y revalidar
 // la sesión (si el proveedor desactivó la parroquia, cierra sesión con aviso).
@@ -32,7 +25,6 @@ const onVisible = () => {
 }
 
 onMounted(async () => {
-  heartbeatId = setInterval(pingHealth, HEARTBEAT_INTERVAL_MS)
   document.addEventListener('visibilitychange', onVisible)
 
   // Fase 1 migración Supabase: mantener el token del store sincronizado con la
@@ -62,7 +54,6 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
-  clearInterval(heartbeatId)
   document.removeEventListener('visibilitychange', onVisible)
 })
 </script>
