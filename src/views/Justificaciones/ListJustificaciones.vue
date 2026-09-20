@@ -351,11 +351,9 @@ const rechazarCumplimientoSwal = async (item) => {
 
                                 <td>
                                     <div v-if="item.estado_justificacion !== 'injustificado'">
-                                        <span class="fw-bold text-dark" style="font-size: 0.85rem;">{{ item.motivo }}</span>
-                                        <div class="text-muted text-wrap mt-1" style="font-size: 0.8rem; max-width: 250px;">
-                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-normal">{{ etiquetaAccion(item.tipo_accion) }}</span>
-                                            <span v-if="item.tipo_accion === 'otros' && item.descripcion" class="fst-italic ms-1">"{{ item.descripcion }}"</span>
-                                        </div>
+                                        <span class="fw-bold text-dark" style="font-size: 0.85rem;">{{ etiquetaAccion(item.tipo_accion) }}</span>
+                                        <span v-if="item.tipo_accion === 'otros' && item.descripcion" class="fst-italic text-wrap d-block text-secondary" style="font-size: 0.8rem; max-width: 250px;">"{{ item.descripcion }}"</span>
+                                        <div class="text-muted text-wrap mt-1" style="font-size: 0.75rem; max-width: 250px;">Motivo: {{ item.motivo }}</div>
                                     </div>
                                     <span v-else class="badge bg-light text-muted border fw-normal">Sin tramitar</span>
                                 </td>
@@ -456,8 +454,9 @@ const rechazarCumplimientoSwal = async (item) => {
                             </div>
                             <div v-if="item.estado_justificacion !== 'injustificado'">
                                 <dt>Acción reparadora</dt>
-                                <dd>{{ item.motivo }} — <span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-normal">{{ etiquetaAccion(item.tipo_accion) }}</span>
+                                <dd><span class="fw-bold">{{ etiquetaAccion(item.tipo_accion) }}</span>
                                     <span v-if="item.tipo_accion === 'otros' && item.descripcion" class="text-muted fst-italic"> "{{ item.descripcion }}"</span>
+                                    <span class="d-block text-muted" style="font-size: 0.75rem;">Motivo: {{ item.motivo }}</span>
                                 </dd>
                             </div>
                             <div v-if="item.fecha_acuerdo">
