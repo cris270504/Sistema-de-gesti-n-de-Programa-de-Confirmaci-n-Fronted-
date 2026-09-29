@@ -216,6 +216,17 @@ const handleSubmit = async () => {
     return;
   }
 
+  // handleDateClick ya bloquea el clic en un día pasado, pero el modal se
+  // abre con hoy como fecha inicial y el input de fecha es editable: sin
+  // esto, cambiar el campo a una fecha pasada antes de guardar se saltaba
+  // la validación por completo. Solo aplica al crear: editar una reunión
+  // que ya pasó (por ejemplo, corregir el tema) no debe romperse por esto.
+  const todayStr = new Date().toLocaleDateString('en-CA');
+  if (!isEditing.value && draftDate.value < todayStr) {
+    showAlerta('No puedes agendar actividades en fechas pasadas.', 'warning');
+    return;
+  }
+
   // Asignamos la fecha combinada al draft
   draft.value.fecha = fechaFinal;
 
