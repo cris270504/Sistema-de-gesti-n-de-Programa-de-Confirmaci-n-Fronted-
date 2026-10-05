@@ -14,7 +14,7 @@
  *                   primary (accent), info, warning, danger, success, secondary, suggest
  * Row actions use `icon-only` + `aria-label`; icon markup can be passed in the slot.
  */
-import { computed } from 'vue'
+import { computed, useAttrs } from 'vue'
 import { RouterLink } from 'vue-router'
 
 defineOptions({ inheritAttrs: false })
@@ -53,6 +53,14 @@ const tag = computed(() => {
   if (!isLink.value) return 'button'
   return inactive.value ? 'span' : RouterLink
 })
+// Un <button> deshabilitado ya bloquea sus eventos de forma nativa; el <span> inerte no,
+// así que en ese caso se descartan los listeners del padre (onClick, onKeydown…) y se
+// conservan los demás atributos (title, data-*, class…).
+const attrs = useAttrs()
+const boundAttrs = computed(() => {
+  if (!(isLink.value && inactive.value)) return attrs
+  return Object.fromEntries(Object.entries(attrs).filter(([key]) => !/^on[A-Z]/.test(key)))
+})
 const iconSize = computed(() => (props.size === 'sm' ? 14 : 16))
 
 const toneClass = computed(() => {
@@ -77,7 +85,7 @@ const classes = computed(() => [
 <template>
   <component
     :is="tag"
-    v-bind="$attrs"
+    v-bind="boundAttrs"
     :to="isLink && !inactive ? to : undefined"
     :type="isLink ? undefined : type"
     :class="classes"

@@ -163,6 +163,22 @@ describe('AppButton', () => {
     expect(w.attributes('aria-disabled')).toBe('true')
   })
 
+  it('inactive link does not forward parent listeners but keeps other attrs', async () => {
+    const onClick = vi.fn()
+    const onKeydown = vi.fn()
+    const w = mount(AppButton, {
+      props: { to: '/x', disabled: true },
+      attrs: { onClick, onKeydown, title: 'No disponible', 'data-test': 'link' },
+      global: { stubs: { RouterLink: RouterLinkStub } },
+    })
+    await w.trigger('click')
+    await w.trigger('keydown', { key: 'Enter' })
+    expect(onClick).not.toHaveBeenCalled()
+    expect(onKeydown).not.toHaveBeenCalled()
+    expect(w.attributes('title')).toBe('No disponible')
+    expect(w.attributes('data-test')).toBe('link')
+  })
+
   it('enabled link mode still renders the router-link', () => {
     const w = mount(AppButton, { props: { to: '/x' }, global: { stubs: { RouterLink: RouterLinkStub } } })
     expect(w.findComponent(RouterLinkStub).props('to')).toBe('/x')
