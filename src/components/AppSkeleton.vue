@@ -1,5 +1,5 @@
 <script setup>
-/** Esqueleto de carga reutilizable. 'table' | 'cards' | 'form'. */
+/** Esqueleto de carga reutilizable. 'table' | 'cards' | 'form' | 'lines' (bloque corto dentro de un modal). */
 defineProps({
   skeleton: { type: String, default: 'table' },
 })
@@ -13,6 +13,12 @@ defineProps({
         <div class="sk-line"></div>
         <div class="sk-line sk-line--short"></div>
       </div>
+    </div>
+
+    <div v-else-if="skeleton === 'lines'" class="sk-lines">
+      <div class="sk-line"></div>
+      <div class="sk-line"></div>
+      <div class="sk-line sk-line--short"></div>
     </div>
 
     <div v-else-if="skeleton === 'form'" class="sk-card sk-card--form">
@@ -34,16 +40,17 @@ defineProps({
 </template>
 
 <style scoped>
+.sk-lines { display: grid; gap: .6rem; padding: .25rem 0; }
 .sk { animation: sk-pulse 1.4s ease-in-out infinite; }
 @keyframes sk-pulse { 0%, 100% { opacity: 1 } 50% { opacity: .55 } }
 
 .sk-card {
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
   padding: 1rem 1.25rem;
 }
-.sk-line { height: 12px; border-radius: 6px; background: #e5e7eb; }
+.sk-line { height: 12px; border-radius: var(--radius-sm); background: var(--line); }
 .sk-line + .sk-line { margin-top: .6rem; }
 .sk-line--title { height: 16px; width: 45%; }
 .sk-line--short { width: 60%; }
@@ -60,18 +67,18 @@ defineProps({
   grid-template-columns: repeat(5, 1fr);
   gap: 1rem;
   padding: .85rem 1.25rem;
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid var(--line);
 }
 .sk-row .sk-line { margin: 0; }
-.sk-row--head { border-top: 0; background: #f8fafc; }
+.sk-row--head { border-top: 0; background: var(--surface-sunken); }
 .sk-row--head .sk-line { background: #d8dee9; }
 
 :root[data-bs-theme="dark"] .sk-card {
-  border-color: #334155;
-  background: #1e293b;
+  border-color: var(--line);
+  background: var(--surface);
 }
-:root[data-bs-theme="dark"] .sk-line { background: #334155; }
-:root[data-bs-theme="dark"] .sk-row { border-top-color: #334155; }
-:root[data-bs-theme="dark"] .sk-row--head { background: #0f172a; }
-:root[data-bs-theme="dark"] .sk-row--head .sk-line { background: #475569; }
+:root[data-bs-theme="dark"] .sk-line { background: var(--line); }
+:root[data-bs-theme="dark"] .sk-row { border-top-color: var(--line); }
+:root[data-bs-theme="dark"] .sk-row--head { background: var(--surface-sunken); }
+:root[data-bs-theme="dark"] .sk-row--head .sk-line { background: var(--line-strong); }
 </style>

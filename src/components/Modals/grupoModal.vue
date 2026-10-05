@@ -1,4 +1,6 @@
 <script setup>
+import AppSkeleton from '@/components/AppSkeleton.vue'
+import AppButton from '@/components/AppButton.vue'
 import { onMounted, onUnmounted, ref, computed } from 'vue';
 import { useGruposStore } from '../../stores/grupos';
 import { useParroquiaStore } from '@/stores/parroquia';
@@ -135,27 +137,26 @@ async function submitUpdate() {
       <div class="modal-content">
 
         <div class="modal-header">
-          <div>
-            <h5 class="modal-title fw-bold">
-              <component :is="isEditing ? SquarePen : Layers" class="h-5 w-5 me-2 d-inline-block align-text-bottom" aria-hidden="true" />
-              {{ title }}
-            </h5>
-            <p class="small mb-0">Gestión de grupos pastorales.</p>
+          <span class="modal-header__icon" aria-hidden="true">
+            <component :is="isEditing ? SquarePen : Layers" :size="18" />
+          </span>
+          <div class="modal-header__text">
+            <h5 class="modal-title">{{ title }}</h5>
+            <p class="modal-subtitle">Gestión de grupos pastorales.</p>
           </div>
           <button type="button" class="btn-close" @click="close" aria-label="Cerrar"></button>
         </div>
 
         <div class="modal-body">
-          <div v-if="loading && isEditing" class="text-center py-5">
-            <div class="spinner-border text-primary" role="status"></div>
-            <p class="mt-2 text-muted fw-medium">Cargando...</p>
+          <div v-if="loading && isEditing" role="status" aria-live="polite" aria-label="Cargando grupo">
+            <AppSkeleton skeleton="form" />
           </div>
 
           <form v-else @submit.prevent="submitUpdate" id="grupoForm" class="needs-validation">
             <div class="row g-4">
 
               <div class="col-12">
-                <label for="grupoNombre" class="form-label fw-bold text-secondary small text-uppercase">Nombre del
+                <label for="grupoNombre" class="form-label fw-bold text-secondary small">Nombre del
                   Grupo</label>
                 <div class="input-group">
                   <span class="input-group-text bg-blue-soft text-primary border-end-0">
@@ -168,7 +169,7 @@ async function submitUpdate() {
 
               <div v-if="parroquiaStore.usaProcedencia" class="col-12">
                 <label for="grupoProcedencia"
-                  class="form-label fw-bold text-secondary small text-uppercase">Procedencia</label>
+                  class="form-label fw-bold text-secondary small">Procedencia</label>
                 <div class="input-group">
                   <span class="input-group-text bg-blue-soft text-primary border-end-0">
                     <MapPin class="h-4 w-4" aria-hidden="true" />
@@ -183,7 +184,7 @@ async function submitUpdate() {
               </div>
 
               <div class="col-12">
-                <label for="grupoPeriodo" class="form-label fw-bold text-secondary small text-uppercase">Periodo</label>
+                <label for="grupoPeriodo" class="form-label fw-bold text-secondary small">Periodo</label>
                 <div class="input-group">
                   <span class="input-group-text bg-blue-soft text-primary border-end-0">
                     <CalendarRange class="h-4 w-4" aria-hidden="true" />
@@ -194,7 +195,7 @@ async function submitUpdate() {
               </div>
 
               <div class="col-12">
-                <label for="grupoColor" class="form-label fw-bold text-secondary small text-uppercase">Color
+                <label for="grupoColor" class="form-label fw-bold text-secondary small">Color
                   Identificativo</label>
                 <div class="d-flex align-items-center gap-3 p-3 bg-white border rounded-3">
                   <input type="color" class="form-control form-control-color border-0 p-0 shadow-sm" id="grupoColor"
@@ -219,19 +220,9 @@ async function submitUpdate() {
           </form>
         </div>
 
-        <div class="modal-footer bg-light-subtle">
-          <button type="button" class="btn btn-outline-secondary px-4 fw-medium border-0" @click="close"
-            :disabled="saving">
-            Cancelar
-          </button>
-          <button type="submit" form="grupoForm" class="btn btn-primary px-4 fw-medium shadow-sm" :disabled="saving">
-            <template v-if="saving">
-              <span class="spinner-border spinner-border-sm me-2"></span>
-            </template>
-            <template v-else>
-              <Check class="h-4 w-4 me-1" aria-hidden="true" /> Guardar
-            </template>
-          </button>
+        <div class="modal-footer">
+          <AppButton variant="secondary" type="button" @click="close" :disabled="saving">Cancelar</AppButton>
+          <AppButton type="submit" form="grupoForm" :icon="Check" :loading="saving">Guardar</AppButton>
         </div>
 
       </div>
@@ -251,30 +242,30 @@ async function submitUpdate() {
 /* INPUTS */
 
 .form-control {
-  background-color: #ffffff;
-  border: 1px solid #cbd5e1;
+  background-color: var(--surface);
+  border: 1px solid var(--line-strong);
   padding: 0.6rem 1rem;
-  font-size: 0.95rem;
-  color: #334155;
+  font-size: var(--fs-base);
+  color: var(--text);
   border-left: none;
 }
 
 .bg-blue-soft {
-  background-color: #eff6ff !important;
-  border: 1px solid #cbd5e1;
+  background-color: var(--accent-soft) !important;
+  border: 1px solid var(--line-strong);
   border-right: none;
-  color: #2563eb !important;
+  color: var(--accent) !important;
 }
 
 /* Focus State */
 .input-group:focus-within {
-  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
-  border-radius: 0.375rem;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 15%, transparent);
+  border-radius: var(--radius-sm);
 }
 
 .input-group:focus-within .form-control,
 .input-group:focus-within .bg-blue-soft {
-  border-color: #2563eb;
+  border-color: var(--accent);
 }
 
 /* Estilo especial para el color picker */
@@ -296,43 +287,15 @@ async function submitUpdate() {
   padding: 0;
 }
 
-/* 4. FOOTER */
-.modal-footer {
-  padding: 1rem 2rem 1.5rem;
-  border-top: 1px solid #e2e8f0;
-}
-
-.btn-primary {
-  background-color: #2563eb;
-  border-color: #2563eb;
-  padding: 0.6rem 1.5rem;
-}
-
-.btn-primary:hover {
-  background-color: #1d4ed8;
-}
-
-.btn-outline-secondary:hover {
-  background-color: #f1f5f9;
-  color: #0f172a;
-}
-
 /* ===== MODO OSCURO ===== */
 :root[data-bs-theme="dark"] .form-control {
-  background-color: #0f172a;
-  border-color: #475569;
-  color: #e2e8f0;
+  background-color: var(--surface-sunken);
+  border-color: var(--line-strong);
+  color: var(--text);
 }
 :root[data-bs-theme="dark"] .bg-blue-soft {
   background-color: #1e2547 !important;
-  border-color: #475569;
+  border-color: var(--line-strong);
   color: #93c5fd !important;
-}
-:root[data-bs-theme="dark"] .modal-footer {
-  border-top-color: #334155;
-}
-:root[data-bs-theme="dark"] .btn-outline-secondary:hover {
-  background-color: #334155;
-  color: #f1f5f9;
 }
 </style>

@@ -93,7 +93,7 @@ onUnmounted(() => { document.body.style.overflow = '' })
 .main-content {
     flex: 1;
     padding: 0.75rem;
-    background-color: #f9fafb;
+    background-color: var(--surface-sunken);
     /* Móvil: la página hace scroll normal; el scroll propio es solo de escritorio. */
     overflow-y: visible;
 }
@@ -105,7 +105,7 @@ onUnmounted(() => { document.body.style.overflow = '' })
 .app-footer {
     flex-shrink: 0;
     border-top: 1px solid #eef2f6;
-    background: #fff;
+    background: var(--surface);
     padding: 10px 14px;
 }
 
@@ -114,11 +114,11 @@ onUnmounted(() => { document.body.style.overflow = '' })
 }
 
 :root[data-bs-theme="dark"] .main-content {
-    background-color: #0f172a;
+    background-color: var(--surface-sunken);
 }
 :root[data-bs-theme="dark"] .app-footer {
-    background: #1e293b;
-    border-top-color: #334155;
+    background: var(--surface);
+    border-top-color: var(--line);
 }
 
 /* ===== Móvil / tablet: barra lateral como cajón ===== */
@@ -132,7 +132,7 @@ onUnmounted(() => { document.body.style.overflow = '' })
         width: min(288px, 84vw);
         transform: translateX(-100%);
         transition: transform 0.25s ease;
-        box-shadow: 0 10px 40px rgba(15, 23, 42, 0.18);
+        box-shadow: var(--shadow-lg);
     }
 
     .sidebar-host--open {

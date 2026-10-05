@@ -1,4 +1,6 @@
 <script setup>
+import AppEmpty from '@/components/AppEmpty.vue'
+import AppButton from '@/components/AppButton.vue'
 import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { Modal } from 'bootstrap';
 import { FileText, CheckCircle, Clock } from 'lucide-vue-next';
@@ -87,19 +89,21 @@ defineExpose({ open, hide });
 <template>
     <div class="modal fade" id="requisitosModal" tabindex="-1" aria-hidden="true" ref="modalElement">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow-lg rounded-4">
-                <div class="modal-header py-3 flex justify-between items-center">
-                    <h5 class="modal-title flex items-center !gap-2 !m-0 fs-6">
-                        <FileText :size="18"/> Documentos de {{ docDraft.nombre }}
-                    </h5>
-                    <button type="button" class="btn-close shadow-none" @click="hide" aria-label="Cerrar"></button>
+            <div class="modal-content">
+                <div class="modal-header">
+                  <span class="modal-header__icon" aria-hidden="true"><FileText :size="18" /></span>
+                  <div class="modal-header__text">
+                    <h5 class="modal-title">Documentos</h5>
+                    <p class="modal-subtitle">Documentos requeridos de {{ docDraft.nombre }}</p>
+                  </div>
+                  <button type="button" class="btn-close" @click="hide" aria-label="Cerrar"></button>
                 </div>
 
                 <div class="modal-body p-0">
                     <div class="divide-y divide-gray-100">
                         <div v-for="req in docDraft.requisitos" :key="req.id" class="!p-3 flex justify-between items-center">
 
-                            <span :class="req.pivot.estado === 'entregado' ? 'text-green-600 font-bold' : 'text-gray-800'">
+                            <span :class="req.pivot.estado === 'entregado' ? 'text-green-600 font-bold' : 'text-gray-800 dark:text-gray-100'">
                                 {{ req.nombre }}
                             </span>
 
@@ -122,23 +126,19 @@ defineExpose({ open, hide });
 
                         </div>
 
-                        <div v-if="docDraft.requisitos.length === 0" class="!p-4 !text-center text-gray-500 text-sm">
-                            <FileText :size="24" class="text-gray-400 !mb-2 opacity-50 mx-auto"/>
-                            <p class="!mb-0">No hay documentos requeridos registrados para este confirmando.</p>
-                        </div>
+                        <AppEmpty v-if="docDraft.requisitos.length === 0" compact :icon="FileText"
+                            message="Aún no hay documentos requeridos para este confirmando." />
                     </div>
                 </div>
 
                 <!-- Solo mostramos el footer y el botón de guardar al Admin -->
-                <div class="modal-footer border-0 bg-light rounded-bottom-4 justify-center" v-if="canEditRequisitos">
-                    <button class="btn-primary !rounded-full !px-5 !shadow-sm" @click="handleSave" :disabled="savingDocs">
-                        <span v-if="savingDocs" class="spinner-border spinner-border-sm !mr-2"></span>
-                        Guardar Registro
-                    </button>
+                <div class="modal-footer" v-if="canEditRequisitos">
+                    <AppButton variant="secondary" :disabled="savingDocs" @click="hide">Cancelar</AppButton>
+                    <AppButton :loading="savingDocs" @click="handleSave">Guardar registro</AppButton>
                 </div>
                 <!-- Para el catequista mostramos un footer simple de cierre -->
-                <div class="modal-footer border-0 bg-light rounded-bottom-4" v-else>
-                    <button class="btn-outline !rounded-full !px-4 text-sm" @click="hide">Cerrar</button>
+                <div class="modal-footer" v-else>
+                    <AppButton variant="ghost" @click="hide">Cerrar</AppButton>
                 </div>
             </div>
         </div>

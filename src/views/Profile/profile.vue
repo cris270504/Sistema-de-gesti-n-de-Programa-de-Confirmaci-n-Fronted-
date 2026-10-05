@@ -1,4 +1,5 @@
 <script setup>
+import AppButton from '@/components/AppButton.vue'
 import { ref, onMounted } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { showAlerta, showErroresDeValidacion } from '@/funciones';
@@ -104,11 +105,7 @@ async function submitPassword() {
                     </label>
 
                     <div class="prof-actions">
-                        <button type="submit" class="btn-primary" :disabled="savingProfile">
-                            <span v-if="savingProfile" class="spinner-border spinner-border-sm mr-1.5"></span>
-                            <Save v-else :size="16" class="mr-1.5" />
-                            <span class="text-sm">{{ savingProfile ? 'Guardando…' : 'Guardar cambios' }}</span>
-                        </button>
+                        <AppButton :icon="Save" :loading="savingProfile" type="submit">{{ savingProfile ? 'Guardando…' : 'Guardar cambios' }}</AppButton>
                     </div>
                 </form>
             </section>
@@ -138,11 +135,7 @@ async function submitPassword() {
                     </label>
 
                     <div class="prof-actions">
-                        <button type="submit" class="btn-success" :disabled="savingPassword">
-                            <span v-if="savingPassword" class="spinner-border spinner-border-sm mr-1.5"></span>
-                            <ShieldCheck v-else :size="16" class="mr-1.5" />
-                            <span class="text-sm">{{ savingPassword ? 'Actualizando…' : 'Actualizar contraseña' }}</span>
-                        </button>
+                        <AppButton :icon="ShieldCheck" :loading="savingPassword" type="submit">{{ savingPassword ? 'Actualizando…' : 'Actualizar contraseña' }}</AppButton>
                     </div>
                 </form>
             </section>
@@ -165,7 +158,7 @@ async function submitPassword() {
     gap: 0.6rem;
     padding-bottom: 0.9rem;
     margin-bottom: 1.1rem;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid var(--line);
 }
 .prof-head__icon {
     display: inline-flex;
@@ -173,14 +166,14 @@ async function submitPassword() {
     justify-content: center;
     width: 34px;
     height: 34px;
-    border-radius: 8px;
-    background: #eff6ff;
-    color: var(--parroquia-color, #2563eb);
+    border-radius: var(--radius-md);
+    background: var(--accent-soft);
+    color: var(--accent);
 }
 .prof-head__title {
-    font-size: 1.05rem;
+    font-size: var(--fs-base);
     font-weight: 700;
-    color: #1e293b;
+    color: var(--text);
 }
 
 .prof-form {
@@ -194,25 +187,25 @@ async function submitPassword() {
     gap: 0.35rem;
 }
 .prof-field > span {
-    font-size: 0.8rem;
+    font-size: var(--fs-sm);
     font-weight: 600;
-    color: #64748b;
+    color: var(--text-muted);
 }
 .prof-field em {
     color: #dc2626;
     font-style: normal;
 }
 .prof-field small {
-    font-size: 0.78rem;
-    color: #94a3b8;
+    font-size: var(--fs-xs);
+    color: var(--text-muted);
 }
 
 .prof-note {
-    font-size: 0.82rem;
-    color: #64748b;
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
+    font-size: var(--fs-sm);
+    color: var(--text-muted);
+    background: var(--surface-sunken);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
     padding: 0.7rem 0.85rem;
 }
 

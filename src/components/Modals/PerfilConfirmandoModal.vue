@@ -1,7 +1,8 @@
 <script setup>
+import AppEmpty from '@/components/AppEmpty.vue'
 import { ref, nextTick, onUnmounted } from 'vue';
 import { useConfirmandosStore } from '@/stores/confirmandos'; // Ajusta la ruta de tu store
-import { Phone, Users } from 'lucide-vue-next'; // Íconos que usamos en el diseño
+import { Phone, Users, CalendarX } from 'lucide-vue-next'; // Íconos que usamos en el diseño
 import { showAlerta } from '@/funciones'; // Ajusta la ruta de tus alertas
 
 const confirmandosStore = useConfirmandosStore();
@@ -127,7 +128,7 @@ defineExpose({ abrir });
                     </header>
 
                     <section class="p-4 overflow-y-auto" aria-label="Detalle de asistencia y contacto">
-                        <h6 class="text-uppercase text-muted fw-bold mb-3" style="font-size: 0.75rem;">Resumen de Asistencia General</h6>
+                        <h6 class="text-muted fw-bold mb-3" style="font-size: 0.75rem;">Resumen de Asistencia General</h6>
                         
                         <div class="row g-2 mb-4">
                             <div class="col-6 col-md-3">
@@ -158,7 +159,7 @@ defineExpose({ abrir });
 
                         <div class="row mb-4 perfil-fila">
                             <div class="col-md-6 mb-3 mb-md-0">
-                                <h6 class="text-uppercase text-muted fw-bold mb-2" style="font-size: 0.75rem;">Contacto / Apoderado</h6>
+                                <h6 class="text-muted fw-bold mb-2" style="font-size: 0.75rem;">Contacto / Apoderado</h6>
                                 <div v-if="perfilActivo.apoderado" class="bg-light p-3 rounded-3 border">
                                     <div class="fw-bold text-dark">{{ perfilActivo.apoderado.nombres }} {{ perfilActivo.apoderado.apellidos }}</div>
                                     <div class="text-muted small mt-1 d-flex align-items-center">
@@ -171,14 +172,14 @@ defineExpose({ abrir });
                             </div>
 
                             <div class="col-md-6">
-                                <h6 class="text-uppercase text-muted fw-bold mb-2" style="font-size: 0.75rem;">Sacramentos Faltantes</h6>
+                                <h6 class="text-muted fw-bold mb-2" style="font-size: 0.75rem;">Sacramentos Faltantes</h6>
                                 <div class="bg-light p-3 rounded-3 border h-100 d-flex align-items-center">
                                     <span class="text-dark fw-medium">{{ perfilActivo.joven.sacramentos_faltantes }}</span>
                                 </div>
                             </div>
                         </div>
 
-                        <h6 id="historialAsistenciasLabel" class="text-uppercase text-muted fw-bold mb-2" style="font-size: 0.75rem;">Historial Completo de Asistencias</h6>
+                        <h6 id="historialAsistenciasLabel" class="text-muted fw-bold mb-2" style="font-size: 0.75rem;">Historial Completo de Asistencias</h6>
                         <div class="border rounded-3 overflow-x-auto cards-sm">
                             <table class="table table-sm table-hover mb-0" aria-labelledby="historialAsistenciasLabel">
                                 <caption class="visually-hidden">Historial completo de asistencias del confirmando</caption>
@@ -191,19 +192,13 @@ defineExpose({ abrir });
                                 </thead>
                                 <tbody>
                                     <tr v-if="perfilActivo.historial_asistencias.length === 0">
-                                        <td colspan="3" class="text-center text-muted fst-italic py-3">No hay registros de asistencia.</td>
+                                        <td colspan="3"><AppEmpty compact :icon="CalendarX" message="Aún no hay registros de asistencia." /></td>
                                     </tr>
                                     <tr v-for="(registro, index) in perfilActivo.historial_asistencias" :key="index">
                                         <td class="ps-3 fw-medium small">{{ formatFechaFalta(registro.fecha) }}</td>
                                         <td class="small text-truncate" style="max-width: 200px;" :title="registro.tema">{{ registro.tema }}</td>
                                         <td class="text-end pe-3">
-                                            <span class="badge text-uppercase" :class="{
-                                                'bg-success text-white': registro.estado === 'asistio' || registro.estado === 'asistió',
-                                                'bg-warning text-dark': registro.estado === 'tardanza',
-                                                'bg-danger text-white': registro.estado === 'falta injustificada',
-                                                'bg-info text-white': registro.estado === 'falta justificada',
-                                                'bg-warning-subtle text-warning-emphasis border border-warning': registro.justificacion_estado === 'pendiente'
-                                            }">
+                                            <span class="badge" :class="{ 'bg-success text-white': registro.estado === 'asistio' || registro.estado === 'asistió', 'bg-warning text-dark': registro.estado === 'tardanza', 'bg-danger text-white': registro.estado === 'falta injustificada', 'bg-info text-white': registro.estado === 'falta justificada', 'bg-warning-subtle text-warning-emphasis border border-warning': registro.justificacion_estado === 'pendiente' }">
                                                 {{ registro.justificacion_estado === 'pendiente' ? 'Pendiente' : (registro.estado === 'asistio' ? 'Asistió' : registro.estado) }}
                                             </span>
                                         </td>
@@ -306,7 +301,7 @@ defineExpose({ abrir });
     .cards-sm td:nth-child(2) {
         grid-column: 1 / -1;
         grid-row: 2;
-        color: #64748b;
+        color: var(--text-muted);
     }
 }
 </style>

@@ -1,4 +1,5 @@
 <script setup>
+import AppButton from '@/components/AppButton.vue'
 import { ref } from 'vue'
 import { Wrench, LogOut, RefreshCw } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
@@ -31,24 +32,10 @@ const reintentar = async () => {
     <p class="text-muted small mb-5">Tu sesión sigue activa: no hace falta que vuelvas a iniciar sesión.</p>
 
     <div class="d-flex flex-column align-items-center gap-3">
-      <button @click="reintentar" class="btn btn-warning px-4 py-2 d-inline-flex align-items-center justify-content-center gap-2"
-        style="min-width: 180px;" :disabled="reintentando">
-        <RefreshCw :size="16" :class="{ 'icon-spin': reintentando }" />
+      <AppButton :icon="RefreshCw" :loading="reintentando" style="min-width: 180px;" @click="reintentar">
         {{ reintentando ? 'Comprobando…' : 'Reintentar' }}
-      </button>
-      <button @click="auth.logout()" class="btn btn-link text-secondary text-decoration-none d-inline-flex align-items-center gap-2">
-        <LogOut :size="15" />Cerrar sesión
-      </button>
+      </AppButton>
+      <AppButton variant="ghost" :icon="LogOut" @click="auth.logout()">Cerrar sesión</AppButton>
     </div>
   </div>
 </template>
-
-<style scoped>
-.icon-spin {
-  animation: icon-spin-rotate 0.8s linear infinite;
-}
-@keyframes icon-spin-rotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-</style>

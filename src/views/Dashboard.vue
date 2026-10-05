@@ -1,4 +1,6 @@
 <script setup>
+import AppEmpty from '@/components/AppEmpty.vue'
+import AppButton from '@/components/AppButton.vue'
 import { storeToRefs } from 'pinia';
 import { onMounted, computed, ref, watch } from 'vue';
 
@@ -8,7 +10,7 @@ import { useDashboardStore } from '../stores/dashboard';
 import { useReunionesStore } from '../stores/reunions';
 import { useConfirmandosStore } from '../stores/confirmandos';
 
-import { Calendar, MessagesSquare, TriangleAlert, Clock, MapPin, CircleAlert, User, Instagram, Facebook, MessageCircle } from 'lucide-vue-next';
+import { Calendar, MessagesSquare, TriangleAlert, Clock, MapPin, CircleAlert, User, Instagram, Facebook, MessageCircle, CircleCheck } from 'lucide-vue-next';
 import PerfilConfirmandoModal from '@/components/Modals/PerfilConfirmandoModal.vue';
 import AppPage from '@/components/AppPage.vue';
 import AppSkeleton from '@/components/AppSkeleton.vue';
@@ -20,6 +22,9 @@ const esMovil = useMediaQuery('(max-width: 767px)');
 const authStore = useAuthStore();
 const parroquiaStore = useParroquiaStore();
 const esGestor = authStore.can('ver usuarios');
+
+// Subtítulo del panel: programa de la parroquia + año en curso (sin año fijo en el código).
+const subtituloPanel = computed(() => `Programa de ${parroquiaStore.programaNombre} · ${new Date().getFullYear()}`);
 
 // Un KPI se muestra si el usuario tiene el permiso Y la parroquia lo dejó activo
 // en Configuración (parroquiaStore.dashboardKpis). La config puede ocultar, nunca revelar.
@@ -104,29 +109,15 @@ const confirmarRetiroJoven = async (joven) => {
 </script>
 
 <template>
-  <AppPage :wide="true">
-    <!-- HEADER COMPACTO -->
-    <header class="row mb-4 align-items-center g-3">
-      <div class="col-md-auto">
-        <img src="@/assets/logo.png" alt="Logo" class="d-none d-md-block" style="height: 120px; width: auto;" />
-      </div>
-      <div class="col-md">
-        <h1 class="h4 mb-0 fw-bold">Panel de Control <span class="fw-normal text-muted fs-6">/ Confirmación 2026</span>
-        </h1>
-        <div class="d-flex gap-3 mt-1">
-          <a href="https://www.instagram.com/confirmacion_scj/" target="_blank"
-            class="text-danger small text-decoration-none d-inline-flex align-items-center gap-1">
-            <Instagram :size="14" aria-hidden="true" />Instagram</a>
-          <a href="https://www.facebook.com/profile.php?id=61588086533946" target="_blank"
-            class="text-primary small text-decoration-none d-inline-flex align-items-center gap-1">
-            <Facebook :size="14" aria-hidden="true" />Facebook</a>
-        </div>
-      </div>
-      <div class="col-md-auto ms-auto text-end">
-        <span class="badge bg-white text-primary border border-primary-subtle px-3 py-2 rounded-pill shadow-sm">Periodo
-          Activo</span>
-      </div>
-    </header>
+  <AppPage title="Panel de control" :subtitle="subtituloPanel" :wide="true">
+    <template #actions>
+      <a href="https://www.instagram.com/confirmacion_scj/" target="_blank" rel="noopener noreferrer"
+        class="dash-social" aria-label="Instagram de la parroquia">
+        <Instagram :size="16" aria-hidden="true" />Instagram</a>
+      <a href="https://www.facebook.com/profile.php?id=61588086533946" target="_blank" rel="noopener noreferrer"
+        class="dash-social" aria-label="Facebook de la parroquia">
+        <Facebook :size="16" aria-hidden="true" />Facebook</a>
+    </template>
 
     <div class="row g-4">
       <!-- COLUMNA PRINCIPAL (IZQUIERDA) -->
@@ -182,7 +173,7 @@ const confirmarRetiroJoven = async (joven) => {
           </div>
           <div v-else-if="!esMovil" class="table-responsive cards-sm">
             <table class="table table-hover align-middle mb-0">
-              <thead class="bg-light text-muted small text-uppercase">
+              <thead class="bg-light text-muted small">
                 <tr>
                   <th class="ps-4">Nombre</th>
                   <th>Situación</th>
@@ -197,22 +188,21 @@ const confirmarRetiroJoven = async (joven) => {
                   <td class="ps-4">
                     <!-- ➔ NUEVO: Contenedor flexible para alinear el botón y el nombre -->
                     <div class="d-flex align-items-start gap-2">
-                      <button @click="perfilModalRef.abrir(c.id)"
-                        class="btn btn-sm btn-light text-secondary rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 mt-1"
-                        style="width: 28px; height: 28px;" title="Ver Ficha Completa">
-                        <User :size="14" />
-                      </button>
+                      <AppButton
+                        variant="secondary"
+                        size="sm"
+                        icon-only
+                        class="flex-shrink-0 mt-1"
+                        @click="perfilModalRef.abrir(c.id)"
+                        title="Ver Ficha Completa"
+                        aria-label="Ver Ficha Completa"><User :size="14" /></AppButton>
 
                       <div>
                         <div class="fw-bold fs-6">
                           {{ c.nombre_completo }}
                         </div>
                         <span v-if="esGestor">{{ c.grupo || 'Sin grupo' }}</span>
-                        <div class="small mt-0.5" :class="{
-                          'text-danger fw-semibold': c.nivel_riesgo === 'ALTO',
-                          'text-warning-custom': c.nivel_riesgo === 'MEDIO',
-                          'text-muted': c.nivel_riesgo === 'BAJO'
-                        }">
+                        <div class="small mt-0.5" :class="{ 'text-danger fw-semibold': c.nivel_riesgo === 'ALTO', 'text-warning-custom': c.nivel_riesgo === 'MEDIO', 'text-muted': c.nivel_riesgo === 'BAJO' }">
                           {{ c.motivo_alerta }}
                         </div>
                       </div>
@@ -240,22 +230,22 @@ const confirmarRetiroJoven = async (joven) => {
                     </a>
                   </td>
                   <td v-if="puedeRetirar && (c.injustificadas_seguidas >= 3 || c.total_faltas_injustificadas >= 5)" class="text-center">
-                    <button type="button" @click="confirmarRetiroJoven(c)"
-                      class="btn btn-sm btn-link p-1 rounded-circle hover-danger-btn d-inline-flex align-items-center justify-content-center"
-                      style="width: 32px; height: 32px;" title="Dar de baja y retirar del programa">
-                      <CircleAlert class="h-5 w-5 text-danger" />
-                    </button>
+                    <AppButton
+                      variant="soft"
+                      tone="danger"
+                      size="sm"
+                      icon-only
+                      type="button"
+                      @click="confirmarRetiroJoven(c)"
+                      title="Dar de baja y retirar del programa"
+                      aria-label="Dar de baja y retirar del programa"><CircleAlert class="h-5 w-5 text-danger" /></AppButton>
                   </td>
                 </tr>
                 <!-- Mensaje si no hay alertas -->
                 <tr v-if="alertasFiltradas.length === 0">
-                  <td colspan="4" class="text-center py-4 text-muted">
-                    <template v-if="grupoFiltro !== 'todos'">
-                      No hay alertas críticas en <strong>{{ grupoFiltro }}</strong> en este momento.
-                    </template>
-                    <template v-else>
-                      Todo en orden. No hay alertas críticas en este momento.
-                    </template>
+                  <td colspan="4">
+                    <AppEmpty compact :icon="CircleCheck"
+                      :message="grupoFiltro !== 'todos' ? `No hay alertas críticas en ${grupoFiltro} en este momento.` : 'Todo en orden: no hay alertas críticas en este momento.'" />
                   </td>
                 </tr>
               </tbody>
@@ -264,31 +254,34 @@ const confirmarRetiroJoven = async (joven) => {
 
           <!-- Tarjetas en móvil -->
           <div v-else class="dash-cards">
-            <div v-if="alertasFiltradas.length === 0" class="text-center py-4 text-muted">
-              Todo en orden. No hay alertas críticas.
-            </div>
+            <AppEmpty v-if="alertasFiltradas.length === 0" compact :icon="CircleCheck"
+              message="Todo en orden: no hay alertas críticas." />
             <article v-for="c in alertasFiltradas" :key="c.id" class="dash-card">
               <div class="dash-card__top">
-                <button @click="perfilModalRef.abrir(c.id)"
-                  class="btn btn-sm btn-light text-secondary rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
-                  style="width: 30px; height: 30px;" title="Ver ficha">
-                  <User :size="14" />
-                </button>
+                <AppButton
+                  variant="secondary"
+                  size="sm"
+                  icon-only
+                  class="flex-shrink-0"
+                  @click="perfilModalRef.abrir(c.id)"
+                  title="Ver ficha"
+                  aria-label="Ver ficha"><User :size="14" /></AppButton>
                 <div class="flex-grow-1">
                   <div class="fw-bold">{{ c.nombre_completo }}</div>
                   <div v-if="esGestor" class="small text-muted">{{ c.grupo || 'Sin grupo' }}</div>
-                  <div class="small mt-1" :class="{
-                    'text-danger fw-semibold': c.nivel_riesgo === 'ALTO',
-                    'text-warning-custom': c.nivel_riesgo === 'MEDIO',
-                    'text-muted': c.nivel_riesgo === 'BAJO'
-                  }">{{ c.motivo_alerta }}</div>
+                  <div class="small mt-1" :class="{ 'text-danger fw-semibold': c.nivel_riesgo === 'ALTO', 'text-warning-custom': c.nivel_riesgo === 'MEDIO', 'text-muted': c.nivel_riesgo === 'BAJO' }">{{ c.motivo_alerta }}</div>
                 </div>
-                <button v-if="puedeRetirar && (c.injustificadas_seguidas >= 3 || c.total_faltas_injustificadas >= 5)" type="button"
+                <AppButton
+                  v-if="puedeRetirar && (c.injustificadas_seguidas >= 3 || c.total_faltas_injustificadas >= 5)"
+                  variant="soft"
+                  tone="danger"
+                  size="sm"
+                  icon-only
+                  class="flex-shrink-0"
+                  type="button"
                   @click="confirmarRetiroJoven(c)"
-                  class="btn btn-sm btn-link p-1 rounded-circle hover-danger-btn d-inline-flex align-items-center justify-content-center flex-shrink-0"
-                  style="width: 32px; height: 32px;" title="Retirar del programa">
-                  <CircleAlert class="h-5 w-5 text-danger" />
-                </button>
+                  title="Retirar del programa"
+                  aria-label="Retirar del programa"><CircleAlert class="h-5 w-5 text-danger" /></AppButton>
               </div>
 
               <div class="dash-card__chips">
@@ -310,10 +303,7 @@ const confirmarRetiroJoven = async (joven) => {
             <h6 class="mb-0 fw-bold d-flex align-items-center">
               <Calendar class="h-5 w-5 text-primary me-2" aria-hidden="true" />Próximos Encuentros
             </h6>
-            <router-link to="/cronograma"
-              class="btn btn-sm btn-primary-subtle text-primary rounded-pill px-3 fw-bold border-0">
-              Calendario completo
-            </router-link>
+            <AppButton variant="soft" size="sm" to="/cronograma">Calendario completo</AppButton>
           </div>
           <div class="card-body p-0">
             <div v-if="loadingReuniones" class="p-3">
@@ -326,7 +316,7 @@ const confirmarRetiroJoven = async (joven) => {
                   <div class="col-auto">
                     <div class="bg-primary text-white rounded-4 p-2 text-center shadow-sm" style="min-width: 65px;">
                       <span class="d-block fw-bold fs-4">{{ new Date(actividad.fecha).getDate() }}</span>
-                      <span class="small text-uppercase">{{ new Date(actividad.fecha).toLocaleString('es', {
+                      <span class="small">{{ new Date(actividad.fecha).toLocaleString('es', {
                         month: 'short'
                       }) }}</span>
                     </div>
@@ -357,7 +347,7 @@ const confirmarRetiroJoven = async (joven) => {
       <div class="col-xl-4">
         <!-- MÉTRICAS DE PROGRESO (solo coordinador / super-admin) -->
         <div class="card border-0 shadow-sm rounded-4 p-4 mb-4" v-if="esGestor && verPanel('retencion')">
-          <h6 class="fw-bold text-muted text-uppercase small mb-3">Estado de Retención</h6>
+          <h6 class="fw-bold text-muted small mb-3">Estado de Retención</h6>
           <div class="mb-4">
             <div class="d-flex justify-content-between mb-1">
               <span class="small fw-bold">Índice de Retención</span>
@@ -404,7 +394,7 @@ const confirmarRetiroJoven = async (joven) => {
 .dash-cards { display: flex; flex-direction: column; }
 .dash-card {
   padding: 0.85rem;
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid var(--line);
 }
 .dash-card:first-child { border-top: 0; }
 .dash-card__top {
@@ -422,12 +412,12 @@ const confirmarRetiroJoven = async (joven) => {
   display: inline-flex;
   align-items: center;
   margin-top: 0.5rem;
-  font-size: 0.83rem;
+  font-size: var(--fs-sm);
   font-weight: 600;
 }
 
 .rounded-4 {
-  border-radius: 1rem !important;
+  border-radius: var(--radius-xl) !important;
 }
 
 .card {
@@ -439,18 +429,17 @@ const confirmarRetiroJoven = async (joven) => {
 }
 
 .bg-light-subtle {
-  background-color: #f8fafc !important;
+  background-color: var(--surface-sunken) !important;
 }
 
-.btn-primary-subtle {
-  background-color: #e7f0fe !important;
-  /* El azul suave que usas en los badges */
-  transition: all 0.2s ease;
+.dash-social {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  color: var(--text-muted);
+  text-decoration: none;
 }
-
-.btn-primary-subtle:hover {
-  background-color: #d1e3fd !important;
-  /* Un tono ligeramente más oscuro al pasar el mouse */
-  color: #0d6efd !important;
-}
+.dash-social:hover { color: var(--accent); }
 </style>

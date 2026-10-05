@@ -1,4 +1,5 @@
 <script setup>
+import AppButton from '@/components/AppButton.vue'
 import { storeToRefs } from 'pinia';
 import { Modal } from 'bootstrap';
 import { attachModalFocusReturn } from '@/composables/useModalFocusReturn';
@@ -24,6 +25,7 @@ import { useUsersStore } from '../../stores/users';
 import { useAuthStore } from '@/stores/auth';
 import { useGruposStore } from '../../stores/grupos';
 import AppPage from '@/components/AppPage.vue';
+import { colorAcento } from '@/lib/tema';
 
 const router = useRouter();
 const confirmandosStore = useConfirmandosStore();
@@ -101,7 +103,7 @@ const calendarEvents = computed(() => {
     // --- FILTRADO SEGÚN ROL ---
     if (esCoordinadorOAdmin.value) {
         // 1. El Coordinador/Admin ve TODOS los confirmandos
-        confirmandos.value.forEach(c => processPerson(c, 'Confirmando', '#3b82f6'));
+        confirmandos.value.forEach(c => processPerson(c, 'Confirmando', colorAcento()));
 
         // 2. Ve TODOS los usuarios con rol de catequista o coordinador
         const catequistas = users.value.filter(u => {
@@ -119,7 +121,7 @@ const calendarEvents = computed(() => {
         const misConfirmandos = confirmandos.value.filter(c =>
             authStore.user?.grupo_ids?.includes(Number(c.grupo_id))
         );
-        misConfirmandos.forEach(c => processPerson(c, 'Confirmando', '#3b82f6'));
+        misConfirmandos.forEach(c => processPerson(c, 'Confirmando', colorAcento()));
 
         // 2. Mis Colegas Catequistas (Incluido yo mismo)
         // Buscamos en la lista de todos los usuarios a aquellos que compartan grupo_id con mi sesión
@@ -221,7 +223,7 @@ onUnmounted(() => {
         <template #actions>
             <div class="d-flex gap-3">
                 <div class="d-flex align-items-center">
-                    <span class="d-inline-block rounded-circle me-2" style="width: 12px; height: 12px; background-color: #3b82f6;"></span>
+                    <span class="d-inline-block rounded-circle me-2" style="width: 12px; height: 12px; background-color: var(--accent);"></span>
                     <small class="text-muted">Confirmandos</small>
                 </div>
                 <div class="d-flex align-items-center">
@@ -237,19 +239,20 @@ onUnmounted(() => {
 
         <div class="modal fade" id="detailsModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered modal-sm">
-                <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
-                    <div class="modal-header py-3">
-                        <h5 class="modal-title fw-bold d-flex align-items-center gap-2" style="font-size: 1.1rem;">
-                            <Cake class="h-5 w-5" aria-hidden="true" />¡Cumpleaños!
-                        </h5>
-                        <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal"></button>
+                <div class="modal-content">
+                    <div class="modal-header">
+                      <span class="modal-header__icon" aria-hidden="true"><Cake :size="18" /></span>
+                      <div class="modal-header__text">
+                        <h5 class="modal-title">¡Cumpleaños!</h5>
+                      </div>
+                      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                     </div>
 
                     <div class="modal-body text-center py-4">
                         <h4 class="fw-bold text-dark mb-1 fs-5">{{ selectedEvent.title.replace('🎂 ', '') }}</h4>
 
                         <div class="d-flex justify-content-center gap-2 mb-3">
-                            <span class="badge rounded-pill px-3 py-1.5 text-uppercase small"
+                            <span class="badge rounded-pill px-3 py-1.5 small"
                                 :class="selectedEvent.type === 'Confirmando' ? 'bg-primary-subtle text-primary' : 'bg-warning-subtle text-warning-emphasis'">
                                 {{ selectedEvent.type }}
                             </span>
@@ -258,7 +261,7 @@ onUnmounted(() => {
                         <div v-if="esCoordinadorOAdmin && selectedEvent.grupo" class="mb-3">
                             <button @click="irAlGrupo(selectedEvent.grupo.id)"
                                 class="btn btn-sm btn-soft-group border-0 px-3 py-1.5 rounded-pill d-inline-flex align-items-center gap-1"
-                                :style="{ color: '#1e293b', border: `1px solid ${selectedEvent.grupo.color || '#cbd5e1'}` }">
+                                :style="{ color: 'var(--text)', border: `1px solid ${selectedEvent.grupo.color || '#cbd5e1'}` }">
                                 <span class="dot-indicator"
                                     :style="{ backgroundColor: selectedEvent.grupo.color || '#cbd5e1' }"></span>
                                 <span class="fw-bold text-truncate" style="max-width: 140px;">{{
@@ -271,16 +274,15 @@ onUnmounted(() => {
                             <div class="display-3 text-primary fw-bold lh-1 mb-1">
                                 {{ selectedEvent.age }}
                             </div>
-                            <p class="text-muted text-uppercase fw-bold tracking-wider mb-2"
+                            <p class="text-muted fw-bold mb-2"
                                 style="font-size: 0.75rem;">Años a cumplir</p>
                             <small class="text-secondary d-block mt-2 bg-light p-2 rounded-3">
                                 Nacimiento: {{ formatBirthDate(selectedEvent.originalDate) }}
                             </small>
                         </div>
                     </div>
-                    <div class="modal-footer justify-content-center bg-light border-0 py-2">
-                        <button type="button" class="btn btn-outline-secondary btn-sm px-4 rounded-pill"
-                            data-bs-dismiss="modal">Cerrar</button>
+                    <div class="modal-footer">
+                        <AppButton variant="ghost" type="button" data-bs-dismiss="modal">Cerrar</AppButton>
                     </div>
                 </div>
             </div>
@@ -289,6 +291,17 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+.btn-soft-group {
+    background-color: var(--surface-sunken);
+    font-size: var(--fs-xs);
+    transition: all 0.2s ease;
+}
+.btn-soft-group:hover {
+    background-color: var(--surface-sunken);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
 .dot-indicator {
     width: 8px;
     height: 8px;
@@ -296,20 +309,8 @@ onUnmounted(() => {
     display: inline-block;
 }
 
-.btn-soft-group {
-    background-color: #f8fafc;
-    font-size: 0.75rem;
-    transition: all 0.2s ease;
-}
-
-.btn-soft-group:hover {
-    background-color: #f1f5f9;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-}
-
 .rounded-4 {
-    border-radius: 1rem !important;
+    border-radius: var(--radius-xl) !important;
 }
 
 /* Estilos de tabla del calendario */
@@ -325,21 +326,21 @@ onUnmounted(() => {
 
 :deep(.fc) {
     font-family: 'Segoe UI', Roboto, sans-serif;
-    --fc-border-color: #e5e7eb;
+    --fc-border-color: var(--line);
     --fc-today-bg-color: rgba(59, 130, 246, 0.05);
     --fc-event-border-color: transparent;
 }
 
 :deep(.fc-daygrid-day:hover) {
-    background-color: #f8fafc !important;
+    background-color: var(--surface-sunken) !important;
     cursor: pointer;
 }
 
 :deep(.fc-event) {
     border-radius: 50px;
     padding: 2px 8px;
-    font-size: 0.8rem;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    font-size: var(--fs-sm);
+    box-shadow: var(--shadow-md);
     border: none !important;
     margin-bottom: 2px !important;
 }
@@ -349,30 +350,30 @@ onUnmounted(() => {
 }
 
 :deep(.fc-toolbar-title) {
-    font-size: 1.25rem !important;
+    font-size: var(--fs-lg) !important;
     text-transform: capitalize;
 }
 
 :deep(.fc-button-primary) {
     background-color: white;
     color: #4b5563;
-    border: 1px solid #e5e7eb;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow-sm);
 }
 
 :deep(.fc-button-primary:hover) {
-    background-color: #f9fafb;
+    background-color: var(--surface-sunken);
     color: #111827;
 }
 
 :deep(.fc-button-primary.fc-button-active) {
-    background-color: #3b82f6;
+    background-color: var(--accent);
     color: white;
-    border-color: #3b82f6;
+    border-color: var(--accent);
 }
 
 :deep(.fc-day-today .fc-daygrid-day-number) {
-    background-color: #3b82f6;
+    background-color: var(--accent);
     color: white;
     border-radius: 50%;
     width: 28px;
@@ -385,7 +386,7 @@ onUnmounted(() => {
 
 :deep(.fc-list-event-title),
 :deep(.fc-list-event-title a) {
-    color: #1e293b !important;
+    color: var(--text) !important;
     font-weight: 600 !important;
     text-decoration: none;
 }
@@ -397,7 +398,7 @@ onUnmounted(() => {
         align-items: stretch;
     }
     :deep(.fc-toolbar-title) {
-        font-size: 1.05rem !important;
+        font-size: var(--fs-base) !important;
         text-align: center;
     }
     :deep(.fc-toolbar-chunk) {
@@ -406,7 +407,7 @@ onUnmounted(() => {
     }
     :deep(.fc-button) {
         padding: 0.3rem 0.7rem !important;
-        font-size: 0.85rem !important;
+        font-size: var(--fs-ui) !important;
     }
     :deep(.fc-list-event-title) { white-space: normal; }
 }
@@ -418,12 +419,12 @@ onUnmounted(() => {
    (ListCronograma.vue colorea sus botones con --parroquia-color, no necesita
    este fix). */
 :root[data-bs-theme="dark"] .surface :deep(.fc-button-primary) {
-  background-color: #334155;
-  color: #e2e8f0;
-  border-color: #475569;
+  background-color: var(--line);
+  color: var(--text);
+  border-color: var(--line-strong);
 }
 :root[data-bs-theme="dark"] .surface :deep(.fc-button-primary:hover) {
-  background-color: #475569;
-  color: #f1f5f9;
+  background-color: var(--line-strong);
+  color: var(--text);
 }
 </style>

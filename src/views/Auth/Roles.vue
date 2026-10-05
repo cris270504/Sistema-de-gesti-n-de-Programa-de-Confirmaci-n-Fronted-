@@ -1,4 +1,7 @@
 <script setup>
+import AppSkeleton from '@/components/AppSkeleton.vue'
+import AppEmpty from '@/components/AppEmpty.vue'
+import AppButton from '@/components/AppButton.vue'
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import { storeToRefs } from 'pinia';
 import { Modal } from 'bootstrap';
@@ -173,9 +176,7 @@ const handleDelete = async (role) => {
 <template>
   <AppPage title="Roles y permisos" subtitle="Qué puede hacer cada tipo de usuario" :loading="loading">
     <template v-if="puedeGestionar" #actions>
-      <button class="btn-primary" @click="openModal(null)">
-        <Plus :size="18" class="mr-1.5" /> <span class="text-sm">Nuevo rol</span>
-      </button>
+      <AppButton :icon="Plus" @click="openModal(null)">Nuevo rol</AppButton>
     </template>
 
     <div v-if="error" class="alert-error !mb-4">{{ error }}</div>
@@ -194,8 +195,10 @@ const handleDelete = async (role) => {
             </thead>
             <tbody>
               <tr v-if="roles.length === 0">
-                <td colspan="4" class="text-center p-5 text-muted">
-                  No hay roles registrados.
+                <td colspan="4">
+                  <AppEmpty :icon="ShieldCheck" message="Aún no hay roles registrados.">
+                    <AppButton v-if="puedeGestionar" :icon="Plus" @click="openModal(null)">Nuevo rol</AppButton>
+                  </AppEmpty>
                 </td>
               </tr>
 
@@ -228,18 +231,15 @@ const handleDelete = async (role) => {
                 </td>
                 <td v-if="puedeGestionar" class="text-center">
                   <div class="d-inline-flex gap-2">
-                    <button class="btn-action btn-soft-primary" @click="openModal(role)" title="Editar">
-                      <Pencil :size="16" />
-                    </button>
-                    <button
-                      class="btn-action btn-soft-danger"
+                    <AppButton variant="soft" icon-only @click="openModal(role)" title="Editar" aria-label="Editar"><Pencil :size="16" /></AppButton>
+                    <AppButton
+                      variant="soft"
+                      tone="danger"
+                      icon-only
                       :disabled="esProtegido(role.name)"
                       :title="esProtegido(role.name) ? 'Rol protegido' : 'Eliminar'"
                       :aria-label="esProtegido(role.name) ? 'Rol protegido' : `Eliminar rol ${role.name}`"
-                      @click="handleDelete(role)"
-                    >
-                      <Trash :size="16" />
-                    </button>
+                      @click="handleDelete(role)"><Trash :size="16" /></AppButton>
                   </div>
                 </td>
               </tr>
@@ -254,8 +254,11 @@ const handleDelete = async (role) => {
       <div class="modal-dialog modal-dialog-centered modal-xl">
         <div class="modal-content role-modal">
           <div class="modal-header">
-            <h5 class="modal-title fw-bold">{{ modalTitle }}</h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" :disabled="saving"></button>
+            <span class="modal-header__icon" aria-hidden="true"><ShieldCheck :size="18" /></span>
+            <div class="modal-header__text">
+              <h5 class="modal-title">{{ modalTitle }}</h5>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" :disabled="saving" aria-label="Cerrar"></button>
           </div>
 
           <div class="modal-body">
@@ -279,14 +282,12 @@ const handleDelete = async (role) => {
                 </div>
               </div>
 
-              <div v-if="loadingPermisos || loadingRole" class="perm-state">
-                <span class="spinner-border spinner-border-sm text-primary me-2"></span>
-                {{ loadingPermisos ? 'Cargando permisos…' : 'Cargando permisos del rol…' }}
+              <div v-if="loadingPermisos || loadingRole" class="perm-state" role="status" aria-live="polite"
+                :aria-label="loadingPermisos ? 'Cargando permisos' : 'Cargando permisos del rol'">
+                <AppSkeleton skeleton="lines" />
               </div>
 
-              <div v-else-if="gruposFiltrados.length === 0" class="perm-state fst-italic">
-                No se encontraron permisos.
-              </div>
+              <AppEmpty v-else-if="gruposFiltrados.length === 0" compact :icon="Search" message="No se encontraron permisos." />
 
               <div v-else class="perm-scroll">
                 <div v-for="grupo in gruposFiltrados" :key="grupo.titulo" class="perm-group">
@@ -295,10 +296,7 @@ const handleDelete = async (role) => {
                       <KeyRound :size="13" /> {{ grupo.titulo }}
                       <span class="perm-group__count">{{ grupo.items.length }}</span>
                     </span>
-                    <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" :disabled="saving"
-                      @click="toggleGrupo(grupo.items)">
-                      {{ grupoCompleto(grupo.items) ? 'Quitar todos' : 'Seleccionar todos' }}
-                    </button>
+                    <AppButton variant="ghost" size="sm" type="button" :disabled="saving" @click="toggleGrupo(grupo.items)">{{ grupoCompleto(grupo.items) ? 'Quitar todos' : 'Seleccionar todos' }}</AppButton>
                   </div>
                   <div class="perm-grid">
                     <label v-for="permiso in grupo.items" :key="permiso.id" class="perm-item"
@@ -314,11 +312,8 @@ const handleDelete = async (role) => {
           </div>
 
           <div class="modal-footer">
-            <button type="button" class="btn btn-light" data-bs-dismiss="modal" :disabled="saving">Cancelar</button>
-            <button type="submit" form="roleForm" class="btn btn-primary px-4" :disabled="saving">
-              <span v-if="saving" class="spinner-border spinner-border-sm me-1"></span>
-              {{ saving ? 'Guardando…' : 'Guardar' }}
-            </button>
+            <AppButton variant="secondary" type="button" data-bs-dismiss="modal" :disabled="saving">Cancelar</AppButton>
+            <AppButton :loading="saving" type="submit" form="roleForm">{{ saving ? 'Guardando…' : 'Guardar' }}</AppButton>
           </div>
         </div>
       </div>
@@ -329,27 +324,9 @@ const handleDelete = async (role) => {
 <style scoped>
 /* Encuadre explícito: el preflight de Tailwind quita bordes/relleno por defecto,
    así que la tarjeta del modal se define aquí sin depender de las clases de Bootstrap. */
-.role-modal {
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  overflow: hidden;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, .25);
-}
-.role-modal .modal-header {
-  background: #2563eb;
-  color: #fff;
-  padding: 1rem 1.25rem;
-  border: 0;
-}
 .role-modal .modal-body {
-  padding: 1.25rem;
   max-height: min(70vh, 620px);
   overflow-y: auto;
-}
-.role-modal .modal-footer {
-  background: #f8fafc;
-  border-top: 1px solid #e2e8f0;
-  padding: .75rem 1.25rem;
 }
 
 .role-form__top {
@@ -363,17 +340,17 @@ const handleDelete = async (role) => {
 }
 .role-field label {
   display: block;
-  font-size: .8rem;
+  font-size: var(--fs-sm);
   font-weight: 600;
-  color: #64748b;
+  color: var(--text-muted);
   margin-bottom: .35rem;
 }
 
-.perm-state { text-align: center; padding: 2rem 0; color: #94a3b8; }
+.perm-state { text-align: center; padding: 2rem 0; color: var(--text-muted); }
 
 .perm-scroll {
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
   background: #fbfcfe;
   padding: .5rem;
 }
@@ -392,18 +369,16 @@ const handleDelete = async (role) => {
   display: inline-flex;
   align-items: center;
   gap: .35rem;
-  font-size: .72rem;
+  font-size: var(--fs-xs);
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .03em;
-  color: #64748b;
+  color: var(--text-muted);
 }
 .perm-group__count {
-  background: #e2e8f0;
-  color: #475569;
-  border-radius: 999px;
+  background: var(--line);
+  color: var(--text-muted);
+  border-radius: var(--radius-pill);
   padding: 0 .4rem;
-  font-size: .68rem;
+  font-size: var(--fs-xs);
 }
 .perm-grid {
   display: grid;
@@ -417,16 +392,16 @@ const handleDelete = async (role) => {
   margin: 0;
   padding: .35rem .55rem;
   border: 1px solid transparent;
-  border-radius: 7px;
-  font-size: .82rem;
-  color: #475569;
+  border-radius: var(--radius-md);
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
   cursor: pointer;
   transition: background .12s, border-color .12s;
 }
-.perm-item:hover { background: #eef2ff; }
+.perm-item:hover { background: var(--accent-soft); }
 .perm-item--on {
-  background: #eef2ff;
-  border-color: #c7d2fe;
+  background: var(--accent-soft);
+  border-color: var(--accent-ring);
   color: #3730a3;
   font-weight: 500;
 }

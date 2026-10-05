@@ -1,4 +1,6 @@
 <script setup>
+import AppEmpty from '@/components/AppEmpty.vue'
+import AppButton from '@/components/AppButton.vue'
 import { ref, reactive, computed, onMounted, onUnmounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { Modal } from 'bootstrap'
 import {
@@ -420,9 +422,7 @@ function copiar(txt) {
 <template>
   <AppPage title="Parroquias" subtitle="Panel del proveedor de la plataforma" :loading="loading">
     <template #actions>
-      <button class="btn-primary" @click="abrirAlta">
-        <Plus :size="16" class="mr-1.5" /> <span class="text-sm">Nueva parroquia</span>
-      </button>
+      <AppButton :icon="Plus" @click="abrirAlta">Nueva parroquia</AppButton>
     </template>
 
     <div class="lp-bar">
@@ -449,10 +449,10 @@ function copiar(txt) {
         <div class="lp-mant__acciones">
           <input v-if="!systemStatus.mantenimiento" v-model="mensajeMantenimiento" type="text"
             class="lp-mant__input" placeholder="Mensaje opcional (ej: volvemos a las 3pm)" />
-          <button class="btn" :class="systemStatus.mantenimiento ? 'btn-success' : 'btn-warning'"
-            :disabled="systemStatus.saving" @click="toggleMantenimiento">
+          <AppButton :variant="systemStatus.mantenimiento ? 'primary' : 'danger'" :loading="systemStatus.saving"
+            @click="toggleMantenimiento">
             {{ systemStatus.mantenimiento ? 'Desactivar' : 'Activar' }}
-          </button>
+          </AppButton>
         </div>
       </div>
 
@@ -494,17 +494,22 @@ function copiar(txt) {
 
     <!-- Tarjetas en celular -->
     <div v-if="esMovil" class="lp-cards">
-      <p v-if="parroquiasFiltradas.length === 0" class="empty-state">
-        {{ q ? 'Ninguna parroquia coincide con la búsqueda.' : 'Aún no hay parroquias.' }}
-      </p>
+      <AppEmpty v-if="parroquiasFiltradas.length === 0" :icon="Building2"
+        :message="q ? 'Ninguna parroquia coincide con la búsqueda.' : 'Aún no hay parroquias.'">
+        <AppButton v-if="!q" :icon="Plus" @click="abrirAlta">Nueva parroquia</AppButton>
+      </AppEmpty>
       <article v-for="p in parroquiasFiltradas" :key="p.id" class="lp-card" :class="{ 'lp-card--off': !p.activa }">
         <div class="lp-card__head">
           <span class="lp-card__nombre">
             <Building2 :size="15" class="text-slate-400" /> {{ p.nombre }}
           </span>
-          <button class="btn-action btn-soft-secondary" title="Ver detalle / configurar" @click="abrirDetalle(p)">
-            <Eye :size="16" />
-          </button>
+          <AppButton
+            variant="soft"
+            tone="secondary"
+            icon-only
+            title="Ver detalle / configurar"
+            @click="abrirDetalle(p)"
+            aria-label="Ver detalle / configurar"><Eye :size="16" /></AppButton>
         </div>
         <div class="lp-card__slug">{{ p.slug }}</div>
         <div class="lp-card__stats">
@@ -514,7 +519,7 @@ function copiar(txt) {
         </div>
         <button
           class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors"
-          :class="p.activa ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'"
+          :class="p.activa ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'"
           @click="cambiarEstado(p)">
           <Check v-if="p.activa" :size="12" /><X v-else :size="12" />
           {{ p.activa ? 'Activa' : 'Inactiva' }}
@@ -537,12 +542,15 @@ function copiar(txt) {
         </thead>
         <tbody>
           <tr v-if="parroquiasFiltradas.length === 0">
-            <td colspan="7" class="empty-state">
-              {{ q ? 'Ninguna parroquia coincide con la búsqueda.' : 'Aún no hay parroquias.' }}
+            <td colspan="7">
+              <AppEmpty :icon="Building2"
+                :message="q ? 'Ninguna parroquia coincide con la búsqueda.' : 'Aún no hay parroquias.'">
+                <AppButton v-if="!q" :icon="Plus" @click="abrirAlta">Nueva parroquia</AppButton>
+              </AppEmpty>
             </td>
           </tr>
           <tr v-for="p in parroquiasFiltradas" :key="p.id" :class="{ 'lp-row--off': !p.activa }">
-            <td class="pl-4 font-medium text-slate-800">
+            <td class="pl-4 font-medium text-slate-800 dark:text-slate-100">
               <span class="inline-flex items-center gap-2">
                 <Building2 :size="15" class="text-slate-400" /> {{ p.nombre }}
               </span>
@@ -554,7 +562,7 @@ function copiar(txt) {
             <td class="!text-center">
               <button
                 class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors"
-                :class="p.activa ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'"
+                :class="p.activa ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-900/60' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'"
                 :title="p.activa ? 'Clic para desactivar' : 'Clic para activar'"
                 @click="cambiarEstado(p)">
                 <Check v-if="p.activa" :size="12" /><X v-else :size="12" />
@@ -562,10 +570,14 @@ function copiar(txt) {
               </button>
             </td>
             <td class="!text-right pr-4">
-              <button class="btn-action btn-soft-secondary ml-auto" title="Ver detalle / configurar"
-                @click="abrirDetalle(p)">
-                <Eye :size="16" />
-              </button>
+              <AppButton
+                variant="soft"
+                tone="secondary"
+                icon-only
+                class="ml-auto"
+                title="Ver detalle / configurar"
+                @click="abrirDetalle(p)"
+                aria-label="Ver detalle / configurar"><Eye :size="16" /></AppButton>
             </td>
           </tr>
         </tbody>
@@ -580,8 +592,11 @@ function copiar(txt) {
       <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title"><Building2 :size="18" class="me-2 d-inline-block align-text-bottom" />Nueva parroquia</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" :disabled="saving"></button>
+            <span class="modal-header__icon" aria-hidden="true"><Building2 :size="18" /></span>
+            <div class="modal-header__text">
+              <h5 class="modal-title">Nueva parroquia</h5>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" :disabled="saving" aria-label="Cerrar"></button>
           </div>
           <form @submit.prevent="crear">
             <div class="modal-body">
@@ -629,16 +644,14 @@ function copiar(txt) {
                     </div>
                     <input ref="nuevoLogoInput" type="file" accept="image/png,image/jpeg,image/webp"
                       class="lp-file" @change="onNuevoLogo" />
-                    <button type="button" class="btn-outline btn-sm" @click="$refs.nuevoLogoInput.click()">
-                      <Upload :size="14" class="inline" /> Elegir imagen
-                    </button>
+                    <AppButton variant="secondary" size="sm" :icon="Upload" type="button" @click="$refs.nuevoLogoInput.click()">Elegir imagen</AppButton>
                     <button v-if="nuevoLogo" type="button" class="lp-link" @click="quitarNuevoLogo">Quitar</button>
                   </div>
                   <small class="text-slate-400">PNG, JPG o WebP. Se optimiza al subir. El admin podrá reemplazarlo.</small>
                 </div>
               </div>
 
-              <p class="mt-4 mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Primer administrador</p>
+              <p class="mt-4 mb-2 text-xs font-semibold text-slate-400">Primer administrador</p>
               <div class="grid gap-3 sm:grid-cols-2">
                 <label class="text-sm">Nombre <span class="text-rose-500">*</span>
                   <input v-model="form.admin_nombre" required maxlength="100" class="mt-1" />
@@ -654,10 +667,8 @@ function copiar(txt) {
               </div>
             </div>
             <div class="modal-footer">
-              <button type="button" class="btn-outline" data-bs-dismiss="modal" :disabled="saving">Cancelar</button>
-              <button type="submit" class="btn-primary" :disabled="saving">
-                {{ saving ? 'Creando…' : 'Crear parroquia' }}
-              </button>
+              <AppButton variant="secondary" type="button" data-bs-dismiss="modal" :disabled="saving">Cancelar</AppButton>
+              <AppButton type="submit" :disabled="saving">{{ saving ? 'Creando…' : 'Crear parroquia' }}</AppButton>
             </div>
           </form>
         </div>
@@ -669,9 +680,9 @@ function copiar(txt) {
       <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
           <div class="modal-header lp-modal-head">
-            <div class="lp-modal-head__icon"><Building2 :size="20" /></div>
-            <div class="min-w-0 flex-grow-1">
-              <h5 class="modal-title mb-0 truncate">{{ edit.nombre }}</h5>
+            <span class="modal-header__icon" aria-hidden="true"><Building2 :size="18" /></span>
+            <div class="modal-header__text">
+              <h5 class="modal-title truncate">{{ edit.nombre }}</h5>
               <div class="lp-modal-head__slug">
                 <span class="lp-modal-head__slugtxt"><Globe :size="11" class="inline flex-shrink-0" /> {{ edit.slug }}</span>
                 <span class="lp-modal-head__estado">
@@ -680,7 +691,7 @@ function copiar(txt) {
                 </span>
               </div>
             </div>
-            <button type="button" class="btn-close flex-shrink-0" data-bs-dismiss="modal" :disabled="savingEdit"></button>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" :disabled="savingEdit" aria-label="Cerrar"></button>
           </div>
           <form @submit.prevent="guardarDetalle">
             <div class="modal-body">
@@ -747,11 +758,13 @@ function copiar(txt) {
                       <input ref="editLogoInput" type="file" accept="image/png,image/jpeg,image/webp"
                         class="lp-file" @change="onEditLogo" />
                       <div class="flex flex-wrap items-center gap-2">
-                        <button type="button" class="btn-outline btn-sm" :disabled="editLogoSubiendo"
-                          @click="$refs.editLogoInput.click()">
-                          <Upload :size="14" class="inline" />
-                          {{ editLogoSubiendo ? 'Subiendo…' : (editBranding.logo_url_proveedor ? 'Cambiar' : 'Subir logo') }}
-                        </button>
+                        <AppButton
+                          variant="secondary"
+                          size="sm"
+                          :icon="Upload"
+                          type="button"
+                          :disabled="editLogoSubiendo"
+                          @click="$refs.editLogoInput.click()">{{ editLogoSubiendo ? 'Subiendo…' : (editBranding.logo_url_proveedor ? 'Cambiar' : 'Subir logo') }}</AppButton>
                         <button v-if="editBranding.logo_url_proveedor" type="button" class="lp-link"
                           :disabled="editLogoSubiendo" @click="quitarEditLogo">Quitar</button>
                       </div>
@@ -795,21 +808,22 @@ function copiar(txt) {
                   <header class="lp-section__head">
                     <LayoutTemplate :size="15" class="lp-section__ico" /> Plantilla
                   </header>
-                  <div v-if="edit.es_plantilla" class="inline-flex items-center gap-2 text-sm text-emerald-700">
+                  <div v-if="edit.es_plantilla" class="inline-flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-300">
                     <Check :size="15" /> Es la parroquia plantilla: las nuevas copian su ruta sacramental.
                   </div>
-                  <button v-else type="button" class="btn-outline btn-sm" :disabled="marcandoPlantilla"
-                    @click="marcarComoPlantilla">
-                    {{ marcandoPlantilla ? 'Guardando…' : 'Usar como plantilla' }}
-                  </button>
+                  <AppButton
+                    v-else
+                    variant="secondary"
+                    size="sm"
+                    type="button"
+                    :disabled="marcandoPlantilla"
+                    @click="marcarComoPlantilla">{{ marcandoPlantilla ? 'Guardando…' : 'Usar como plantilla' }}</AppButton>
                 </section>
               </div>
             </div>
             <div class="modal-footer">
-              <button type="button" class="btn-outline" data-bs-dismiss="modal" :disabled="savingEdit">Cancelar</button>
-              <button type="submit" class="btn-primary" :disabled="savingEdit">
-                {{ savingEdit ? 'Guardando…' : 'Guardar cambios' }}
-              </button>
+              <AppButton variant="secondary" type="button" data-bs-dismiss="modal" :disabled="savingEdit">Cancelar</AppButton>
+              <AppButton type="submit" :disabled="savingEdit">{{ savingEdit ? 'Guardando…' : 'Guardar cambios' }}</AppButton>
             </div>
           </form>
         </div>
@@ -821,14 +835,17 @@ function copiar(txt) {
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title"><KeyRound :size="18" class="me-2 d-inline-block align-text-bottom" />Credenciales del administrador</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            <span class="modal-header__icon" aria-hidden="true"><KeyRound :size="18" /></span>
+            <div class="modal-header__text">
+              <h5 class="modal-title">Credenciales del administrador</h5>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
           </div>
           <div class="modal-body" v-if="credenciales">
-            <p class="text-sm text-slate-600">
+            <p class="text-sm text-slate-600 dark:text-slate-300">
               Parroquia <b>{{ credenciales.parroquia }}</b> creada. Entrega estas credenciales a su administrador:
             </p>
-            <div class="mt-3 rounded-lg border bg-slate-50 p-3 text-sm">
+            <div class="mt-3 rounded-lg border bg-slate-50 dark:bg-slate-900 p-3 text-sm">
               <div class="flex items-center justify-between">
                 <span class="text-slate-500">Email</span>
                 <span class="font-mono">{{ credenciales.email }}</span>
@@ -836,8 +853,8 @@ function copiar(txt) {
               <div class="mt-2 flex items-center justify-between">
                 <span class="text-slate-500">Contraseña temporal</span>
                 <span class="flex items-center gap-2">
-                  <code class="rounded bg-white px-2 py-0.5">{{ credenciales.temp_password }}</code>
-                  <button type="button" class="text-slate-500 hover:text-slate-800" @click="copiar(credenciales.temp_password)">
+                  <code class="rounded bg-white dark:bg-slate-800 px-2 py-0.5">{{ credenciales.temp_password }}</code>
+                  <button type="button" class="text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100" @click="copiar(credenciales.temp_password)" aria-label="Copiar contraseña temporal" title="Copiar contraseña temporal">
                     <Copy :size="14" />
                   </button>
                 </span>
@@ -846,7 +863,7 @@ function copiar(txt) {
             <p class="mt-2 text-xs text-amber-600">La contraseña no se vuelve a mostrar. Anótala ahora.</p>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn-primary" data-bs-dismiss="modal">Entendido</button>
+            <AppButton type="button" data-bs-dismiss="modal">Entendido</AppButton>
           </div>
         </div>
       </div>
@@ -869,10 +886,10 @@ function copiar(txt) {
   gap: 0.65rem;
   padding: 0.85rem 1rem;
   margin-bottom: 1rem;
-  border-radius: 0.75rem;
-  border: 1px solid #e2e8f0;
-  background: #f8fafc;
-  color: #475569;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  background: var(--surface-sunken);
+  color: var(--text-muted);
 }
 .lp-mant--on {
   border-color: #fde68a;
@@ -887,24 +904,24 @@ function copiar(txt) {
   gap: 0.75rem;
 }
 .lp-mant__info { display: flex; align-items: center; gap: 0.6rem; }
-.lp-mant__titulo { font-weight: 700; font-size: 0.85rem; }
+.lp-mant__titulo { font-weight: 700; font-size: var(--fs-ui); }
 .lp-mant__acciones { display: flex; align-items: center; gap: 0.5rem; flex: 1 1 auto; justify-content: flex-end; }
 .lp-mant__input {
-  font-size: 0.82rem;
+  font-size: var(--fs-sm);
   padding: 0.5rem 0.75rem;
-  border-radius: 0.5rem;
-  border: 1px solid #cbd5e1;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line-strong);
   flex: 1 1 auto;
   min-width: 280px;
   max-width: 420px;
 }
-.lp-mant__alcance-activo { font-size: 0.8rem; }
+.lp-mant__alcance-activo { font-size: var(--fs-sm); }
 .lp-mant__alcance-picker {
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
   padding-top: 0.6rem;
-  border-top: 1px dashed #e2e8f0;
+  border-top: 1px dashed var(--line);
 }
 
 /* Segmented control: dos opciones mutuamente excluyentes, más claro que dos
@@ -913,7 +930,7 @@ function copiar(txt) {
   display: inline-flex;
   align-self: flex-start;
   padding: 0.2rem;
-  border-radius: 0.65rem;
+  border-radius: var(--radius-lg);
   background: rgba(148, 163, 184, 0.15);
   gap: 0.15rem;
 }
@@ -921,18 +938,18 @@ function copiar(txt) {
   border: 0;
   background: transparent;
   padding: 0.4rem 0.85rem;
-  border-radius: 0.5rem;
-  font-size: 0.78rem;
+  border-radius: var(--radius-md);
+  font-size: var(--fs-xs);
   font-weight: 600;
-  color: #64748b;
+  color: var(--text-muted);
   cursor: pointer;
   transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 }
-.lp-seg__opt:hover { color: #334155; }
+.lp-seg__opt:hover { color: var(--text); }
 .lp-seg__opt--on {
-  background: #fff;
+  background: var(--surface);
   color: #92400e;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+  box-shadow: var(--shadow-sm);
 }
 
 /* Chips de parroquia: click para sumar/sacar del alcance. */
@@ -945,17 +962,17 @@ function copiar(txt) {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  border: 1px solid #e2e8f0;
-  background: #fff;
-  color: #475569;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text-muted);
   padding: 0.35rem 0.75rem;
-  border-radius: 999px;
-  font-size: 0.78rem;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-xs);
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s ease;
 }
-.lp-chip:hover { border-color: #cbd5e1; }
+.lp-chip:hover { border-color: var(--line-strong); }
 .lp-chip--on {
   background: #fef3c7;
   border-color: #f59e0b;
@@ -971,11 +988,11 @@ function copiar(txt) {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-size: 0.85rem;
+  font-size: var(--fs-ui);
   font-weight: 600;
-  color: #475569;
+  color: var(--text-muted);
 }
-.lp-sep { color: #cbd5e1; margin: 0 0.15rem; }
+.lp-sep { color: var(--text); margin: 0 0.15rem; }
 .lp-dot {
   width: 8px;
   height: 8px;
@@ -993,7 +1010,7 @@ function copiar(txt) {
 .lp-search svg {
   position: absolute;
   left: 0.6rem;
-  color: #94a3b8;
+  color: var(--text-muted);
   pointer-events: none;
 }
 .lp-search input {
@@ -1002,7 +1019,7 @@ function copiar(txt) {
   padding-left: 2rem;
 }
 
-.lp-row--off td { color: #94a3b8; }
+.lp-row--off td { color: var(--text-muted); }
 .lp-row--off td:first-child { opacity: 0.75; }
 
 /* ===== Tarjetas (celular) ===== */
@@ -1012,9 +1029,9 @@ function copiar(txt) {
   gap: 0.75rem;
 }
 .lp-card {
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
   padding: 0.85rem;
 }
 .lp-card--off { opacity: 0.7; }
@@ -1029,23 +1046,23 @@ function copiar(txt) {
   align-items: center;
   gap: 0.4rem;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--text);
 }
 .lp-card__slug {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.78rem;
-  color: #64748b;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
   margin: 0.25rem 0 0.6rem;
 }
 .lp-card__stats {
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem 0.9rem;
-  font-size: 0.8rem;
-  color: #64748b;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
   margin-bottom: 0.7rem;
 }
-.lp-card__stats b { color: #1e293b; }
+.lp-card__stats b { color: var(--text); }
 
 @media (max-width: 767px) {
   .lp-bar { flex-direction: column; align-items: stretch; }
@@ -1054,9 +1071,9 @@ function copiar(txt) {
 }
 
 .lp-link {
-  font-size: 0.72rem;
+  font-size: var(--fs-xs);
   font-weight: 600;
-  color: var(--parroquia-color, #2563eb);
+  color: var(--accent);
   background: none;
   border: 0;
   cursor: pointer;
@@ -1078,16 +1095,16 @@ function copiar(txt) {
   display: grid;
   place-items: center;
   overflow: hidden;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface-sunken);
 }
 .lp-logobox--lg { width: 56px; height: 56px; }
 .lp-logobox img { width: 100%; height: 100%; object-fit: contain; }
 
 .btn-sm {
   padding: 0.35rem 0.7rem;
-  font-size: 0.8rem;
+  font-size: var(--fs-sm);
 }
 
 .lp-sacs {
@@ -1099,12 +1116,12 @@ function copiar(txt) {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 9px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
   padding: 0.4rem 0.75rem;
-  font-size: 0.83rem;
+  font-size: var(--fs-sm);
   font-weight: 500;
-  color: #64748b;
+  color: var(--text-muted);
   cursor: pointer;
   user-select: none;
 }
@@ -1115,13 +1132,13 @@ function copiar(txt) {
   height: 0;
 }
 .lp-sac--on {
-  border-color: color-mix(in srgb, var(--parroquia-color, #2563eb) 45%, #e2e8f0);
-  background: color-mix(in srgb, var(--parroquia-color, #2563eb) 9%, #fff);
-  color: color-mix(in srgb, var(--parroquia-color, #2563eb) 75%, #1e293b);
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+  background: color-mix(in srgb, var(--accent) 9%, var(--surface));
+  color: color-mix(in srgb, var(--accent) 75%, var(--text));
 }
 .lp-readonly {
-  background: #f8fafc;
-  color: #64748b;
+  background: var(--surface-sunken);
+  color: var(--text-muted);
 }
 
 .lp-stats {
@@ -1130,47 +1147,34 @@ function copiar(txt) {
   gap: 0.5rem;
 }
 .lp-stats > div {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
+  background: var(--surface-sunken);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
   padding: 0.6rem 0.5rem;
   text-align: center;
 }
 .lp-stats b {
   display: block;
-  font-size: 1.05rem;
+  font-size: var(--fs-base);
   font-weight: 700;
-  color: #1e293b;
+  color: var(--text);
 }
 .lp-stats span {
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: #94a3b8;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
 }
 @media (max-width: 560px) {
   .lp-stats { grid-template-columns: repeat(2, 1fr); }
 }
 
 /* Encabezado del modal de detalle: ícono en placa + nombre + slug/estado. */
-.lp-modal-head { display: flex; align-items: center; gap: 0.75rem; }
-.lp-modal-head__icon {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  flex-shrink: 0;
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--parroquia-color, #6366f1) 12%, white);
-  color: var(--parroquia-color, #6366f1);
-}
 .lp-modal-head__slug {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.2rem 0.5rem;
-  font-size: 0.76rem;
-  color: #94a3b8;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
 }
 .lp-modal-head__slugtxt {
   display: inline-flex;
@@ -1184,7 +1188,6 @@ function copiar(txt) {
 }
 .lp-modal-head__estado { display: inline-flex; align-items: center; gap: 0.3rem; flex-shrink: 0; }
 @media (max-width: 480px) {
-  .lp-modal-head__icon { width: 34px; height: 34px; }
   .lp-modal-head__slugtxt { max-width: 55vw; }
 }
 
@@ -1194,7 +1197,7 @@ function copiar(txt) {
   padding: 0.85rem 1rem;
   margin-top: 0.75rem;
   border: 1px solid #eef1f5;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   background: #fbfcfe;
 }
 .lp-section__head {
@@ -1202,13 +1205,11 @@ function copiar(txt) {
   align-items: center;
   gap: 0.4rem;
   margin-bottom: 0.65rem;
-  font-size: 0.72rem;
+  font-size: var(--fs-xs);
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: #475569;
+  color: var(--text-muted);
 }
-.lp-section__ico { color: var(--parroquia-color, #6366f1); flex-shrink: 0; }
+.lp-section__ico { color: var(--accent); flex-shrink: 0; }
 
 /* Las 3 secciones secundarias no necesitan ser full-width: en 2 columnas se
    lee igual de bien y el modal deja de ser un scroll larguísimo. Logo base
@@ -1235,21 +1236,21 @@ function copiar(txt) {
   gap: 1rem;
   margin-top: 0.65rem;
   padding: 0.55rem 0.8rem;
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   background: #f0fdf4;
   cursor: pointer;
 }
 .lp-toggle-row--off { background: #fffbeb; }
-.lp-toggle-row__titulo { display: block; font-size: 0.85rem; font-weight: 600; color: #1e293b; }
-.lp-toggle-row__desc { display: block; font-size: 0.75rem; color: #64748b; margin-top: 0.1rem; }
+.lp-toggle-row__titulo { display: block; font-size: var(--fs-ui); font-weight: 600; color: var(--text); }
+.lp-toggle-row__desc { display: block; font-size: var(--fs-xs); color: var(--text-muted); margin-top: 0.1rem; }
 .lp-switch { position: relative; flex-shrink: 0; }
 .lp-switch input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
 .lp-switch__track {
   display: block;
   width: 38px;
   height: 22px;
-  border-radius: 999px;
-  background: #cbd5e1;
+  border-radius: var(--radius-pill);
+  background: var(--line-strong);
   transition: background-color 0.15s ease;
 }
 .lp-switch__thumb {
@@ -1258,19 +1259,19 @@ function copiar(txt) {
   height: 18px;
   margin: 2px;
   border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.25);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
   transition: transform 0.15s ease;
 }
 .lp-switch input:checked ~ .lp-switch__track { background: #16a34a; }
 .lp-switch input:checked ~ .lp-switch__track .lp-switch__thumb { transform: translateX(16px); }
-.lp-switch input:focus-visible ~ .lp-switch__track { outline: 2px solid #6366f1; outline-offset: 2px; }
+.lp-switch input:focus-visible ~ .lp-switch__track { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* ===== MODO OSCURO ===== */
 :root[data-bs-theme="dark"] .lp-mant {
-  border-color: #334155;
-  background: #0f172a;
-  color: #94a3b8;
+  border-color: var(--line);
+  background: var(--surface-sunken);
+  color: var(--text-muted);
 }
 :root[data-bs-theme="dark"] .lp-mant--on {
   border-color: #7c5e17;
@@ -1278,76 +1279,73 @@ function copiar(txt) {
   color: #fbbf24;
 }
 :root[data-bs-theme="dark"] .lp-mant__input {
-  background: #0f172a;
-  border-color: #475569;
-  color: #f1f5f9;
+  background: var(--surface-sunken);
+  border-color: var(--line-strong);
+  color: var(--text);
 }
 :root[data-bs-theme="dark"] .lp-mant__alcance-picker {
-  border-top-color: #334155;
+  border-top-color: var(--line);
 }
 :root[data-bs-theme="dark"] .lp-seg {
   background: rgba(148, 163, 184, 0.15);
 }
-:root[data-bs-theme="dark"] .lp-seg__opt { color: #94a3b8; }
-:root[data-bs-theme="dark"] .lp-seg__opt:hover { color: #f1f5f9; }
+:root[data-bs-theme="dark"] .lp-seg__opt { color: var(--text-muted); }
+:root[data-bs-theme="dark"] .lp-seg__opt:hover { color: var(--text); }
 :root[data-bs-theme="dark"] .lp-seg__opt--on {
-  background: #334155;
+  background: var(--line);
   color: #fbbf24;
 }
 :root[data-bs-theme="dark"] .lp-chip {
-  border-color: #475569;
-  background: #1e293b;
-  color: #94a3b8;
+  border-color: var(--line-strong);
+  background: var(--surface);
+  color: var(--text-muted);
 }
-:root[data-bs-theme="dark"] .lp-chip:hover { border-color: #64748b; }
+:root[data-bs-theme="dark"] .lp-chip:hover { border-color: var(--line-strong); }
 :root[data-bs-theme="dark"] .lp-chip--on {
   background: #4a3412;
   border-color: #d97706;
   color: #fbbf24;
 }
-:root[data-bs-theme="dark"] .lp-count { color: #94a3b8; }
-:root[data-bs-theme="dark"] .lp-row--off td { color: #64748b; }
+:root[data-bs-theme="dark"] .lp-count { color: var(--text-muted); }
+:root[data-bs-theme="dark"] .lp-row--off td { color: var(--text-muted); }
 :root[data-bs-theme="dark"] .lp-card {
-  background: #1e293b;
-  border-color: #334155;
+  background: var(--surface);
+  border-color: var(--line);
 }
-:root[data-bs-theme="dark"] .lp-card__nombre { color: #f1f5f9; }
+:root[data-bs-theme="dark"] .lp-card__nombre { color: var(--text); }
 :root[data-bs-theme="dark"] .lp-card__slug,
-:root[data-bs-theme="dark"] .lp-card__stats { color: #94a3b8; }
-:root[data-bs-theme="dark"] .lp-card__stats b { color: #f1f5f9; }
+:root[data-bs-theme="dark"] .lp-card__stats { color: var(--text-muted); }
+:root[data-bs-theme="dark"] .lp-card__stats b { color: var(--text); }
 :root[data-bs-theme="dark"] .lp-logobox {
-  border-color: #334155;
-  background: #0f172a;
+  border-color: var(--line);
+  background: var(--surface-sunken);
 }
 :root[data-bs-theme="dark"] .lp-sac {
-  border-color: #475569;
-  color: #94a3b8;
+  border-color: var(--line-strong);
+  color: var(--text-muted);
 }
 :root[data-bs-theme="dark"] .lp-sac--on {
-  background: color-mix(in srgb, var(--parroquia-color, #2563eb) 16%, #1e293b);
-  color: color-mix(in srgb, var(--parroquia-color, #2563eb) 70%, #f1f5f9);
+  background: color-mix(in srgb, var(--accent) 16%, var(--surface));
+  color: color-mix(in srgb, var(--accent) 70%, var(--text));
 }
 :root[data-bs-theme="dark"] .lp-readonly {
-  background: #0f172a;
-  color: #94a3b8;
+  background: var(--surface-sunken);
+  color: var(--text-muted);
 }
 :root[data-bs-theme="dark"] .lp-stats > div {
-  background: #0f172a;
-  border-color: #334155;
+  background: var(--surface-sunken);
+  border-color: var(--line);
 }
-:root[data-bs-theme="dark"] .lp-stats b { color: #f1f5f9; }
-:root[data-bs-theme="dark"] .lp-modal-head__icon {
-  background: color-mix(in srgb, var(--parroquia-color, #6366f1) 18%, #1e293b);
-}
-:root[data-bs-theme="dark"] .lp-modal-head__slug { color: #94a3b8; }
+:root[data-bs-theme="dark"] .lp-stats b { color: var(--text); }
+:root[data-bs-theme="dark"] .lp-modal-head__slug { color: var(--text-muted); }
 :root[data-bs-theme="dark"] .lp-section {
-  border-color: #334155;
-  background: #0f172a;
+  border-color: var(--line);
+  background: var(--surface-sunken);
 }
-:root[data-bs-theme="dark"] .lp-section__head { color: #cbd5e1; }
+:root[data-bs-theme="dark"] .lp-section__head { color: var(--text); }
 :root[data-bs-theme="dark"] .lp-toggle-row { background: #14432a; }
 :root[data-bs-theme="dark"] .lp-toggle-row--off { background: #4a3412; }
-:root[data-bs-theme="dark"] .lp-toggle-row__titulo { color: #f1f5f9; }
-:root[data-bs-theme="dark"] .lp-toggle-row__desc { color: #94a3b8; }
-:root[data-bs-theme="dark"] .lp-switch__track { background: #475569; }
+:root[data-bs-theme="dark"] .lp-toggle-row__titulo { color: var(--text); }
+:root[data-bs-theme="dark"] .lp-toggle-row__desc { color: var(--text-muted); }
+:root[data-bs-theme="dark"] .lp-switch__track { background: var(--line-strong); }
 </style>

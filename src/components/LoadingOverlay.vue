@@ -38,14 +38,14 @@ const { overlay, overlayText } = storeToRefs(useUiStore())
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  border: 3px solid #e2e8f0;
-  border-top-color: var(--parroquia-color, #2563eb);
+  border: 3px solid var(--line);
+  border-top-color: var(--accent);
   animation: ov-spin 0.7s linear infinite;
 }
 .ov__text {
-  font-size: 0.9rem;
+  font-size: var(--fs-ui);
   font-weight: 600;
-  color: #475569;
+  color: var(--text-muted);
 }
 @keyframes ov-spin {
   to { transform: rotate(360deg); }

@@ -37,24 +37,24 @@ const { toasts } = storeToRefs(uiStore)
   align-items: center;
   gap: 0.6rem;
   padding: 0.7rem 0.9rem;
-  border-radius: 10px;
-  background: #ffffff;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
   border: 1px solid #d1fae5;
   border-left: 4px solid #16a34a;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+  box-shadow: var(--shadow-lg);
 }
 .toast-item__ico { color: #16a34a; flex-shrink: 0; }
-.toast-item__msg { font-size: 0.85rem; color: #1e293b; flex: 1 1 auto; }
+.toast-item__msg { font-size: var(--fs-ui); color: var(--text); flex: 1 1 auto; }
 .toast-item__close {
   border: 0;
   background: transparent;
-  color: #94a3b8;
+  color: var(--text-muted);
   flex-shrink: 0;
   display: inline-flex;
   padding: 0.15rem;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
 }
-.toast-item__close:hover { background: #f1f5f9; color: #475569; }
+.toast-item__close:hover { background: var(--surface-sunken); color: var(--text); }
 
 .toast-anim-enter-active,
 .toast-anim-leave-active {
@@ -74,13 +74,13 @@ const { toasts } = storeToRefs(uiStore)
 
 /* ===== MODO OSCURO ===== */
 :root[data-bs-theme="dark"] .toast-item {
-  background: #1e293b;
+  background: var(--surface);
   border-color: #14532d;
 }
-:root[data-bs-theme="dark"] .toast-item__msg { color: #f1f5f9; }
-:root[data-bs-theme="dark"] .toast-item__close { color: #64748b; }
+:root[data-bs-theme="dark"] .toast-item__msg { color: var(--text); }
+:root[data-bs-theme="dark"] .toast-item__close { color: var(--text-muted); }
 :root[data-bs-theme="dark"] .toast-item__close:hover {
-  background: #334155;
-  color: #cbd5e1;
+  background: var(--line);
+  color: var(--text);
 }
 </style>

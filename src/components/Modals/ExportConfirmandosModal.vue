@@ -1,7 +1,8 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { Modal } from 'bootstrap';
-import { Download, Info, Check, FileSpreadsheet, FileText, X } from 'lucide-vue-next';
+import { Download, Info, Check, FileSpreadsheet, FileText } from 'lucide-vue-next';
+import AppButton from '@/components/AppButton.vue';
 import { showAlerta } from '@/funciones';
 import { attachModalFocusReturn } from '@/composables/useModalFocusReturn';
 import { getConfirmandosExport } from '@/services/confirmandos';
@@ -121,16 +122,14 @@ const exportar = async () => {
         aria-labelledby="exportConfirmandosModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
             <div class="modal-content exp">
-                <header class="exp-header">
-                    <span class="exp-header-icon" aria-hidden="true"><Download :size="18" /></span>
-                    <div class="exp-header-text">
-                        <h5 id="exportConfirmandosModalLabel" class="exp-title">Exportar confirmandos</h5>
-                        <p class="exp-subtitle">Elige qué confirmandos, qué datos y en qué archivo</p>
+                <header class="modal-header">
+                    <span class="modal-header__icon" aria-hidden="true"><Download :size="18" /></span>
+                    <div class="modal-header__text">
+                        <h5 id="exportConfirmandosModalLabel" class="modal-title">Exportar confirmandos</h5>
+                        <p class="modal-subtitle">Elige qué confirmandos, qué datos y en qué archivo</p>
                     </div>
-                    <button type="button" class="exp-close" aria-label="Cerrar" data-bs-dismiss="modal"
-                        :disabled="exportando">
-                        <X :size="18" aria-hidden="true" />
-                    </button>
+                    <button type="button" class="btn-close" aria-label="Cerrar" data-bs-dismiss="modal"
+                        :disabled="exportando"></button>
                 </header>
 
                 <form class="exp-form" @submit.prevent="exportar">
@@ -198,15 +197,13 @@ const exportar = async () => {
                         </fieldset>
                     </div>
 
-                    <footer class="exp-footer">
-                        <p class="exp-summary" :class="{ 'is-error': sinColumnas }" aria-live="polite">{{ resumen }}</p>
-                        <button type="button" class="exp-btn exp-btn-ghost" data-bs-dismiss="modal"
-                            :disabled="exportando">Cancelar</button>
-                        <button type="submit" class="exp-btn exp-btn-primary" :disabled="exportando || sinColumnas">
-                            <span v-if="exportando" class="spinner-border spinner-border-sm" aria-hidden="true"></span>
-                            <Download v-else :size="16" aria-hidden="true" />
+                    <footer class="modal-footer">
+                        <p class="modal-footer__note" :class="{ 'is-error': sinColumnas }" aria-live="polite">{{ resumen }}</p>
+                        <AppButton variant="secondary" data-bs-dismiss="modal" :disabled="exportando">Cancelar</AppButton>
+                        <AppButton type="submit" :icon="Download" :loading="exportando"
+                            :disabled="sinColumnas">
                             {{ exportando ? 'Exportando…' : 'Exportar' }}
-                        </button>
+                        </AppButton>
                     </footer>
                 </form>
             </div>
@@ -215,81 +212,6 @@ const exportar = async () => {
 </template>
 
 <style scoped>
-/* Tokens locales: paleta slate del sistema + acento de la parroquia. */
-.exp {
-    --exp-accent: var(--parroquia-color, #2563eb);
-    --exp-accent-soft: color-mix(in srgb, var(--exp-accent) 9%, transparent);
-    --exp-accent-ring: color-mix(in srgb, var(--exp-accent) 28%, transparent);
-    --exp-surface: #ffffff;
-    --exp-sunken: #f1f5f9;
-    --exp-line: #e2e8f0;
-    --exp-line-strong: #cbd5e1;
-    --exp-text: #0f172a;
-    --exp-muted: #64748b;
-    --exp-shadow-sm: 0 1px 2px rgb(15 23 42 / 0.06), 0 1px 1px rgb(15 23 42 / 0.04);
-    --exp-shadow-md: 0 4px 12px -2px rgb(15 23 42 / 0.08), 0 2px 4px -2px rgb(15 23 42 / 0.05);
-    --exp-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
-
-    border: 1px solid var(--exp-line) !important;
-    border-radius: 14px !important;
-    background: var(--exp-surface);
-    color: var(--exp-text);
-    box-shadow: 0 24px 48px -12px rgb(15 23 42 / 0.18), 0 0 0 1px rgb(15 23 42 / 0.02);
-    overflow: hidden;
-}
-:root[data-bs-theme="dark"] .exp {
-    --exp-surface: #1e293b;
-    --exp-sunken: #0f172a;
-    --exp-line: #334155;
-    --exp-line-strong: #475569;
-    --exp-text: #f1f5f9;
-    --exp-muted: #94a3b8;
-    --exp-accent-soft: color-mix(in srgb, var(--exp-accent) 18%, transparent);
-    --exp-accent-ring: color-mix(in srgb, var(--exp-accent) 40%, transparent);
-    --exp-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.3);
-    --exp-shadow-md: 0 4px 12px -2px rgb(0 0 0 / 0.35);
-}
-
-/* Cabecera */
-.exp-header {
-    display: flex;
-    align-items: center;
-    gap: 0.875rem;
-    padding: 1.25rem 1.5rem;
-    border-bottom: 1px solid var(--exp-line);
-}
-.exp-header-icon {
-    display: grid;
-    place-items: center;
-    width: 2.25rem;
-    height: 2.25rem;
-    border-radius: 10px;
-    background: var(--exp-accent-soft);
-    color: var(--exp-accent);
-    flex-shrink: 0;
-}
-.exp-header-text { flex: 1; min-width: 0; }
-.exp-title {
-    font-size: 1.0625rem;
-    font-weight: 600;
-    letter-spacing: -0.01em;
-    color: var(--exp-text);
-    margin: 0;
-}
-.exp-subtitle { font-size: 0.8125rem; color: var(--exp-muted); margin: 0.125rem 0 0; }
-.exp-close {
-    display: grid;
-    place-items: center;
-    width: 2rem;
-    height: 2rem;
-    border: 0;
-    border-radius: 8px;
-    background: transparent;
-    color: var(--exp-muted);
-    transition: background-color 0.2s var(--exp-ease), color 0.2s var(--exp-ease);
-}
-.exp-close:hover:not(:disabled) { background: var(--exp-sunken); color: var(--exp-text); }
-
 /* Cuerpo */
 .exp-form { display: flex; flex-direction: column; min-height: 0; }
 .exp-body { padding: 1.25rem 1.5rem 1.5rem !important; }
@@ -297,12 +219,12 @@ const exportar = async () => {
     display: flex;
     gap: 0.5rem;
     align-items: flex-start;
-    font-size: 0.8125rem;
+    font-size: var(--fs-sm);
     line-height: 1.5;
-    color: var(--exp-muted);
+    color: var(--text-muted);
     margin: 0 0 1.5rem;
 }
-.exp-note strong { color: var(--exp-text); font-weight: 600; }
+.exp-note strong { color: var(--text); font-weight: 600; }
 .exp-note-icon { flex-shrink: 0; margin-top: 0.15rem; }
 
 .exp-section { margin: 0 0 1.75rem; padding: 0; border: 0; min-width: 0; }
@@ -311,23 +233,23 @@ const exportar = async () => {
 .exp-legend {
     float: none;
     width: auto;
-    font-size: 0.875rem;
+    font-size: var(--fs-ui);
     font-weight: 600;
-    color: var(--exp-text);
+    color: var(--text);
     margin-bottom: 0.625rem;
     padding: 0;
 }
-.exp-count { font-size: 0.8125rem; color: var(--exp-muted); font-variant-numeric: tabular-nums; }
+.exp-count { font-size: var(--fs-sm); color: var(--text-muted); font-variant-numeric: tabular-nums; }
 .exp-link {
     margin-left: auto;
     border: 0;
     background: none;
     padding: 0.125rem 0.25rem;
-    border-radius: 6px;
-    font-size: 0.8125rem;
+    border-radius: var(--radius-sm);
+    font-size: var(--fs-sm);
     font-weight: 500;
-    color: var(--exp-accent);
-    transition: opacity 0.2s var(--exp-ease);
+    color: var(--accent);
+    transition: opacity 0.2s var(--ease);
 }
 .exp-link:hover { opacity: 0.75; }
 
@@ -337,33 +259,33 @@ const exportar = async () => {
     grid-template-columns: repeat(4, 1fr);
     gap: 2px;
     padding: 3px;
-    border-radius: 10px;
-    background: var(--exp-sunken);
+    border-radius: var(--radius-lg);
+    background: var(--surface-sunken);
 }
 .exp-segment {
     padding: 0.45rem 0.5rem;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     text-align: center;
-    font-size: 0.8125rem;
+    font-size: var(--fs-sm);
     font-weight: 500;
-    color: var(--exp-muted);
+    color: var(--text-muted);
     cursor: pointer;
     user-select: none;
-    transition: background-color 0.25s var(--exp-ease), color 0.25s var(--exp-ease), box-shadow 0.25s var(--exp-ease);
+    transition: background-color 0.25s var(--ease), color 0.25s var(--ease), box-shadow 0.25s var(--ease);
 }
-.exp-segment:hover { color: var(--exp-text); }
+.exp-segment:hover { color: var(--text); }
 input:checked + .exp-segment {
-    background: var(--exp-surface);
-    color: var(--exp-text);
+    background: var(--surface);
+    color: var(--text);
     font-weight: 600;
-    box-shadow: var(--exp-shadow-sm);
+    box-shadow: var(--shadow-sm);
 }
-:root[data-bs-theme="dark"] input:checked + .exp-segment { background: #334155; }
+:root[data-bs-theme="dark"] input:checked + .exp-segment { background: var(--line); }
 
 /* Columnas: lista agrupada con chips */
 .exp-groups {
-    border: 1px solid var(--exp-line);
-    border-radius: 12px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
     overflow: hidden;
 }
 .exp-group {
@@ -373,122 +295,82 @@ input:checked + .exp-segment {
     align-items: start;
     padding: 0.75rem 1rem;
 }
-.exp-group + .exp-group { border-top: 1px solid var(--exp-line); }
-.exp-group-name { font-size: 0.8125rem; color: var(--exp-muted); padding-top: 0.35rem; }
+.exp-group + .exp-group { border-top: 1px solid var(--line); }
+.exp-group-name { font-size: var(--fs-sm); color: var(--text-muted); padding-top: 0.35rem; }
 .exp-chips { display: flex; flex-wrap: wrap; gap: 0.375rem; }
 .exp-chip {
     display: inline-flex;
     align-items: center;
     gap: 0.3rem;
     padding: 0.3rem 0.7rem;
-    border: 1px solid var(--exp-line);
-    border-radius: 999px;
-    background: var(--exp-surface);
-    font-size: 0.8125rem;
-    color: var(--exp-text);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-pill);
+    background: var(--surface);
+    font-size: var(--fs-sm);
+    color: var(--text);
     cursor: pointer;
     user-select: none;
-    transition: border-color 0.2s var(--exp-ease), background-color 0.2s var(--exp-ease),
-        box-shadow 0.2s var(--exp-ease), color 0.2s var(--exp-ease);
+    transition: border-color 0.2s var(--ease), background-color 0.2s var(--ease),
+        box-shadow 0.2s var(--ease), color 0.2s var(--ease);
 }
-.exp-chip:hover { border-color: var(--exp-line-strong); box-shadow: var(--exp-shadow-sm); }
+.exp-chip:hover { border-color: var(--line-strong); box-shadow: var(--shadow-sm); }
 .exp-chip-check {
     width: 0;
     opacity: 0;
     margin-left: -0.3rem;
-    transition: width 0.2s var(--exp-ease), opacity 0.2s var(--exp-ease), margin 0.2s var(--exp-ease);
+    transition: width 0.2s var(--ease), opacity 0.2s var(--ease), margin 0.2s var(--ease);
 }
 .exp-chip.is-on {
-    border-color: var(--exp-accent-ring);
-    background: var(--exp-accent-soft);
-    color: var(--exp-accent);
+    border-color: var(--accent-ring);
+    background: var(--accent-soft);
+    color: var(--accent);
     font-weight: 500;
 }
 .exp-chip.is-on .exp-chip-check { width: 13px; opacity: 1; margin-left: 0; }
-:root[data-bs-theme="dark"] .exp-chip.is-on { color: color-mix(in srgb, var(--exp-accent) 55%, #ffffff); }
+:root[data-bs-theme="dark"] .exp-chip.is-on { color: color-mix(in srgb, var(--accent) 55%, #ffffff); }
 
 /* Formato: dos opciones con descripción */
 .exp-formats { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
 .exp-format {
-    --fmt: #16a34a;
+    --fmt: var(--success);
     display: flex;
     align-items: center;
     gap: 0.75rem;
     padding: 0.875rem 1rem;
-    border: 1px solid var(--exp-line);
-    border-radius: 12px;
-    background: var(--exp-surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
     cursor: pointer;
-    transition: border-color 0.2s var(--exp-ease), box-shadow 0.25s var(--exp-ease), transform 0.25s var(--exp-ease);
+    transition: border-color 0.2s var(--ease), box-shadow 0.25s var(--ease), transform 0.25s var(--ease);
 }
-.exp-format.is-pdf { --fmt: #dc2626; }
-.exp-format:hover { border-color: var(--exp-line-strong); box-shadow: var(--exp-shadow-md); transform: translateY(-1px); }
-.exp-format.is-on { border-color: var(--exp-accent); box-shadow: 0 0 0 3px var(--exp-accent-soft); }
+.exp-format.is-pdf { --fmt: var(--danger); }
+.exp-format:hover { border-color: var(--line-strong); box-shadow: var(--shadow-md); transform: translateY(-1px); }
+.exp-format.is-on { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .exp-format-icon {
     display: grid;
     place-items: center;
     width: 2.5rem;
     height: 2.5rem;
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     flex-shrink: 0;
     color: var(--fmt);
     background: color-mix(in srgb, var(--fmt) 10%, transparent);
 }
 .exp-format-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
-.exp-format-name { font-size: 0.875rem; font-weight: 600; color: var(--exp-text); }
-.exp-format-ext { font-weight: 400; color: var(--exp-muted); }
-.exp-format-desc { font-size: 0.75rem; line-height: 1.4; color: var(--exp-muted); }
+.exp-format-name { font-size: var(--fs-ui); font-weight: 600; color: var(--text); }
+.exp-format-ext { font-weight: 400; color: var(--text-muted); }
+.exp-format-desc { font-size: var(--fs-xs); line-height: 1.4; color: var(--text-muted); }
 .exp-radio {
     width: 1.125rem;
     height: 1.125rem;
     border-radius: 50%;
-    border: 1.5px solid var(--exp-line-strong);
+    border: 1.5px solid var(--line-strong);
     flex-shrink: 0;
-    transition: border 0.2s var(--exp-ease);
+    transition: border 0.2s var(--ease);
 }
-.exp-format.is-on .exp-radio { border: 5px solid var(--exp-accent); }
+.exp-format.is-on .exp-radio { border: 5px solid var(--accent); }
 
-/* Footer */
-.exp-footer {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.875rem 1.5rem;
-    border-top: 1px solid var(--exp-line);
-    background: var(--exp-sunken);
-}
-.exp-summary {
-    margin: 0 auto 0 0;
-    font-size: 0.8125rem;
-    color: var(--exp-muted);
-    font-variant-numeric: tabular-nums;
-}
-.exp-summary.is-error { color: #dc2626; }
-.exp-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45rem;
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    font-size: 0.875rem;
-    font-weight: 500;
-    border: 1px solid transparent;
-    transition: background-color 0.2s var(--exp-ease), box-shadow 0.2s var(--exp-ease),
-        transform 0.2s var(--exp-ease), filter 0.2s var(--exp-ease);
-}
-.exp-btn:disabled { opacity: 0.55; cursor: not-allowed; }
-.exp-btn-ghost { background: transparent; color: var(--exp-muted); }
-.exp-btn-ghost:hover:not(:disabled) { background: var(--exp-line); color: var(--exp-text); }
-.exp-btn-primary {
-    background: var(--exp-accent);
-    color: #ffffff;
-    box-shadow: 0 1px 2px rgb(15 23 42 / 0.12), inset 0 1px 0 rgb(255 255 255 / 0.12);
-}
-.exp-btn-primary:hover:not(:disabled) {
-    filter: brightness(1.06);
-    box-shadow: 0 4px 12px -2px var(--exp-accent-ring);
-    transform: translateY(-1px);
-}
+.modal-footer__note.is-error { color: var(--danger); font-variant-numeric: tabular-nums; }
 
 /* Foco visible y accesibilidad */
 .exp-visually-hidden {
@@ -504,10 +386,8 @@ input:checked + .exp-segment {
 input:focus-visible + .exp-segment,
 .exp-chip:has(input:focus-visible),
 .exp-format:has(input:focus-visible),
-.exp-close:focus-visible,
-.exp-link:focus-visible,
-.exp-btn:focus-visible {
-    outline: 2px solid var(--exp-accent);
+.exp-link:focus-visible {
+    outline: 2px solid var(--accent);
     outline-offset: 2px;
 }
 fieldset:disabled .exp-segment,
@@ -515,19 +395,16 @@ fieldset:disabled .exp-chip,
 fieldset:disabled .exp-format { cursor: not-allowed; opacity: 0.6; }
 
 @media (max-width: 575.98px) {
-    .exp-header, .exp-footer { padding-left: 1rem; padding-right: 1rem; }
     .exp-body { padding: 1rem !important; }
     .exp-segmented { grid-template-columns: repeat(2, 1fr); }
     .exp-group { grid-template-columns: 1fr; gap: 0.4rem; }
     .exp-group-name { padding-top: 0; }
     .exp-formats { grid-template-columns: 1fr; }
-    .exp-footer { flex-wrap: wrap; }
-    .exp-summary { flex-basis: 100%; }
-    .exp-btn-ghost { margin-left: auto; }
+    .modal-footer__note { flex-basis: 100%; }
 }
 
 @media (prefers-reduced-motion: reduce) {
     .exp *, .exp *::before, .exp *::after { transition: none !important; }
-    .exp-format:hover, .exp-btn-primary:hover:not(:disabled) { transform: none; }
+    .exp-format:hover { transform: none; }
 }
 </style>

@@ -12,14 +12,14 @@ const anio = new Date().getFullYear()
 <style scoped>
 .app-credit {
   margin: 0;
-  font-size: 0.8rem;
-  color: #94a3b8;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
   text-align: center;
   line-height: 1.6;
 }
 
 .app-credit a {
-  color: #64748b;
+  color: var(--text-muted);
   text-decoration: none;
 }
 

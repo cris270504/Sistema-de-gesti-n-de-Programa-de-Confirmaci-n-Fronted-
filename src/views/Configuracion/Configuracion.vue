@@ -1,4 +1,5 @@
 <script setup>
+import AppButton from '@/components/AppButton.vue'
 import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
 import {
@@ -336,9 +337,9 @@ const UMBRALES = [
   <AppPage title="Configuración" subtitle="Ajustes que aplican a toda la parroquia" :loading="parroquiaStore.loading"
     skeleton="form">
     <template #actions>
-      <button type="button" class="cfg__reset" :disabled="saving" @click="cargarDesdeStore">
-        <RotateCcw :size="14" /> Descartar
-      </button>
+      <AppButton variant="secondary" size="sm" type="button" :icon="RotateCcw" :disabled="saving" @click="cargarDesdeStore">
+        Descartar
+      </AppButton>
     </template>
 
     <form class="cfg__form" @submit.prevent="guardar">
@@ -346,9 +347,9 @@ const UMBRALES = [
       <section class="card">
         <header class="card__head card__head--row">
           <h3 class="card__title"><Palette :size="15" class="card__ico" /> Identidad</h3>
-          <button type="button" class="btn-quitar" :disabled="subiendoLogo" @click="restablecerIdentidad">
+          <AppButton variant="ghost" size="sm" type="button" :disabled="subiendoLogo" @click="restablecerIdentidad">
             Restablecer
-          </button>
+          </AppButton>
         </header>
         <div class="card__body">
           <div class="field">
@@ -368,12 +369,12 @@ const UMBRALES = [
                 <input ref="fileInput" type="file" accept="image/png,image/jpeg,image/webp"
                   class="sr-file" @change="onLogoFile" />
                 <div class="logo-up__btns">
-                  <button type="button" class="btn-soft" :disabled="subiendoLogo" @click="fileInput?.click()">
-                    <Upload :size="14" />
+                  <AppButton variant="secondary" size="sm" type="button" :icon="Upload" :loading="subiendoLogo"
+                    @click="fileInput?.click()">
                     {{ subiendoLogo ? 'Subiendo…' : (form.branding.logo_url ? 'Cambiar logo' : 'Subir logo') }}
-                  </button>
-                  <button v-if="form.branding.logo_url" type="button" class="btn-quitar" :disabled="subiendoLogo"
-                    @click="quitarLogoActual">Quitar el mío</button>
+                  </AppButton>
+                  <AppButton v-if="form.branding.logo_url" variant="ghost" size="sm" type="button" :disabled="subiendoLogo"
+                    @click="quitarLogoActual">Quitar el mío</AppButton>
                 </div>
                 <small v-if="usandoLogoProveedor">Mostrando el logo que puso el proveedor.</small>
                 <small v-else>PNG, JPG o WebP. Se recorta a un cuadrado y se optimiza (máx. 512 px).</small>
@@ -640,30 +641,15 @@ const UMBRALES = [
         <span v-if="hayCambiosSinGuardar && !saving" class="cfg__dirty">
           <TriangleAlert :size="14" /> Tenés cambios sin guardar
         </span>
-        <button type="submit" class="btn-primary" :disabled="saving || form.tipos_reunion.length === 0">
-          <Save :size="16" /> {{ saving ? 'Guardando…' : 'Guardar configuración' }}
-        </button>
+        <AppButton type="submit" :icon="Save" :loading="saving" :disabled="form.tipos_reunion.length === 0">
+          {{ saving ? 'Guardando…' : 'Guardar configuración' }}
+        </AppButton>
       </div>
     </form>
   </AppPage>
 </template>
 
 <style scoped>
-.cfg__reset {
-  display: inline-flex;
-  align-items: center;
-  gap: .4rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: .4rem .7rem;
-  font-size: .8rem;
-  color: #475569;
-  background: #fff;
-}
-
-.cfg__reset:hover {
-  background: #f8fafc;
-}
 
 /* En laptop, 2 columnas que aprovechan el ancho (multicolumna: reparte las
    tarjetas por altura, sin huecos muertos). En celular, una sola columna. */
@@ -685,11 +671,11 @@ const UMBRALES = [
 
 .card {
   border: 1px solid #e6eaf0;
-  border-radius: 14px;
-  background: #fff;
+  border-radius: var(--radius-xl);
+  background: var(--surface);
   padding: 1.15rem 1.35rem 1.3rem;
   margin-bottom: 1.25rem;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+  box-shadow: var(--shadow-sm);
   break-inside: avoid;
 }
 
@@ -708,22 +694,20 @@ const UMBRALES = [
   display: flex;
   align-items: center;
   gap: .5rem;
-  font-size: .82rem;
+  font-size: var(--fs-sm);
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .045em;
-  color: #334155;
+  color: var(--text);
   margin: 0;
 }
 
 .card__ico {
-  color: var(--parroquia-color, #6366f1);
+  color: var(--accent);
   flex-shrink: 0;
 }
 
 .card__hint {
-  font-size: .78rem;
-  color: #94a3b8;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
   margin: .4rem 0 0;
   line-height: 1.35;
 }
@@ -745,27 +729,27 @@ const UMBRALES = [
 }
 
 .field label {
-  font-size: .82rem;
+  font-size: var(--fs-sm);
   font-weight: 500;
-  color: #475569;
+  color: var(--text-muted);
   margin-bottom: .35rem;
 }
 
 .field small {
-  font-size: .72rem;
-  color: #94a3b8;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
   margin-top: .3rem;
 }
 
 .field small.err,
 .err {
-  font-size: .72rem;
+  font-size: var(--fs-xs);
   color: #e11d48;
   margin-top: .3rem;
 }
 
 .opt {
-  color: #94a3b8;
+  color: var(--text-muted);
   font-weight: 400;
 }
 
@@ -783,18 +767,18 @@ const UMBRALES = [
 
 .inp {
   width: 100%;
-  border: 1px solid #cbd5e1;
-  border-radius: 9px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
   padding: .5rem .65rem;
-  font-size: .88rem;
-  background: #fff;
-  color: #1e293b;
+  font-size: var(--fs-ui);
+  background: var(--surface);
+  color: var(--text);
 }
 
 .inp:focus {
-  outline: 2px solid #c7d2fe;
+  outline: 2px solid var(--accent-ring);
   outline-offset: -1px;
-  border-color: #6366f1;
+  border-color: var(--accent);
 }
 
 .inp--md {
@@ -805,8 +789,8 @@ const UMBRALES = [
   display: flex;
   align-items: center;
   gap: .5rem;
-  font-size: .85rem;
-  color: #64748b;
+  font-size: var(--fs-ui);
+  color: var(--text-muted);
 }
 
 .inp-color {
@@ -814,25 +798,25 @@ const UMBRALES = [
   min-width: 48px;
   height: 38px;
   padding: 3px;
-  border: 1px solid #cbd5e1;
-  border-radius: 9px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
   cursor: pointer;
 }
 
 .inp-num {
   width: 64px;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
   padding: .4rem;
   text-align: center;
-  font-size: .88rem;
-  color: #1e293b;
+  font-size: var(--fs-ui);
+  color: var(--text);
 }
 
 .inp-num:focus {
-  outline: 2px solid #c7d2fe;
+  outline: 2px solid var(--accent-ring);
   outline-offset: -1px;
-  border-color: #6366f1;
+  border-color: var(--accent);
 }
 
 .logo-box {
@@ -842,9 +826,9 @@ const UMBRALES = [
   display: grid;
   place-items: center;
   overflow: hidden;
-  border: 1px solid #e2e8f0;
-  border-radius: 11px;
-  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface-sunken);
 }
 
 .logo-box--lg {
@@ -886,40 +870,6 @@ const UMBRALES = [
   clip: rect(0 0 0 0);
 }
 
-.btn-soft {
-  display: inline-flex;
-  align-items: center;
-  gap: .4rem;
-  border: 1px solid #cbd5e1;
-  border-radius: 9px;
-  padding: .45rem .8rem;
-  font-size: .82rem;
-  font-weight: 500;
-  color: #334155;
-  background: #fff;
-}
-
-.btn-soft:hover:not(:disabled) {
-  background: #f8fafc;
-}
-
-.btn-soft:disabled {
-  opacity: .6;
-}
-
-.btn-quitar {
-  border: 0;
-  background: none;
-  font-size: .78rem;
-  font-weight: 500;
-  color: #e11d48;
-  padding: 0 .3rem;
-}
-
-.btn-quitar:disabled {
-  opacity: .5;
-}
-
 /* Color: picker + hex + presets */
 .color-row {
   display: flex;
@@ -949,14 +899,14 @@ const UMBRALES = [
 .swatch {
   width: 22px;
   height: 22px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   border: 1px solid rgba(15, 23, 42, .12);
   cursor: pointer;
   padding: 0;
 }
 
 .swatch--on {
-  outline: 2px solid #0f172a;
+  outline: 2px solid var(--surface-sunken);
   outline-offset: 1px;
 }
 
@@ -970,25 +920,23 @@ const UMBRALES = [
 /* Vista previa del branding */
 .brand-preview {
   border: 1px dashed #d8dee9;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: .85rem;
   background: #fbfcfe;
 }
 
 .brand-preview .bp-tag {
-  font-size: .66rem;
+  font-size: var(--fs-xs);
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .05em;
-  color: #94a3b8;
+  color: var(--text-muted);
 }
 
 .bp-shell {
   margin: .5rem 0 .45rem;
   border: 1px solid #e6eaf0;
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
-  background: #fff;
+  background: var(--surface);
   /* Es una maqueta: nada acá se puede clicar. */
   pointer-events: none;
   user-select: none;
@@ -1009,8 +957,8 @@ const UMBRALES = [
   display: grid;
   place-items: center;
   overflow: hidden;
-  border-radius: 6px;
-  background: #f1f5f9;
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
 }
 
 .bp-logo img {
@@ -1020,9 +968,9 @@ const UMBRALES = [
 }
 
 .bp-name {
-  font-size: .8rem;
+  font-size: var(--fs-sm);
   font-weight: 700;
-  color: #1e293b;
+  color: var(--text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1036,15 +984,15 @@ const UMBRALES = [
 }
 
 .bp-row {
-  font-size: .78rem;
-  color: #64748b;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
   padding: .3rem .5rem;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
 }
 
 .bp-row--on {
-  background: color-mix(in srgb, var(--pv) 12%, #fff);
-  color: color-mix(in srgb, var(--pv) 78%, #1e293b);
+  background: color-mix(in srgb, var(--pv) 12%, var(--surface));
+  color: color-mix(in srgb, var(--pv) 78%, var(--text));
   font-weight: 600;
 }
 
@@ -1057,9 +1005,9 @@ const UMBRALES = [
 
 .bp-btn {
   display: inline-block;
-  border-radius: 7px;
+  border-radius: var(--radius-md);
   padding: .4rem .8rem;
-  font-size: .78rem;
+  font-size: var(--fs-xs);
   font-weight: 600;
   color: #fff;
   background: var(--pv);
@@ -1068,13 +1016,13 @@ const UMBRALES = [
 .bp-chip {
   display: inline-flex;
   align-items: center;
-  font-size: .74rem;
+  font-size: var(--fs-xs);
   font-weight: 500;
   padding: .25rem .6rem;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--pv) 40%, #e2e8f0);
-  background: color-mix(in srgb, var(--pv) 9%, #fff);
-  color: color-mix(in srgb, var(--pv) 75%, #1e293b);
+  border-radius: var(--radius-pill);
+  border: 1px solid color-mix(in srgb, var(--pv) 40%, var(--line));
+  background: color-mix(in srgb, var(--pv) 9%, var(--surface));
+  color: color-mix(in srgb, var(--pv) 75%, var(--text));
 }
 
 @media (max-width: 520px) {
@@ -1096,19 +1044,19 @@ const UMBRALES = [
   align-items: center;
   gap: .35rem;
   margin: 0;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
   padding: .45rem .8rem;
-  font-size: .84rem;
+  font-size: var(--fs-sm);
   font-weight: 500;
-  color: #64748b;
+  color: var(--text-muted);
   cursor: pointer;
   user-select: none;
   transition: background-color .12s, border-color .12s, color .12s;
 }
 
 .chip:hover {
-  border-color: #cbd5e1;
+  border-color: var(--line-strong);
 }
 
 .chip input {
@@ -1123,12 +1071,12 @@ const UMBRALES = [
 }
 
 .chip--on {
-  border-color: #c7d2fe;
-  background: #eef2ff;
+  border-color: var(--accent-ring);
+  background: var(--accent-soft);
   color: #3730a3;
-  border-color: color-mix(in srgb, var(--parroquia-color, #6366f1) 45%, #e2e8f0);
-  background: color-mix(in srgb, var(--parroquia-color, #6366f1) 9%, #fff);
-  color: color-mix(in srgb, var(--parroquia-color, #6366f1) 75%, #1e293b);
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+  background: color-mix(in srgb, var(--accent) 9%, var(--surface));
+  color: color-mix(in srgb, var(--accent) 75%, var(--text));
 }
 
 /* Umbrales: 2 columnas si la tarjeta es ancha, 1 si es angosta. */
@@ -1144,9 +1092,9 @@ const UMBRALES = [
   justify-content: space-between;
   gap: 1rem;
   padding: .6rem 0;
-  border-bottom: 1px solid #f1f5f9;
-  font-size: .85rem;
-  color: #475569;
+  border-bottom: 1px solid var(--line);
+  font-size: var(--fs-ui);
+  color: var(--text-muted);
 }
 
 .umbral>span {
@@ -1158,10 +1106,10 @@ const UMBRALES = [
 
 .tag {
   font-style: normal;
-  font-size: .6rem;
+  font-size: var(--fs-xs);
   font-weight: 700;
   letter-spacing: .03em;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   padding: .12rem .35rem;
   flex-shrink: 0;
 }
@@ -1191,30 +1139,22 @@ const UMBRALES = [
   align-items: center;
   justify-content: flex-end;
   gap: .75rem;
-  background: linear-gradient(transparent, #f8fafc 45%);
+  background: linear-gradient(transparent, var(--surface-sunken) 45%);
 }
 
 .cfg__dirty {
   display: inline-flex;
   align-items: center;
   gap: .35rem;
-  font-size: .78rem;
+  font-size: var(--fs-xs);
   font-weight: 600;
   color: #b45309;
-}
-
-.cfg__bar .btn-primary {
-  display: inline-flex;
-  align-items: center;
-  gap: .5rem;
-  border-radius: 10px;
-  padding: .6rem 1.2rem;
 }
 
 @media (max-width: 767px) {
   .card {
     padding: 1rem 1.05rem 1.1rem;
-    border-radius: 12px;
+    border-radius: var(--radius-lg);
   }
 
   .cfg__bar {
@@ -1225,37 +1165,27 @@ const UMBRALES = [
     align-items: stretch;
   }
 
-  .cfg__bar .btn-primary {
+  .cfg__bar :deep(.app-btn) {
     width: 100%;
-    justify-content: center;
   }
 
   .cfg__dirty {
     justify-content: center;
   }
 }
-
 /* ===== MODO OSCURO =====
    Esta vista tiene su propio sistema de tarjetas/campos con colores
    hardcodeados (no pasa por main.css) — se le agrega la contraparte oscura
    acá, con la misma paleta que el resto del sistema. */
-:root[data-bs-theme="dark"] .cfg__reset {
-  border-color: #334155;
-  color: #94a3b8;
-  background: #1e293b;
-}
-:root[data-bs-theme="dark"] .cfg__reset:hover {
-  background: #334155;
-}
 :root[data-bs-theme="dark"] .card {
-  border-color: #334155;
-  background: #1e293b;
+  border-color: var(--line);
+  background: var(--surface);
 }
 :root[data-bs-theme="dark"] .card__title {
-  color: #f1f5f9;
+  color: var(--text);
 }
 :root[data-bs-theme="dark"] .field label {
-  color: #cbd5e1;
+  color: var(--text);
 }
 :root[data-bs-theme="dark"] .field small.err,
 :root[data-bs-theme="dark"] .err {
@@ -1263,78 +1193,70 @@ const UMBRALES = [
 }
 :root[data-bs-theme="dark"] .inp,
 :root[data-bs-theme="dark"] .inp-num {
-  background: #0f172a;
-  border-color: #475569;
-  color: #f1f5f9;
+  background: var(--surface-sunken);
+  border-color: var(--line-strong);
+  color: var(--text);
 }
 :root[data-bs-theme="dark"] .inp:focus,
 :root[data-bs-theme="dark"] .inp-num:focus {
-  outline-color: #4338ca;
+  outline-color: color-mix(in srgb, var(--accent), #000 25%);
   border-color: #818cf8;
 }
 :root[data-bs-theme="dark"] .edad-row {
-  color: #94a3b8;
+  color: var(--text-muted);
 }
 :root[data-bs-theme="dark"] .logo-box {
-  border-color: #334155;
-  background: #0f172a;
-}
-:root[data-bs-theme="dark"] .btn-soft {
-  border-color: #475569;
-  color: #e2e8f0;
-  background: #1e293b;
-}
-:root[data-bs-theme="dark"] .btn-soft:hover:not(:disabled) {
-  background: #334155;
+  border-color: var(--line);
+  background: var(--surface-sunken);
 }
 :root[data-bs-theme="dark"] .swatch--on {
-  outline-color: #f1f5f9;
+  outline-color: var(--line);
 }
 :root[data-bs-theme="dark"] .warn-contraste {
   color: #fbbf24 !important;
 }
 :root[data-bs-theme="dark"] .brand-preview {
-  border-color: #475569;
-  background: #0f172a;
+  border-color: var(--line-strong);
+  background: var(--surface-sunken);
 }
 :root[data-bs-theme="dark"] .bp-shell {
-  border-color: #334155;
-  background: #1e293b;
+  border-color: var(--line);
+  background: var(--surface);
 }
 :root[data-bs-theme="dark"] .bp-side {
-  border-bottom-color: #334155;
+  border-bottom-color: var(--line);
 }
 :root[data-bs-theme="dark"] .bp-logo {
-  background: #334155;
+  background: var(--line);
 }
 :root[data-bs-theme="dark"] .bp-name {
-  color: #f1f5f9;
+  color: var(--text);
 }
 :root[data-bs-theme="dark"] .bp-row {
-  color: #94a3b8;
+  color: var(--text-muted);
 }
 :root[data-bs-theme="dark"] .bp-row--on {
-  background: color-mix(in srgb, var(--pv) 20%, #1e293b);
-  color: color-mix(in srgb, var(--pv) 70%, #f1f5f9);
+  background: color-mix(in srgb, var(--pv) 20%, var(--surface));
+  color: color-mix(in srgb, var(--pv) 70%, var(--text));
 }
 :root[data-bs-theme="dark"] .bp-chip {
-  background: color-mix(in srgb, var(--pv) 16%, #1e293b);
-  color: color-mix(in srgb, var(--pv) 70%, #f1f5f9);
+  background: color-mix(in srgb, var(--pv) 16%, var(--surface));
+  color: color-mix(in srgb, var(--pv) 70%, var(--text));
 }
 :root[data-bs-theme="dark"] .chip {
-  border-color: #475569;
-  color: #94a3b8;
+  border-color: var(--line-strong);
+  color: var(--text-muted);
 }
 :root[data-bs-theme="dark"] .chip:hover {
-  border-color: #64748b;
+  border-color: var(--line-strong);
 }
 :root[data-bs-theme="dark"] .chip--on {
-  background: color-mix(in srgb, var(--parroquia-color, #6366f1) 18%, #1e293b);
-  color: color-mix(in srgb, var(--parroquia-color, #6366f1) 70%, #f1f5f9);
+  background: color-mix(in srgb, var(--accent) 18%, var(--surface));
+  color: color-mix(in srgb, var(--accent) 70%, var(--text));
 }
 :root[data-bs-theme="dark"] .umbral {
-  border-bottom-color: #334155;
-  color: #cbd5e1;
+  border-bottom-color: var(--line);
+  color: var(--text);
 }
 :root[data-bs-theme="dark"] .tag--alto {
   background: #4c1d1d;
@@ -1349,7 +1271,7 @@ const UMBRALES = [
   color: #7dd3fc;
 }
 :root[data-bs-theme="dark"] .cfg__bar {
-  background: linear-gradient(transparent, #0f172a 45%);
+  background: linear-gradient(transparent, var(--surface-sunken) 45%);
 }
 :root[data-bs-theme="dark"] .cfg__dirty {
   color: #fbbf24;

@@ -1,4 +1,7 @@
 <script setup>
+import AppSkeleton from '@/components/AppSkeleton.vue'
+import AppEmpty from '@/components/AppEmpty.vue'
+import AppButton from '@/components/AppButton.vue'
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useUsersStore } from '../../stores/users';
 import { useRolesStore } from '../../stores/roles';
@@ -9,10 +12,7 @@ import { showAlerta } from '@/funciones';
 import { Modal } from 'bootstrap';
 import { attachModalFocusReturn } from '@/composables/useModalFocusReturn';
 import { useFieldValidation, validarDni, validarCelular, validarEmail } from '@/composables/useFieldValidation';
-import {
-  SquarePen, UserPlus, User, IdCard, Phone, Mail, CalendarDays,
-  Info, Check,
-} from 'lucide-vue-next';
+import { SquarePen, UserPlus, User, IdCard, Phone, Mail, CalendarDays, Check, Layers } from 'lucide-vue-next';
 
 const usersStore = useUsersStore();
 const rolesStore = useRolesStore();
@@ -188,27 +188,26 @@ async function submitUpdate() {
       <div class="modal-content">
 
         <div class="modal-header">
-          <div>
-            <h5 class="modal-title fw-bold text-white">
-              <component :is="isEditing ? SquarePen : UserPlus" class="h-5 w-5 me-2 text-white-50 d-inline-block align-text-bottom" aria-hidden="true" />
-              {{ title }}
-            </h5>
-            <p class="text-white-50 small mb-0">Complete los datos del formulario.</p>
+          <span class="modal-header__icon" aria-hidden="true">
+            <component :is="isEditing ? SquarePen : UserPlus" :size="18" />
+          </span>
+          <div class="modal-header__text">
+            <h5 class="modal-title">{{ title }}</h5>
+            <p class="modal-subtitle">Complete los datos del formulario.</p>
           </div>
-          <button type="button" class="btn-close btn-close-white" @click="close" aria-label="Close"></button>
+          <button type="button" class="btn-close" @click="close" aria-label="Cerrar"></button>
         </div>
 
         <div class="modal-body">
-          <div v-if="loading && isEditing" class="text-center py-5">
-            <div class="spinner-border text-primary" role="status"></div>
-            <p class="mt-2 text-muted fw-medium">Cargando...</p>
+          <div v-if="loading && isEditing" role="status" aria-live="polite" aria-label="Cargando usuario">
+            <AppSkeleton skeleton="form" />
           </div>
 
           <form v-else @submit.prevent="submitUpdate" id="userForm" class="needs-validation">
             <div class="row g-4">
 
               <div class="col-12">
-                <label for="userName" class="form-label fw-bold text-secondary small text-uppercase">Nombre Completo</label>
+                <label for="userName" class="form-label fw-bold text-secondary small">Nombre Completo</label>
                 <div class="input-group">
                   <span class="input-group-text bg-blue-soft text-primary border-end-0">
                     <User class="h-4 w-4" aria-hidden="true" />
@@ -219,7 +218,7 @@ async function submitUpdate() {
               </div>
 
               <div class="col-md-4">
-                <label for="userDni" class="form-label fw-bold text-secondary small text-uppercase">DNI</label>
+                <label for="userDni" class="form-label fw-bold text-secondary small">DNI</label>
                 <div class="input-group">
                   <span class="input-group-text bg-blue-soft text-primary border-end-0">
                     <IdCard class="h-4 w-4" aria-hidden="true" />
@@ -232,7 +231,7 @@ async function submitUpdate() {
               </div>
 
               <div class="col-md-4">
-                <label for="userCelular" class="form-label fw-bold text-secondary small text-uppercase">Celular</label>
+                <label for="userCelular" class="form-label fw-bold text-secondary small">Celular</label>
                 <div class="input-group">
                   <span class="input-group-text bg-blue-soft text-primary border-end-0">
                     <Phone class="h-4 w-4" aria-hidden="true" />
@@ -245,7 +244,7 @@ async function submitUpdate() {
               </div>
 
               <div class="col-md-4">
-                <label for="userFechaNacimiento" class="form-label fw-bold text-secondary small text-uppercase">Fecha de nacimiento</label>
+                <label for="userFechaNacimiento" class="form-label fw-bold text-secondary small">Fecha de nacimiento</label>
                 <div class="input-group">
                   <span class="input-group-text bg-blue-soft text-primary border-end-0">
                     <CalendarDays class="h-4 w-4" aria-hidden="true" />
@@ -256,7 +255,7 @@ async function submitUpdate() {
               </div>
 
               <div class="col-12">
-                <label for="userEmail" class="form-label fw-bold text-secondary small text-uppercase">Correo Electrónico</label>
+                <label for="userEmail" class="form-label fw-bold text-secondary small">Correo Electrónico</label>
                 <div class="input-group">
                   <span class="input-group-text bg-blue-soft text-primary border-end-0">
                     <Mail class="h-4 w-4" aria-hidden="true" />
@@ -270,7 +269,7 @@ async function submitUpdate() {
 
               <!-- SECCIÓN DE ROLES -->
               <div class="col-12">
-                <label class="form-label fw-bold text-secondary small text-uppercase mb-2">Asignar Roles</label>
+                <label class="form-label fw-bold text-secondary small mb-2">Asignar Roles</label>
                 <div class="chip-container p-3 rounded-3 bg-white border">
                   <div v-if="rolesVisibles.length" class="d-flex flex-wrap gap-2">
                     <template v-for="role in rolesVisibles" :key="role.id">
@@ -283,15 +282,15 @@ async function submitUpdate() {
                       </label>
                     </template>
                   </div>
-                  <div v-else class="text-muted fst-italic py-2">
-                    <div class="spinner-border spinner-border-sm text-primary me-2"></div> Cargando...
+                  <div v-else role="status" aria-live="polite" aria-label="Cargando roles">
+                    <AppSkeleton skeleton="lines" />
                   </div>
                 </div>
               </div>
 
               <!-- SECCIÓN DE GRUPOS -->
               <div class="col-12">
-                <label class="form-label fw-bold text-secondary small text-uppercase mb-2">Asignar Grupos (Opcional)</label>
+                <label class="form-label fw-bold text-secondary small mb-2">Asignar Grupos (Opcional)</label>
                 <div class="chip-container chip-container--scroll p-3 rounded-3 bg-white border">
                   <div v-if="availableGrupos && availableGrupos.length" class="d-flex flex-wrap gap-2">
                     <template v-for="grupo in availableGrupos" :key="grupo.id">
@@ -304,12 +303,10 @@ async function submitUpdate() {
                       </label>
                     </template>
                   </div>
-                  <div v-else-if="loading" class="text-muted fst-italic py-2">
-                    <div class="spinner-border spinner-border-sm text-primary me-2"></div> Cargando...
+                  <div v-else-if="loading" role="status" aria-live="polite" aria-label="Cargando grupos">
+                    <AppSkeleton skeleton="lines" />
                   </div>
-                  <div v-else class="text-muted fst-italic py-2">
-                    <Info class="h-4 w-4 me-1" aria-hidden="true" /> No hay grupos disponibles.
-                  </div>
+                  <AppEmpty v-else compact :icon="Layers" message="Aún no hay grupos para asignar." />
                 </div>
               </div>
 
@@ -317,19 +314,9 @@ async function submitUpdate() {
           </form>
         </div>
 
-        <div class="modal-footer bg-light-subtle">
-          <button type="button" class="btn btn-outline-secondary px-4 fw-medium border-0" @click="close"
-            :disabled="saving">
-            Cancelar
-          </button>
-          <button type="submit" form="userForm" class="btn btn-primary px-4 fw-medium shadow-sm" :disabled="saving">
-            <template v-if="saving">
-              <span class="spinner-border spinner-border-sm me-2"></span>
-            </template>
-            <template v-else>
-              <Check class="h-4 w-4 me-1" aria-hidden="true" /> Guardar
-            </template>
-          </button>
+        <div class="modal-footer">
+          <AppButton variant="secondary" type="button" @click="close" :disabled="saving">Cancelar</AppButton>
+          <AppButton type="submit" form="userForm" :icon="Check" :loading="saving">Guardar</AppButton>
         </div>
 
       </div>
@@ -342,43 +329,34 @@ async function submitUpdate() {
     ESTÉTICA "BLUE HEADER"
   ========================================= */
 
-/* La estructura del modal (marco, cabecera, footer) usa el estilo global
-   unificado de src/assets/main.css (mismas propiedades con !important, esta
-   copia local quedaba inerte). Acá solo lo propio del formulario. */
-
-/* 3. BODY & INPUTS */
-.modal-body {
-  padding: 2rem;
-}
-
 /* Inputs */
 .form-control {
-  background-color: #ffffff;
-  border: 1px solid #cbd5e1;
+  background-color: var(--surface);
+  border: 1px solid var(--line-strong);
   padding: 0.7rem 1rem;
-  font-size: 0.95rem;
-  color: #334155;
+  font-size: var(--fs-base);
+  color: var(--text);
   border-left: none;
 }
 
 /* Iconos de Input */
 .bg-blue-soft {
-  background-color: #eff6ff !important;
-  border: 1px solid #cbd5e1;
+  background-color: var(--accent-soft) !important;
+  border: 1px solid var(--line-strong);
   border-right: none;
-  color: #2563eb !important;
+  color: var(--accent) !important;
   /* Icono Azul */
 }
 
 /* Focus State */
 .input-group:focus-within {
-  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
-  border-radius: 0.375rem;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 15%, transparent);
+  border-radius: var(--radius-sm);
 }
 
 .input-group:focus-within .form-control,
 .input-group:focus-within .bg-blue-soft {
-  border-color: #2563eb;
+  border-color: var(--accent);
 }
 
 /* 4. ROLES Y GRUPOS (chips) */
@@ -392,27 +370,27 @@ async function submitUpdate() {
 }
 
 .role-card {
-  background-color: #ffffff;
-  border: 1px solid #e2e8f0;
-  color: #64748b;
+  background-color: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--text-muted);
   font-weight: 500;
-  font-size: 0.85rem;
+  font-size: var(--fs-ui);
   white-space: nowrap;
   cursor: pointer;
   user-select: none;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
 }
 
 .role-card:hover {
   border-color: #93c5fd;
-  color: #2563eb;
+  color: var(--accent);
 }
 
 /* Rol Seleccionado */
 .btn-check:checked+.role-card {
-  background-color: #2563eb !important;
+  background-color: var(--accent) !important;
   /* Azul Real */
-  border-color: #2563eb !important;
+  border-color: var(--accent) !important;
   color: #ffffff !important;
 }
 
@@ -420,47 +398,24 @@ async function submitUpdate() {
   color: #ffffff !important;
 }
 
-/* 5. BOTONES */
-.btn-primary {
-  background-color: #2563eb;
-  border-color: #2563eb;
-  padding: 0.6rem 1.5rem;
-  transition: all 0.2s;
-}
-
-.btn-primary:hover {
-  background-color: #1d4ed8;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
-}
-
-.btn-outline-secondary:hover {
-  background-color: #f1f5f9;
-  color: #0f172a;
-}
-
 /* ===== MODO OSCURO ===== */
 :root[data-bs-theme="dark"] .form-control {
-  background-color: #0f172a;
-  border-color: #475569;
-  color: #e2e8f0;
+  background-color: var(--surface-sunken);
+  border-color: var(--line-strong);
+  color: var(--text);
 }
 :root[data-bs-theme="dark"] .bg-blue-soft {
   background-color: #1e2547 !important;
-  border-color: #475569;
+  border-color: var(--line-strong);
   color: #93c5fd !important;
 }
 :root[data-bs-theme="dark"] .role-card {
-  background-color: #1e293b;
-  border-color: #334155;
-  color: #94a3b8;
+  background-color: var(--surface);
+  border-color: var(--line);
+  color: var(--text-muted);
 }
 :root[data-bs-theme="dark"] .role-card:hover {
-  border-color: #3b82f6;
+  border-color: var(--accent);
   color: #93c5fd;
-}
-:root[data-bs-theme="dark"] .btn-outline-secondary:hover {
-  background-color: #334155;
-  color: #f1f5f9;
 }
 </style>

@@ -1,4 +1,6 @@
 <script setup>
+import AppEmpty from '@/components/AppEmpty.vue'
+import AppButton from '@/components/AppButton.vue'
 import { useUsersStore } from '@/stores/users';
 import { storeToRefs } from 'pinia';
 import { computed, onMounted, ref } from 'vue';
@@ -84,9 +86,7 @@ onMounted(() => {
 <template>
   <AppPage title="Usuarios" subtitle="Personal del sistema" :loading="loading">
     <template #actions>
-      <button @click="abrirCrear" class="btn-primary">
-        <Plus :size="18" class="mr-1.5" /> <span class="text-sm">Nuevo usuario</span>
-      </button>
+      <AppButton :icon="Plus" @click="abrirCrear">Nuevo usuario</AppButton>
     </template>
 
     <div v-if="error" class="alert-error !mb-4">{{ error }}</div>
@@ -98,10 +98,13 @@ onMounted(() => {
         </span>
         <input type="text" class="form-control border-start-0 ps-0" v-model="busqueda"
           placeholder="Buscar por nombre, DNI o correo…" aria-label="Buscar usuario" :disabled="loading">
-        <button v-if="busqueda" @click="busqueda = ''" aria-label="Limpiar búsqueda"
-          class="btn btn-white border border-start-0 text-muted">
-          <X class="h-4 w-4" aria-hidden="true" />
-        </button>
+        <AppButton
+          v-if="busqueda"
+          variant="secondary"
+          icon-only
+          :icon="X"
+          @click="busqueda = ''"
+          aria-label="Limpiar búsqueda"></AppButton>
       </div>
 
       <div class="seg" role="group" aria-label="Filtrar usuarios por estado">
@@ -116,8 +119,11 @@ onMounted(() => {
       <span class="users-count">{{ usuariosVisibles.length }} usuario(s)</span>
     </div>
 
-    <div v-if="usuariosVisibles.length === 0" class="surface empty-state">
-      {{ (users && users.length) ? 'No hay usuarios que coincidan con la búsqueda o el filtro.' : 'No hay usuarios registrados.' }}
+    <div v-if="usuariosVisibles.length === 0" class="surface">
+      <AppEmpty :icon="User"
+        :message="(users && users.length) ? 'No hay usuarios que coincidan con la búsqueda o el filtro.' : 'Aún no hay usuarios registrados.'">
+        <AppButton v-if="!(users && users.length)" :icon="Plus" @click="abrirCrear">Nuevo usuario</AppButton>
+      </AppEmpty>
     </div>
 
     <div v-else class="user-grid">
@@ -148,21 +154,31 @@ onMounted(() => {
           </div>
 
           <div v-if="authStore.can('editar usuarios')" class="user-card__actions">
-            <button @click="abrirEditar(u)" class="btn-action btn-soft-primary" title="Editar">
-              <Pencil :size="18" />
-            </button>
-            <button v-if="u.activo === false" class="btn-action btn-soft-success" title="Activar" @click="setEstado(u)">
-              <CircleCheck :size="18" />
-            </button>
-            <button v-else class="btn-action btn-soft-warning" title="Desactivar" @click="setEstado(u)">
-              <Ban :size="18" />
-            </button>
-            <button class="btn-action btn-soft-danger" :disabled="gruposDe(u) > 0"
+            <AppButton variant="soft" icon-only @click="abrirEditar(u)" title="Editar" aria-label="Editar"><Pencil :size="18" /></AppButton>
+            <AppButton
+              v-if="u.activo === false"
+              variant="soft"
+              tone="success"
+              icon-only
+              title="Activar"
+              @click="setEstado(u)"
+              aria-label="Activar"><CircleCheck :size="18" /></AppButton>
+            <AppButton
+              v-else
+              variant="soft"
+              tone="warning"
+              icon-only
+              title="Desactivar"
+              @click="setEstado(u)"
+              aria-label="Desactivar"><Ban :size="18" /></AppButton>
+            <AppButton
+              variant="soft"
+              tone="danger"
+              icon-only
+              :disabled="gruposDe(u) > 0"
               :title="gruposDe(u) > 0 ? 'Tiene grupos asignados: reasígnalos o desactívalo' : 'Eliminar'"
               :aria-label="gruposDe(u) > 0 ? 'Tiene grupos asignados: reasígnalos o desactívalo' : `Eliminar usuario ${u.name}`"
-              @click="removeUser(u.id, u.name)">
-              <Trash :size="18" />
-            </button>
+              @click="removeUser(u.id, u.name)"><Trash :size="18" /></AppButton>
           </div>
         </div>
 
@@ -199,9 +215,9 @@ onMounted(() => {
 
 .seg {
   display: inline-flex;
-  border: 1px solid #e2e8f0;
-  border-radius: 9px;
-  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
   padding: 3px;
   gap: 2px;
 }
@@ -210,27 +226,27 @@ onMounted(() => {
   border: 0;
   background: transparent;
   padding: 0.4rem 0.9rem;
-  font-size: 0.82rem;
+  font-size: var(--fs-sm);
   font-weight: 600;
-  color: #64748b;
-  border-radius: 6px;
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: background-color 0.15s, color 0.15s, box-shadow 0.15s;
 }
 
 .seg__btn:hover:not(.seg__btn--on) {
-  color: #1e293b;
+  color: var(--text);
 }
 
 .seg__btn--on {
-  background: #ffffff;
-  color: var(--parroquia-color, #2563eb);
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+  background: var(--surface);
+  color: var(--accent);
+  box-shadow: var(--shadow-sm);
 }
 
 .users-count {
-  font-size: 0.8rem;
-  color: #94a3b8;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
   margin-left: auto;
 }
 
@@ -248,21 +264,21 @@ onMounted(() => {
 }
 
 .user-card {
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
   padding: 0.9rem 1rem;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  box-shadow: var(--shadow-sm);
   transition: box-shadow 0.15s, border-color 0.15s;
 }
 
 .user-card:hover {
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+  box-shadow: var(--shadow-md);
   border-color: #d1d5db;
 }
 
 .user-card--off {
-  background: #f8fafc;
+  background: var(--surface-sunken);
 }
 
 .user-card--off .user-card__id,
@@ -279,12 +295,12 @@ onMounted(() => {
 .icon-box {
   width: 36px;
   height: 36px;
-  background-color: #f3f4f6;
-  border-radius: 8px;
+  background-color: var(--surface-sunken);
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--line);
   flex-shrink: 0;
 }
 
@@ -296,7 +312,7 @@ onMounted(() => {
 .user-card__name {
   font-weight: 700;
   color: #1f2937;
-  font-size: 0.98rem;
+  font-size: var(--fs-base);
   line-height: 1.2;
   display: flex;
   align-items: center;
@@ -313,9 +329,9 @@ onMounted(() => {
 
 .role-badge {
   padding: 0.2em 0.6em;
-  font-size: 0.72rem;
+  font-size: var(--fs-xs);
   font-weight: 600;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   border-width: 1px;
   border-style: solid;
 }
@@ -332,9 +348,9 @@ onMounted(() => {
   gap: 0.25rem;
   margin-top: 0.7rem;
   padding-top: 0.6rem;
-  border-top: 1px solid #f1f5f9;
-  font-size: 0.85rem;
-  color: #64748b;
+  border-top: 1px solid var(--line);
+  font-size: var(--fs-ui);
+  color: var(--text-muted);
 }
 
 .uc-line {
@@ -345,53 +361,40 @@ onMounted(() => {
 }
 
 .user-badge-off {
-  font-size: 0.62rem;
+  font-size: var(--fs-xs);
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: #64748b;
-  background: #e2e8f0;
-  border-radius: 999px;
+  color: var(--text-muted);
+  background: var(--line);
+  border-radius: var(--radius-pill);
   padding: 0.1rem 0.45rem;
-}
-
-/* Botón Principal (heredado del resto de vistas) */
-.btn-primary {
-  background-color: #2563eb;
-  border-color: #2563eb;
-  font-size: 0.9rem;
-}
-
-.btn-primary:hover {
-  background-color: #1d4ed8;
 }
 
 /* ===== MODO OSCURO ===== */
 :root[data-bs-theme="dark"] .seg {
-  border-color: #475569;
-  background: #0f172a;
+  border-color: var(--line-strong);
+  background: var(--surface-sunken);
 }
-:root[data-bs-theme="dark"] .seg__btn { color: #94a3b8; }
-:root[data-bs-theme="dark"] .seg__btn:hover:not(.seg__btn--on) { color: #f1f5f9; }
-:root[data-bs-theme="dark"] .seg__btn--on { background: #334155; }
+:root[data-bs-theme="dark"] .seg__btn { color: var(--text-muted); }
+:root[data-bs-theme="dark"] .seg__btn:hover:not(.seg__btn--on) { color: var(--text); }
+:root[data-bs-theme="dark"] .seg__btn--on { background: var(--line); }
 
 :root[data-bs-theme="dark"] .user-card {
-  border-color: #334155;
-  background: #1e293b;
+  border-color: var(--line);
+  background: var(--surface);
 }
-:root[data-bs-theme="dark"] .user-card:hover { border-color: #475569; }
-:root[data-bs-theme="dark"] .user-card--off { background: #0f172a; }
+:root[data-bs-theme="dark"] .user-card:hover { border-color: var(--line-strong); }
+:root[data-bs-theme="dark"] .user-card--off { background: var(--surface-sunken); }
 :root[data-bs-theme="dark"] .icon-box {
-  background-color: #334155;
-  border-color: #475569;
+  background-color: var(--line);
+  border-color: var(--line-strong);
 }
-:root[data-bs-theme="dark"] .user-card__name { color: #f1f5f9; }
+:root[data-bs-theme="dark"] .user-card__name { color: var(--text); }
 :root[data-bs-theme="dark"] .user-card__contact {
-  border-top-color: #334155;
-  color: #94a3b8;
+  border-top-color: var(--line);
+  color: var(--text-muted);
 }
 :root[data-bs-theme="dark"] .user-badge-off {
-  color: #cbd5e1;
-  background: #334155;
+  color: var(--text);
+  background: var(--line);
 }
 </style>

@@ -6,6 +6,7 @@ import { useParroquiaStore } from '@/stores/parroquia';
 import { useRoute } from 'vue-router';
 import { prefetchRoute } from '@/router';
 import defaultLogo from '@/assets/logo.png';
+import AppButton from '@/components/AppButton.vue';
 import {
   Home,
   Users,
@@ -266,11 +267,7 @@ defineExpose({ toggleSidebar });
 </script>
 
 <template>
-  <div :class="[
-    'relative flex flex-col border-r backdrop-blur-md transition-all duration-300 ease-in-out',
-    drawerMode ? 'h-full w-full !bg-white dark:!bg-slate-800 p-4' : 'h-screen !bg-white/80 dark:!bg-slate-800/90',
-    !drawerMode && (isSidebarOpen ? 'w-72 p-4' : 'w-20 p-2')
-  ]">
+  <div :class="[ 'relative flex flex-col border-r backdrop-blur-md transition-all duration-300 ease-in-out', drawerMode ? 'h-full w-full !bg-white dark:!bg-slate-800 p-4' : 'h-screen !bg-white/80 dark:!bg-slate-800/90', !drawerMode && (isSidebarOpen ? 'w-72 p-4' : 'w-20 p-2') ]">
     <!-- Header del Sidebar -->
     <div
       :class="['mb-2 flex items-center justify-between border-b pb-4', expanded ? 'px-2' : 'px-0 justify-center']">
@@ -282,11 +279,10 @@ defineExpose({ toggleSidebar });
           {{ parroquiaStore.nombreApp }}
         </h5>
       </div>
-      <button @click="onHeaderButton"
-        class="rounded p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary transition-colors focus:outline-none">
-        <X v-if="expanded" class="h-6 w-6" aria-hidden="true" />
-        <Menu v-else class="h-6 w-6" aria-hidden="true" />
-      </button>
+      <AppButton variant="ghost" icon-only :aria-label="expanded ? 'Cerrar menú' : 'Abrir menú'" @click="onHeaderButton">
+        <X v-if="expanded" :size="22" />
+        <Menu v-else :size="22" />
+      </AppButton>
     </div>
 
     <!-- Navegación por Secciones -->
@@ -295,7 +291,7 @@ defineExpose({ toggleSidebar });
       <div v-for="(section, idx) in filteredSections" :key="section.title" class="mb-4">
 
         <!-- Título de Sección -->
-        <div v-if="expanded" class="px-3 mb-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+        <div v-if="expanded" class="px-3 mb-2 text-xs font-bold text-slate-400">
           {{ section.title }}
         </div>
         <!-- Divisor visual cuando está colapsado -->
@@ -308,10 +304,7 @@ defineExpose({ toggleSidebar });
             <RouterLink v-if="!item.children" :to="item.to" custom v-slot="{ navigate, href, isActive, isExactActive }">
               <a :href="href" @click="navigate" @mouseenter="prefetchRoute(item.to?.name)" @focus="prefetchRoute(item.to?.name)"
                 :title="!expanded ? item.name : undefined" class="nav-link group"
-                :class="[
-                  (item.to.name === 'dashboard' ? isExactActive : isActive) ? 'nav-link--active' : 'nav-link--idle',
-                  !expanded ? 'justify-center' : ''
-                ]">
+                :class="[ (item.to.name === 'dashboard' ? isExactActive : isActive) ? 'nav-link--active' : 'nav-link--idle', !expanded ? 'justify-center' : '' ]">
                 <span class="active-indicator"
                   :class="(item.to.name === 'dashboard' ? isExactActive : isActive) ? 'opacity-100 scale-y-100' : 'opacity-0 scale-y-0'"
                   aria-hidden="true"></span>
@@ -379,7 +372,7 @@ defineExpose({ toggleSidebar });
   align-items: center;
   width: 100%;
   padding: 0.75rem;
-  border-radius: 0.5rem;
+  border-radius: var(--radius-md);
   text-decoration: none;
   transition: all 0.2s;
   cursor: pointer;
@@ -393,21 +386,21 @@ defineExpose({ toggleSidebar });
 
 /* Estados */
 .nav-link--idle {
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 .nav-link--idle:hover {
-  background-color: #f1f5f9;
-  color: #0f172a;
+  background-color: var(--surface-sunken);
+  color: var(--text);
 }
 
 .nav-link--active {
-  background-color: #eff6ff;
+  background-color: var(--accent-soft);
   color: var(--color-primary);
 }
 
-:root[data-bs-theme="dark"] .nav-link--idle { color: #94a3b8; }
-:root[data-bs-theme="dark"] .nav-link--idle:hover { background-color: #334155; color: #f1f5f9; }
+:root[data-bs-theme="dark"] .nav-link--idle { color: var(--text-muted); }
+:root[data-bs-theme="dark"] .nav-link--idle:hover { background-color: var(--line); color: var(--text); }
 :root[data-bs-theme="dark"] .nav-link--active { background-color: #1e3a5f; }
 
 /* Indicador azul a la izquierda */
@@ -417,7 +410,7 @@ defineExpose({ toggleSidebar });
   top: 10%;
   bottom: 10%;
   width: 4px;
-  border-radius: 0 4px 4px 0;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
   background-color: var(--color-primary);
   transition: transform 0.2s, opacity 0.2s;
 }

@@ -1,8 +1,9 @@
 <script setup>
+import AppEmpty from '@/components/AppEmpty.vue'
+import AppButton from '@/components/AppButton.vue'
 import { storeToRefs } from 'pinia';
 import { onMounted, ref, watch } from 'vue'; // Agregamos watch
-import { RouterLink } from 'vue-router';
-import { UserPlus, Pencil, Trash, Plus, Users, Calendar, Download } from 'lucide-vue-next';
+import { UserPlus, Pencil, Trash, Plus, Users, Calendar, Download, Layers } from 'lucide-vue-next';
 import { useGruposStore } from '../../stores/grupos';
 import { useParroquiaStore } from '@/stores/parroquia';
 import GrupoModal from '../../components/Modals/grupoModal.vue';
@@ -78,29 +79,27 @@ onMounted(() => {
 <template>
     <AppPage title="Grupos" subtitle="Grupos de catequesis" :loading="loading">
         <template #actions>
-            <button @click="exportarDatos" :disabled="isExporting" class="btn-outline">
-                <span v-if="isExporting" class="spinner-border spinner-border-sm me-2"></span>
-                <Download v-else :size="16" class="mr-1.5" />
-                <span class="text-sm">{{ isExporting ? 'Exportando…' : 'Exportar' }}</span>
-            </button>
-            <button @click="abrirCrear" class="btn-primary">
-                <Plus :size="18" class="mr-1.5" /> <span class="text-sm">Nuevo grupo</span>
-            </button>
+            <AppButton variant="secondary" :icon="Download" :loading="isExporting" @click="exportarDatos">{{ isExporting ? 'Exportando…' : 'Exportar' }}</AppButton>
+            <AppButton :icon="Plus" @click="abrirCrear">Nuevo grupo</AppButton>
         </template>
 
         <div class="surface table-wrap cards-sm">
                 <table class="table align-middle mb-0">
                     <thead class="bg-light-gray">
                         <tr>
-                            <th class="ps-4 py-2 text-secondary text-uppercase fw-bold">Grupo / Periodo</th>
-                            <th class="py-2 text-secondary text-uppercase fw-bold">Catequistas</th>
-                            <th class="py-2 text-secondary text-uppercase fw-bold text-center">Confirmandos</th>
-                            <th class="text-end pe-4 py-2 text-secondary text-uppercase fw-bold">Acciones</th>
+                            <th class="ps-4 py-2 text-secondary fw-bold">Grupo / Periodo</th>
+                            <th class="py-2 text-secondary fw-bold">Catequistas</th>
+                            <th class="py-2 text-secondary fw-bold text-center">Confirmandos</th>
+                            <th class="text-end pe-4 py-2 text-secondary fw-bold">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr v-if="!grupos || grupos.length === 0">
-                            <td colspan="4" class="text-center py-5 text-muted fs-5">No hay grupos registrados.</td>
+                            <td colspan="4">
+                                <AppEmpty :icon="Layers" message="Aún no hay grupos registrados.">
+                                    <AppButton :icon="Plus" @click="abrirCrear">Nuevo grupo</AppButton>
+                                </AppEmpty>
+                            </td>
                         </tr>
 
                         <tr v-for="g in grupos" :key="g.id" class="hover-row">
@@ -138,21 +137,21 @@ onMounted(() => {
 
                             <td class="text-end pe-4 py-2">
                                 <div class="d-inline-flex gap-2">
-                                    <RouterLink :to="{ path: 'grupos/' + g.id + '/asignacion' }"
-                                        class="btn-action btn-soft-success" title="Asignar Personas">
+                                    <AppButton :to="{ path: 'grupos/' + g.id + '/asignacion' }" variant="soft" tone="success" icon-only
+                                        title="Asignar Personas" aria-label="Asignar personas">
                                         <UserPlus :size="18" />
-                                    </RouterLink>
+                                    </AppButton>
 
-                                    <button class="btn-action btn-soft-primary" title="Editar"
-                                        @click="abrirEditar(g.id)">
-                                        <Pencil :size="18" />
-                                    </button>
+                                    <AppButton variant="soft" icon-only title="Editar" @click="abrirEditar(g.id)" aria-label="Editar"><Pencil :size="18" /></AppButton>
 
-                                    <button class="btn-action btn-soft-danger" title="Eliminar"
-                                        :aria-label="`Eliminar grupo ${g.nombre}`"
-                                        :disabled="borrandoId === g.id" @click="remove(g.id, g.nombre)">
-                                        <Trash :size="18" />
-                                    </button>
+                                    <AppButton
+                                      variant="soft"
+                                      tone="danger"
+                                      icon-only
+                                      title="Eliminar"
+                                      :aria-label="`Eliminar grupo ${g.nombre}`"
+                                      :disabled="borrandoId === g.id"
+                                      @click="remove(g.id, g.nombre)"><Trash :size="18" /></AppButton>
                                 </div>
                             </td>
                         </tr>
@@ -168,7 +167,7 @@ onMounted(() => {
 <style scoped>
 /* (Mismos estilos que tenías anteriormente) */
 .page-title {
-    font-size: 1.5rem;
+    font-size: var(--fs-xl);
     font-weight: 700;
     color: #111827;
     margin-bottom: 0;
@@ -176,7 +175,7 @@ onMounted(() => {
 }
 
 .page-subtitle {
-    font-size: 0.875rem;
+    font-size: var(--fs-ui);
     color: #6b7280;
 }
 
@@ -184,48 +183,37 @@ onMounted(() => {
     width: 24px;
     height: 24px;
     border-radius: 50%;
-    border: 2px solid #fff;
-    box-shadow: 0 0 0 1px #e5e7eb;
+    border: 2px solid var(--surface);
+    box-shadow: 0 0 0 1px var(--line);
 }
 
 .bg-light-gray {
-    background-color: #f8fafc;
-    border-bottom: 1px solid #e5e7eb;
+    background-color: var(--surface-sunken);
+    border-bottom: 1px solid var(--line);
 }
 
 .bg-light-gray th {
-    font-size: 0.75rem;
+    font-size: var(--fs-xs);
     letter-spacing: 0.5px;
 }
 
 .hover-row:hover td {
-    background-color: #f9fafb;
+    background-color: var(--surface-sunken);
 }
 
 .hover-row td {
-    border-bottom: 1px solid #f3f4f6;
+    border-bottom: 1px solid var(--line);
     color: #374151;
-    font-size: 0.95rem;
+    font-size: var(--fs-base);
 }
 
 .badge-catequista {
-    background-color: #f3f4f6;
+    background-color: var(--surface-sunken);
     color: #4b5563;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--line);
     padding: 0.25em 0.65em;
-    font-size: 0.75rem;
+    font-size: var(--fs-xs);
     font-weight: 600;
-    border-radius: 6px;
-}
-
-/* .btn-action y .btn-soft-* ahora son globales (src/assets/main.css) */
-.btn-primary {
-    background-color: #2563eb;
-    border-color: #2563eb;
-    font-size: 0.9rem;
-}
-
-.btn-primary:hover {
-    background-color: #1d4ed8;
+    border-radius: var(--radius-sm);
 }
 </style>

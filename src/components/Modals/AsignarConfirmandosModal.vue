@@ -1,4 +1,6 @@
 <script setup>
+import AppEmpty from '@/components/AppEmpty.vue'
+import AppButton from '@/components/AppButton.vue'
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useGruposStore } from '@/stores/grupos';
 import { useConfirmandosStore } from '@/stores/confirmandos';
@@ -102,20 +104,23 @@ const save = async () => {
 <template>
     <div class="modal fade" ref="modalRef" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
-            <div class="modal-content !border-0 !rounded-2xl !shadow-lg overflow-hidden">
-                <div class="!p-6 flex justify-between items-center" style="background: linear-gradient(135deg, var(--color-primary) 0%, #1e293b 150%);">
-                    <h5 class="modal-title font-bold text-white flex items-center"><Users class="h-5 w-5 !mr-2" aria-hidden="true" />Asignar Confirmandos</h5>
-                    <button type="button" class="btn-close btn-close-white" @click="close" aria-label="Cerrar"></button>
+            <div class="modal-content">
+                <div class="modal-header">
+                  <span class="modal-header__icon" aria-hidden="true"><Users :size="18" /></span>
+                  <div class="modal-header__text">
+                    <h5 class="modal-title">Asignar confirmandos</h5>
+                  </div>
+                  <button type="button" class="btn-close" @click="close" aria-label="Cerrar"></button>
                 </div>
-                <div class="!bg-gray-50 border-b !p-3">
+                <div class="!bg-gray-50 dark:!bg-slate-900 border-b !p-3">
                     <div class="input-group">
-                        <span class="input-group-text !bg-white border-end-0"><Search :size="16" class="text-gray-400" /></span>
+                        <span class="input-group-text !bg-white dark:!bg-slate-800 border-end-0"><Search :size="16" class="text-gray-400" /></span>
                         <input type="text" class="form-control border-start-0 shadow-none" v-model="searchQuery" placeholder="Buscar por nombre...">
                     </div>
                 </div>
                 <div class="modal-body p-0">
                     <table class="w-full">
-                        <thead class="!bg-gray-50 sticky-top text-gray-500 text-xs uppercase" style="z-index: 1;">
+                        <thead class="!bg-gray-50 dark:!bg-slate-900 sticky-top text-gray-500 dark:text-gray-400 text-xs" style="z-index: 1;">
                             <tr>
                                 <th class="!pl-4 py-2 text-left" style="width: 50px;">
                                     <input class="form-check-input" type="checkbox" @change="toggleSelectAll">
@@ -125,27 +130,26 @@ const save = async () => {
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100">
-                            <tr v-for="conf in filteredConfirmandos" :key="conf.id" class="hover:bg-gray-50 cursor-pointer transition-colors" @click="toggleSelection(conf.id)">
+                            <tr v-for="conf in filteredConfirmandos" :key="conf.id" class="hover:bg-gray-50 dark:hover:bg-slate-700 cursor-pointer transition-colors" @click="toggleSelection(conf.id)">
                                 <td class="!pl-4 py-2">
-                                    <input class="form-check-input" type="checkbox" :value="conf.id" v-model="selectedConfirmandoIds" :disabled="saving" @click.stop>
+                                    <input class="form-check-input" type="checkbox" :value="conf.id" v-model="selectedConfirmandoIds" :disabled="saving"
+                                        :aria-label="`Seleccionar a ${conf.apellidos}, ${conf.nombres}`" @click.stop>
                                 </td>
-                                <td class="py-2"><div class="font-bold text-gray-800">{{ conf.apellidos }}, {{ conf.nombres }}</div></td>
+                                <td class="py-2"><div class="font-bold text-gray-800 dark:text-gray-100">{{ conf.apellidos }}, {{ conf.nombres }}</div></td>
                                 <td class="py-2 text-sm">
                                     <span v-if="conf.grupo_id" class="inline-flex items-center rounded-full !border-0 bg-green-50 text-green-700 !px-3 !py-1 text-xs font-medium">Inscrito</span>
-                                    <span v-else class="inline-flex items-center rounded-full !border-0 bg-gray-100 text-gray-500 !px-3 !py-1 text-xs font-medium">Sin asignar</span>
+                                    <span v-else class="inline-flex items-center rounded-full !border-0 bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-gray-400 !px-3 !py-1 text-xs font-medium">Sin asignar</span>
                                 </td>
                             </tr>
                             <tr v-if="filteredConfirmandos.length === 0">
-                                <td colspan="3" class="!text-center py-4 text-gray-500 text-sm">No hay confirmandos disponibles.</td>
+                                <td colspan="3"><AppEmpty compact :icon="Users" message="No hay confirmandos disponibles para asignar." /></td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
-                <div class="modal-footer bg-gray-50 border-t !gap-2">
-                    <button class="btn-outline !border-0 text-sm" @click="close">Cancelar</button>
-                    <button class="btn-success !rounded-full !px-4 text-sm" @click="save" :disabled="saving">
-                        {{ saving ? 'Guardando...' : 'Confirmar Asignación' }}
-                    </button>
+                <div class="modal-footer">
+                    <AppButton variant="secondary" @click="close">Cancelar</AppButton>
+                    <AppButton @click="save" :disabled="saving">{{ saving ? 'Guardando...' : 'Confirmar Asignación' }}</AppButton>
                 </div>
             </div>
         </div>

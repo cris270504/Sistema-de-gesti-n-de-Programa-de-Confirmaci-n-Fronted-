@@ -1,4 +1,6 @@
 <script setup>
+import AppEmpty from '@/components/AppEmpty.vue'
+import AppButton from '@/components/AppButton.vue'
 import { ref, computed, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { showAlerta } from '@/funciones';
@@ -18,7 +20,7 @@ import AsignarCatequistasModal from '@/components/Modals/AsignarCatequistasModal
 import AsignarConfirmandosModal from '@/components/Modals/AsignarConfirmandosModal.vue';
 import PerfilConfirmandoModal from '../../components/Modals/PerfilConfirmandoModal.vue';
 import ApoderadosModal from '@/components/Modals/ApoderadosModal.vue'; // NUEVO MODAL
-import AppSkeleton from '@/components/AppSkeleton.vue';
+import AppPage from '@/components/AppPage.vue';
 import { useMediaQuery } from '@/composables/useMediaQuery';
 
 const esMovil = useMediaQuery('(max-width: 767px)');
@@ -130,38 +132,25 @@ const countEntregados = (requisitos) => requisitos?.filter(r => r.pivot.estado =
 </script>
 
 <template>
-    <div class="main-container !p-4 md:p-6">
-        <AppSkeleton v-if="loadingGrupo" skeleton="cards" />
+    <AppPage :title="grupo?.nombre ?? ''" :subtitle="grupo ? `Periodo ${grupo.periodo}` : ''" :loading="loadingGrupo"
+        skeleton="cards" class="main-container">
+        <template v-if="grupo && canViewGrupos" #actions>
+            <AppButton variant="secondary" :icon="ArrowLeft" to="/grupos">Volver a grupos</AppButton>
+        </template>
 
-        <div v-else-if="!grupo" class="alert-error">Grupo no encontrado.</div>
+        <div v-if="!grupo" class="alert-error">Grupo no encontrado.</div>
 
         <div v-else>
-            <!-- Encabezado del Grupo -->
-            <div class="d-flex align-items-center gap-2 mb-4">
-                <div v-if="canViewGrupos">
-                    <router-link to="/grupos" class="btn btn-sm btn-light rounded-circle p-2 me-1">
-                        <ArrowLeft :size="16" />
-                    </router-link>
-                </div>
-                <h1 class="page-title mb-0">{{ grupo.nombre }}</h1>
-                <span class="badge text-white px-3 py-1 rounded-pill small" :style="{ backgroundColor: groupColor }">
-                    {{ grupo.periodo }}
-                </span>
-            </div>
-
             <div class="row g-4">
                 <!-- Tabla Principal -->
                 <div class="col-xl-8">
                     <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
                         <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
-                            <button v-if="canManageConfirmandos" class="btn btn-sm btn-theme rounded-pill px-3"
-                                @click="asignarConfirmandosRef.open(grupo)">
-                                Gestionar Inscripción
-                            </button>
+                            <AppButton v-if="canManageConfirmandos" size="sm" class="theme-accent" @click="asignarConfirmandosRef.open(grupo)">Gestionar Inscripción</AppButton>
                         </div>
                         <div v-if="!esMovil" class="table-responsive cards-sm">
                             <table class="table align-middle mb-0">
-                                <thead class="bg-light text-muted small text-uppercase">
+                                <thead class="bg-light text-muted small">
                                     <tr>
                                         <th class="ps-4 py-2" style="width: 50px;">N°</th>
                                         <th class="py-2">Confirmando</th>
@@ -174,9 +163,11 @@ const countEntregados = (requisitos) => requisitos?.filter(r => r.pivot.estado =
                                 <tbody>
                                     <!-- ESTADO VACÍO (UX Mejorada) -->
                                     <tr v-if="!confirmandosProcesados.length">
-                                        <td colspan="6" class="text-center py-5 text-muted">
-                                            <User :size="32" class="mb-2 opacity-50" />
-                                            <p class="mb-0">No hay confirmandos registrados en este grupo.</p>
+                                        <td colspan="6">
+                                            <AppEmpty :icon="User" message="Este grupo aún no tiene confirmandos.">
+                                                <AppButton v-if="canManageConfirmandos" size="sm" class="theme-accent"
+                                                    @click="asignarConfirmandosRef.open(grupo)">Gestionar inscripción</AppButton>
+                                            </AppEmpty>
                                         </td>
                                     </tr>
                                     
@@ -205,30 +196,13 @@ const countEntregados = (requisitos) => requisitos?.filter(r => r.pivot.estado =
                                             </span>
                                         </td>
                                         <td class="text-center">
-                                            <button class="btn btn-sm rounded-pill px-3 py-1 d-inline-flex align-items-center gap-1 border"
-                                                :class="conf.apoderados?.length ? 'btn-light text-primary border-primary-subtle' : 'btn-light text-secondary'"
-                                                @click="apoderadosModalRef.open(conf)">
-                                                <ShieldCheck :size="15" />
-                                                <span class="fw-bold">{{ conf.apoderados?.length || 0 }}</span>
-                                            </button>
+                                            <AppButton size="sm" :variant="conf.apoderados?.length ? 'secondary' : 'ghost'" :icon="ShieldCheck" @click="apoderadosModalRef.open(conf)">{{ conf.apoderados?.length || 0 }}</AppButton>
                                         </td>
                                         <td class="pe-4 text-end align-middle text-nowrap">
                                             <div class="d-flex justify-content-end align-items-center gap-2">
-                                                <button class="btn btn-sm btn-theme rounded-circle d-flex align-items-center justify-content-center"
-                                                    style="width: 32px; height: 32px;" title="Editar Confirmando"
-                                                    @click="modalRef.open(conf.id)">
-                                                    <Pencil :size="15" />
-                                                </button>
-                                                <button class="btn btn-sm btn-theme rounded-circle d-flex align-items-center justify-content-center"
-                                                    style="width: 32px; height: 32px;" title="Ver Requisitos"
-                                                    @click="requisitosModalRef.open(conf)">
-                                                    <FileText :size="15" />
-                                                </button>
-                                                <button class="btn btn-sm btn-theme rounded-circle d-flex align-items-center justify-content-center"
-                                                    style="width: 32px; height: 32px;" title="Ver Ficha del Confirmando"
-                                                    @click="perfilModalRef.abrir(conf.id)">
-                                                    <User :size="15" />
-                                                </button>
+                                                <AppButton size="sm" icon-only class="theme-accent" title="Editar Confirmando" aria-label="Editar Confirmando" @click="modalRef.open(conf.id)"><Pencil :size="15" /></AppButton>
+                                                <AppButton size="sm" icon-only class="theme-accent" title="Ver Requisitos" aria-label="Ver Requisitos" @click="requisitosModalRef.open(conf)"><FileText :size="15" /></AppButton>
+                                                <AppButton size="sm" icon-only class="theme-accent" title="Ver Ficha del Confirmando" aria-label="Ver Ficha del Confirmando" @click="perfilModalRef.abrir(conf.id)"><User :size="15" /></AppButton>
                                             </div>
                                         </td>
                                     </tr>
@@ -238,10 +212,10 @@ const countEntregados = (requisitos) => requisitos?.filter(r => r.pivot.estado =
 
                         <!-- Tarjetas en móvil -->
                         <div v-else class="mg-cards">
-                            <div v-if="!confirmandosProcesados.length" class="text-center py-5 text-muted">
-                                <User :size="32" class="mb-2 opacity-50" />
-                                <p class="mb-0">No hay confirmandos en este grupo.</p>
-                            </div>
+                            <AppEmpty v-if="!confirmandosProcesados.length" :icon="User" message="Este grupo aún no tiene confirmandos.">
+                                <AppButton v-if="canManageConfirmandos" size="sm" class="theme-accent"
+                                    @click="asignarConfirmandosRef.open(grupo)">Gestionar inscripción</AppButton>
+                            </AppEmpty>
                             <article v-for="(conf, i) in confirmandosProcesados" :key="conf.id" class="mg-card"
                                 :class="conf.alerta?.claseFila">
                                 <div class="mg-card__top">
@@ -264,20 +238,11 @@ const countEntregados = (requisitos) => requisitos?.filter(r => r.pivot.estado =
                                 </div>
 
                                 <div class="mg-card__acciones">
-                                    <button class="btn btn-sm btn-light border text-primary d-inline-flex align-items-center gap-1"
-                                        @click="apoderadosModalRef.open(conf)">
-                                        <ShieldCheck :size="15" /> {{ conf.apoderados?.length || 0 }} apod.
-                                    </button>
+                                    <AppButton variant="secondary" size="sm" :icon="ShieldCheck" @click="apoderadosModalRef.open(conf)">{{ conf.apoderados?.length || 0 }} apod.</AppButton>
                                     <span class="mg-card__spacer"></span>
-                                    <button class="btn btn-sm btn-theme mg-iconbtn" title="Editar" @click="modalRef.open(conf.id)">
-                                        <Pencil :size="15" />
-                                    </button>
-                                    <button class="btn btn-sm btn-theme mg-iconbtn" title="Requisitos" @click="requisitosModalRef.open(conf)">
-                                        <FileText :size="15" />
-                                    </button>
-                                    <button class="btn btn-sm btn-theme mg-iconbtn" title="Ficha" @click="perfilModalRef.abrir(conf.id)">
-                                        <User :size="15" />
-                                    </button>
+                                    <AppButton size="sm" icon-only class="theme-accent" title="Editar" aria-label="Editar" @click="modalRef.open(conf.id)"><Pencil :size="15" /></AppButton>
+                                    <AppButton size="sm" icon-only class="theme-accent" title="Requisitos" aria-label="Requisitos" @click="requisitosModalRef.open(conf)"><FileText :size="15" /></AppButton>
+                                    <AppButton size="sm" icon-only class="theme-accent" title="Ficha" aria-label="Ficha" @click="perfilModalRef.abrir(conf.id)"><User :size="15" /></AppButton>
                                 </div>
                             </article>
                         </div>
@@ -288,11 +253,10 @@ const countEntregados = (requisitos) => requisitos?.filter(r => r.pivot.estado =
                 <div class="col-xl-4">
                     <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
                         <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h6 class="fw-bold text-secondary text-uppercase small mb-0 d-flex align-items-center gap-1">
+                            <h6 class="fw-bold text-secondary small mb-0 d-flex align-items-center gap-1">
                                 <User :size="16" /> Catequistas
                             </h6>
-                            <button v-if="canManageCatequistas" class="btn btn-sm btn-theme rounded-pill px-3"
-                                @click="asignarCatequistasRef.open(grupo)">Editar</button>
+                            <AppButton v-if="canManageCatequistas" size="sm" class="theme-accent" @click="asignarCatequistasRef.open(grupo)">Editar</AppButton>
                         </div>
                         <div v-if="grupo.catequistas?.length" class="d-flex flex-column gap-3">
                             <div v-for="cat in grupo.catequistas" :key="cat.id" class="d-flex align-items-center p-2 rounded-3 bg-light-subtle border border-light">
@@ -317,7 +281,7 @@ const countEntregados = (requisitos) => requisitos?.filter(r => r.pivot.estado =
         <PerfilConfirmandoModal ref="perfilModalRef" />
         <RequisitosModal ref="requisitosModalRef" @saved="recargarTabla" />
         <ApoderadosModal ref="apoderadosModalRef" />
-    </div>
+    </AppPage>
 </template>
 
 <style scoped>
@@ -331,21 +295,17 @@ const countEntregados = (requisitos) => requisitos?.filter(r => r.pivot.estado =
     color: var(--theme-color) !important;
 }
 
-.page-title {
-    font-size: 1.15rem;
-    font-weight: 800;
-    color: #1e293b;
-    margin: 0;
-}
-@media (min-width: 768px) {
-    .page-title { font-size: 1.4rem; }
+/* Los botones de acción de este grupo toman el color del grupo en vez del de la parroquia. */
+.theme-accent {
+    --accent: var(--theme-color);
+    --accent-ring: color-mix(in srgb, var(--theme-color) 28%, transparent);
 }
 
 /* ===== Tarjetas (móvil) ===== */
 .mg-cards { display: flex; flex-direction: column; }
 .mg-card {
     padding: 0.85rem;
-    border-top: 1px solid #f1f5f9;
+    border-top: 1px solid var(--line);
 }
 .mg-card:first-child { border-top: 0; }
 .mg-card__top {
@@ -367,53 +327,18 @@ const countEntregados = (requisitos) => requisitos?.filter(r => r.pivot.estado =
     margin-top: 0.7rem;
 }
 .mg-card__spacer { flex: 1; }
-.mg-iconbtn {
-    width: 38px;
-    height: 38px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 9px;
-    padding: 0;
-}
 
 .page-subtitle {
-    font-size: 0.825rem;
-    color: #64748b;
-}
-
-.btn-theme {
-    background-color: var(--theme-color);
-    border-color: var(--theme-color);
-    color: white;
-}
-
-.btn-theme:hover {
-    background-color: var(--theme-hover);
-    border-color: var(--theme-hover);
-    color: white;
+    font-size: var(--fs-sm);
+    color: var(--text-muted);
 }
 
 .bg-theme-soft {
     background-color: var(--theme-soft) !important;
 }
 
-.modal-header-theme {
-    background: linear-gradient(135deg, var(--theme-color) 0%, #1e293b 150%);
-    color: white;
-    padding: 1.5rem 2rem;
-    border-bottom: none;
-    position: relative;
-}
-
-.modal-content {
-    border-radius: 1.2rem !important;
-    overflow: hidden;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-}
-
 .rounded-4 {
-    border-radius: 1rem !important;
+    border-radius: var(--radius-xl) !important;
 }
 
 .hover-row {
@@ -421,30 +346,15 @@ const countEntregados = (requisitos) => requisitos?.filter(r => r.pivot.estado =
 }
 
 .hover-row:hover td {
-    background-color: #f8fafc;
+    background-color: var(--surface-sunken);
 }
 
 .hover-bg-light:hover {
-    background-color: #f1f5f9;
+    background-color: var(--surface-sunken);
 }
 
 .cursor-pointer {
     cursor: pointer;
-}
-
-/* .btn-action y .btn-soft-* ahora son globales (src/assets/main.css). Solo queda la
-   variante temática, que depende de las variables --theme-* que fija esta vista. */
-.btn-soft-theme {
-    background-color: var(--theme-soft);
-    color: var(--theme-color);
-    border-color: color-mix(in srgb, var(--theme-color), transparent 80%);
-}
-
-.btn-soft-theme:hover {
-    background-color: var(--theme-color);
-    color: white;
-    border-color: var(--theme-color);
-    transform: translateY(-1px);
 }
 
 .row-critica {

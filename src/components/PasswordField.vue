@@ -66,15 +66,15 @@ const visible = ref(false)
   width: 2rem;
   height: 2rem;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: transparent;
-  color: #94a3b8;
+  color: var(--text-muted);
   cursor: pointer;
   transition: color 0.15s, background-color 0.15s;
 }
 .pf__toggle:hover:not(:disabled) {
-  color: #475569;
-  background: #f1f5f9;
+  color: var(--text-muted);
+  background: var(--surface-sunken);
 }
 .pf__toggle:disabled {
   cursor: not-allowed;

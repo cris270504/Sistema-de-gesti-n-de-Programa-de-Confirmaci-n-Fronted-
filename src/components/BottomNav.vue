@@ -53,10 +53,10 @@ const isActive = (to) => route.name === to.name
   z-index: 40;
   display: flex;
   align-items: stretch;
-  background: #ffffff;
-  border-top: 1px solid #e2e8f0;
+  background: var(--surface);
+  border-top: 1px solid var(--line);
   padding-bottom: env(safe-area-inset-bottom, 0px);
-  box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.06);
+  box-shadow: var(--shadow-lg);
 }
 
 .bottomnav__item {
@@ -70,8 +70,8 @@ const isActive = (to) => route.name === to.name
   padding: 6px 2px;
   border: 0;
   background: transparent;
-  color: #64748b;
-  font-size: 0.68rem;
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
   font-weight: 600;
   text-decoration: none;
   cursor: pointer;
@@ -86,15 +86,15 @@ const isActive = (to) => route.name === to.name
 }
 
 .bottomnav__item--on {
-  color: var(--parroquia-color, #2563eb);
+  color: var(--accent);
 }
 
 :root[data-bs-theme="dark"] .bottomnav {
-  background: #1e293b;
-  border-top-color: #334155;
+  background: var(--surface);
+  border-top-color: var(--line);
 }
 :root[data-bs-theme="dark"] .bottomnav__item {
-  color: #94a3b8;
+  color: var(--text-muted);
 }
 
 @media (min-width: 768px) {

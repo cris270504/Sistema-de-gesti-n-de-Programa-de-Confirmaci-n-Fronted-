@@ -1,4 +1,6 @@
 <script setup>
+import AppButton from '@/components/AppButton.vue'
+import AppEmpty from '@/components/AppEmpty.vue'
 import { ref, computed, onMounted, nextTick } from 'vue';
 import { storeToRefs } from 'pinia';
 import { Check, Plus, Pencil, Trash2, X, FileCheck } from 'lucide-vue-next';
@@ -127,19 +129,19 @@ const borrarSacramento = (sac) => sacramentosStore.remove(sac.id, sac.nombre);
 <template>
   <AppPage title="Ruta sacramental" subtitle="Qué documentos pide cada sacramento" :loading="loading">
     <template v-if="puedeEditar" #actions>
-      <button class="rs-add" @click="abrirNuevo('sac')"><Plus :size="15" /> Sacramento</button>
+      <AppButton variant="secondary" :icon="Plus" @click="abrirNuevo('sac')">Sacramento</AppButton>
     </template>
 
     <div v-if="nuevo.tipo === 'sac'" class="rs-newbar">
       <span>Nuevo sacramento:</span>
       <input ref="nuevoInput" v-model="nuevo.valor" class="rs-input" placeholder="Nombre…" @keyup.enter="crearNuevo"
         @keyup.esc="cancelarNuevo" />
-      <button class="rs-newbar__ok" @click="crearNuevo">Agregar</button>
-      <button class="rs-newbar__x" @click="cancelarNuevo" aria-label="Cancelar"><X :size="15" /></button>
+      <AppButton size="sm" @click="crearNuevo">Agregar</AppButton>
+      <AppButton variant="ghost" size="sm" icon-only :icon="X" aria-label="Cancelar" @click="cancelarNuevo" />
     </div>
 
-    <div v-if="sacramentos.length === 0" class="surface empty-state">
-      Aún no hay sacramentos. Agregá uno con el botón de arriba.
+    <div v-if="sacramentos.length === 0" class="surface">
+      <AppEmpty :icon="FileCheck" message="Aún no hay sacramentos registrados." />
     </div>
 
     <template v-else>
@@ -153,14 +155,15 @@ const borrarSacramento = (sac) => sacramentosStore.remove(sac.id, sac.nombre);
                 @keyup.enter="guardarEdicion" @keyup.esc="editando = null" @blur="guardarEdicion" />
             </template>
             <template v-else>
-              <h3 class="rs-card__title" :class="{ 'is-clickable': puedeEditar }" @click="abrirEdicion('sac', sac)">
-                {{ sac.nombre }}
+              <h3 class="rs-card__title">
+                <button v-if="puedeEditar" type="button" class="rs-card__title-btn" title="Renombrar"
+                  @click="abrirEdicion('sac', sac)">{{ sac.nombre }}</button>
+                <template v-else>{{ sac.nombre }}</template>
               </h3>
               <span class="rs-card__count">{{ (sac.requisitos ?? []).length }}/{{ requisitos.length }}</span>
               <span v-if="puedeEditar" class="rs-card__actions">
-                <button class="rs-ico" title="Renombrar" @click="abrirEdicion('sac', sac)"><Pencil :size="13" /></button>
-                <button class="rs-ico rs-ico--danger" title="Eliminar sacramento"
-                  @click="borrarSacramento(sac)"><Trash2 :size="13" /></button>
+                <AppButton variant="ghost" size="sm" icon-only :icon="Pencil" title="Renombrar" aria-label="Renombrar" @click="abrirEdicion('sac', sac)" />
+                <AppButton variant="soft-danger" size="sm" icon-only :icon="Trash2" title="Eliminar sacramento" aria-label="Eliminar sacramento" @click="borrarSacramento(sac)" />
               </span>
             </template>
           </header>
@@ -183,14 +186,13 @@ const borrarSacramento = (sac) => sacramentosStore.remove(sac.id, sac.nombre);
       <section class="surface rs-docs">
         <div class="rs-docs__head">
           <h3 class="rs-docs__title">Documentos ({{ requisitos.length }})</h3>
-          <button v-if="puedeEditar && nuevo.tipo !== 'req'" class="rs-add rs-add--sm" @click="abrirNuevo('req')">
-            <Plus :size="14" /> Documento
-          </button>
+          <AppButton v-if="puedeEditar && nuevo.tipo !== 'req'" variant="secondary" size="sm" :icon="Plus"
+            @click="abrirNuevo('req')">Documento</AppButton>
           <span v-else-if="puedeEditar" class="rs-docs__new">
             <input ref="nuevoInput" v-model="nuevo.valor" class="rs-input rs-input--sm" placeholder="Nombre del documento…"
               @keyup.enter="crearNuevo" @keyup.esc="cancelarNuevo" />
-            <button class="rs-newbar__ok" @click="crearNuevo">Agregar</button>
-            <button class="rs-newbar__x" @click="cancelarNuevo" aria-label="Cancelar"><X :size="15" /></button>
+            <AppButton size="sm" @click="crearNuevo">Agregar</AppButton>
+            <AppButton variant="ghost" size="sm" icon-only :icon="X" aria-label="Cancelar" @click="cancelarNuevo" />
           </span>
         </div>
 
@@ -204,9 +206,8 @@ const borrarSacramento = (sac) => sacramentosStore.remove(sac.id, sac.nombre);
               <span class="rs-doc__name" :class="{ 'is-clickable': puedeEditar }"
                 @click="abrirEdicion('req', req)">{{ req.nombre }}</span>
               <span v-if="puedeEditar" class="rs-doc__actions">
-                <button class="rs-ico" title="Renombrar" @click="abrirEdicion('req', req)"><Pencil :size="13" /></button>
-                <button class="rs-ico rs-ico--danger" title="Eliminar documento"
-                  @click="borrarRequisito(req)"><Trash2 :size="13" /></button>
+                <AppButton variant="ghost" size="sm" icon-only :icon="Pencil" title="Renombrar" aria-label="Renombrar" @click="abrirEdicion('req', req)" />
+                <AppButton variant="soft-danger" size="sm" icon-only :icon="Trash2" title="Eliminar documento" aria-label="Eliminar documento" @click="borrarRequisito(req)" />
               </span>
             </template>
           </li>
@@ -218,54 +219,31 @@ const borrarSacramento = (sac) => sacramentosStore.remove(sac.id, sac.nombre);
 </template>
 
 <style scoped>
-.rs-add {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  border: 1px solid #dbe3ea;
-  background: #fff;
-  color: #334155;
-  border-radius: 8px;
-  padding: 0.4rem 0.7rem;
-  font-size: 0.82rem;
-  font-weight: 600;
-}
-.rs-add:hover { background: #f8fafc; border-color: #cbd5e1; }
 
 .rs-newbar {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: #eef2ff;
-  border: 1px solid #c7d2fe;
-  border-radius: 10px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-ring);
+  border-radius: var(--radius-lg);
   padding: 0.5rem 0.75rem;
   margin-bottom: 1rem;
-  font-size: 0.85rem;
+  font-size: var(--fs-ui);
   color: #3730a3;
   flex-wrap: wrap;
 }
-.rs-newbar__ok {
-  border: 0;
-  background: #4f46e5;
-  color: #fff;
-  border-radius: 7px;
-  padding: 0.35rem 0.8rem;
-  font-weight: 600;
-  font-size: 0.82rem;
-}
-.rs-newbar__x { border: 0; background: transparent; color: #6366f1; line-height: 0; }
 
 .rs-input {
-  border: 1px solid #cbd5e1;
-  border-radius: 7px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
   padding: 0.4rem 0.6rem;
-  font-size: 0.88rem;
+  font-size: var(--fs-ui);
   min-width: 200px;
   flex: 1;
 }
-.rs-input--sm { min-width: 120px; padding: 0.3rem 0.5rem; font-size: 0.85rem; }
-.rs-input:focus { outline: 2px solid #c7d2fe; outline-offset: -1px; border-color: #6366f1; }
+.rs-input--sm { min-width: 120px; padding: 0.3rem 0.5rem; font-size: var(--fs-ui); }
+.rs-input:focus { outline: 2px solid var(--accent-ring); outline-offset: -1px; border-color: var(--accent); }
 
 /* ── Tarjetas por sacramento ───────────────────────────────────────────── */
 .rs-grid {
@@ -278,9 +256,9 @@ const borrarSacramento = (sac) => sacramentosStore.remove(sac.id, sac.nombre);
 
 .rs-card {
   border: 1px solid #e6eaf0;
-  border-radius: 14px;
-  background: #fff;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
   overflow: hidden;
 }
 
@@ -289,7 +267,7 @@ const borrarSacramento = (sac) => sacramentosStore.remove(sac.id, sac.nombre);
   align-items: center;
   gap: 0.5rem;
   padding: 0.85rem 1rem;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--line);
   background: #fbfcfe;
 }
 .rs-card__ico {
@@ -297,26 +275,38 @@ const borrarSacramento = (sac) => sacramentosStore.remove(sac.id, sac.nombre);
   place-items: center;
   width: 28px;
   height: 28px;
-  border-radius: 8px;
-  background: #eef2ff;
-  color: #4f46e5;
+  border-radius: var(--radius-md);
+  background: var(--accent-soft);
+  color: var(--accent);
   flex-shrink: 0;
 }
 .rs-card__title {
   margin: 0;
-  font-size: 0.98rem;
+  font-size: var(--fs-base);
   font-weight: 700;
   color: #1f2937;
   flex: 1;
   min-width: 0;
 }
-.rs-card__title.is-clickable { cursor: text; }
+.rs-card__title-btn {
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: text;
+  border-radius: var(--radius-sm);
+}
+.rs-card__title-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .rs-card__count {
-  font-size: 0.72rem;
+  font-size: var(--fs-xs);
   font-weight: 700;
-  color: #64748b;
+  color: var(--text-muted);
   background: #eef2f6;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 0.1rem 0.5rem;
   flex-shrink: 0;
 }
@@ -324,28 +314,28 @@ const borrarSacramento = (sac) => sacramentosStore.remove(sac.id, sac.nombre);
 .rs-card:hover .rs-card__actions { opacity: 1; }
 
 .rs-check { list-style: none; margin: 0; padding: 0.4rem; }
-.rs-check__empty { padding: 1rem; text-align: center; color: #94a3b8; font-style: italic; font-size: 0.85rem; }
+.rs-check__empty { padding: 1rem; text-align: center; color: var(--text-muted); font-style: italic; font-size: var(--fs-ui); }
 
 .rs-check__item {
   display: flex;
   align-items: center;
   gap: 0.55rem;
   padding: 0.4rem 0.55rem;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   cursor: pointer;
-  font-size: 0.85rem;
-  color: #64748b;
+  font-size: var(--fs-ui);
+  color: var(--text-muted);
   transition: background 0.12s, color 0.12s;
 }
-.rs-check__item:hover { background: #f8fafc; }
+.rs-check__item:hover { background: var(--surface-sunken); }
 .rs-check__item.disabled { cursor: default; }
 .rs-check__item input { opacity: 0; width: 0; height: 0; margin: 0; }
 
 .rs-check__box {
   width: 20px;
   height: 20px;
-  border: 1.5px solid #cbd5e1;
-  border-radius: 6px;
+  border: 1.5px solid var(--line-strong);
+  border-radius: var(--radius-sm);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -368,15 +358,12 @@ const borrarSacramento = (sac) => sacramentosStore.remove(sac.id, sac.nombre);
 }
 .rs-docs__title {
   margin: 0;
-  font-size: 0.78rem;
+  font-size: var(--fs-xs);
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: #64748b;
+  color: var(--text-muted);
 }
-.rs-add--sm { padding: 0.3rem 0.6rem; font-size: 0.78rem; }
 .rs-docs__new { display: inline-flex; align-items: center; gap: 0.4rem; flex: 1; min-width: 240px; }
-.rs-docs__empty { color: #94a3b8; font-style: italic; font-size: 0.86rem; margin: 0; }
+.rs-docs__empty { color: var(--text-muted); font-style: italic; font-size: var(--fs-ui); margin: 0; }
 
 .rs-docs__list {
   list-style: none;
@@ -391,82 +378,55 @@ const borrarSacramento = (sac) => sacramentosStore.remove(sac.id, sac.nombre);
   align-items: center;
   gap: 0.5rem;
   padding: 0.4rem 0.15rem;
-  border-bottom: 1px solid #f1f5f9;
-  font-size: 0.86rem;
+  border-bottom: 1px solid var(--line);
+  font-size: var(--fs-ui);
 }
-.rs-doc__name { flex: 1; min-width: 0; color: #334155; }
+.rs-doc__name { flex: 1; min-width: 0; color: var(--text); }
 .rs-doc__name.is-clickable { cursor: text; }
 .rs-doc__actions { display: inline-flex; gap: 0.1rem; opacity: 0; transition: opacity 0.12s; flex-shrink: 0; }
 .rs-doc:hover .rs-doc__actions { opacity: 1; }
-
-.rs-ico {
-  border: 0;
-  background: transparent;
-  color: #94a3b8;
-  padding: 0.15rem;
-  border-radius: 5px;
-  cursor: pointer;
-  line-height: 0;
-}
-.rs-ico:hover { background: #f1f5f9; color: #475569; }
-.rs-ico--danger:hover { background: #fef2f2; color: #ef4444; }
 
 @media (max-width: 767px) {
   .rs-card__actions,
   .rs-doc__actions { opacity: 1; }
 }
 
-/* ===== MODO OSCURO =====
-   Esta vista tiene su propio sistema de tarjetas (rs-*) con colores
-   hardcodeados — se le agrega la contraparte oscura acá, misma paleta que el
-   resto del sistema. */
-:root[data-bs-theme="dark"] .rs-add {
-  border-color: #475569;
-  background: #1e293b;
-  color: #e2e8f0;
-}
-:root[data-bs-theme="dark"] .rs-add:hover { background: #334155; border-color: #64748b; }
-
 :root[data-bs-theme="dark"] .rs-newbar {
   background: #1e2547;
   border-color: #3730a3;
-  color: #c7d2fe;
+  color: color-mix(in srgb, var(--accent) 55%, #fff);
 }
-:root[data-bs-theme="dark"] .rs-newbar__x { color: #a5b4fc; }
 
 :root[data-bs-theme="dark"] .rs-input {
-  background: #0f172a;
-  border-color: #475569;
-  color: #f1f5f9;
+  background: var(--surface-sunken);
+  border-color: var(--line-strong);
+  color: var(--text);
 }
 
 :root[data-bs-theme="dark"] .rs-card {
-  border-color: #334155;
-  background: #1e293b;
+  border-color: var(--line);
+  background: var(--surface);
 }
 :root[data-bs-theme="dark"] .rs-card__head {
-  border-bottom-color: #334155;
-  background: #0f172a;
+  border-bottom-color: var(--line);
+  background: var(--surface-sunken);
 }
 :root[data-bs-theme="dark"] .rs-card__ico {
   background: #1e2547;
   color: #a5b4fc;
 }
-:root[data-bs-theme="dark"] .rs-card__title { color: #f1f5f9; }
+:root[data-bs-theme="dark"] .rs-card__title { color: var(--text); }
 :root[data-bs-theme="dark"] .rs-card__count {
-  color: #94a3b8;
-  background: #334155;
+  color: var(--text-muted);
+  background: var(--line);
 }
 
-:root[data-bs-theme="dark"] .rs-check__item { color: #94a3b8; }
-:root[data-bs-theme="dark"] .rs-check__item:hover { background: #334155; }
-:root[data-bs-theme="dark"] .rs-check__box { border-color: #475569; }
+:root[data-bs-theme="dark"] .rs-check__item { color: var(--text-muted); }
+:root[data-bs-theme="dark"] .rs-check__item:hover { background: var(--line); }
+:root[data-bs-theme="dark"] .rs-check__box { border-color: var(--line-strong); }
 :root[data-bs-theme="dark"] .rs-check__item.is-on { color: #5eead4; }
 
-:root[data-bs-theme="dark"] .rs-docs__title { color: #94a3b8; }
-:root[data-bs-theme="dark"] .rs-doc { border-bottom-color: #334155; }
-:root[data-bs-theme="dark"] .rs-doc__name { color: #e2e8f0; }
-:root[data-bs-theme="dark"] .rs-ico { color: #94a3b8; }
-:root[data-bs-theme="dark"] .rs-ico:hover { background: #334155; color: #cbd5e1; }
-:root[data-bs-theme="dark"] .rs-ico--danger:hover { background: #4c1d1d; color: #fca5a5; }
+:root[data-bs-theme="dark"] .rs-docs__title { color: var(--text-muted); }
+:root[data-bs-theme="dark"] .rs-doc { border-bottom-color: var(--line); }
+:root[data-bs-theme="dark"] .rs-doc__name { color: var(--text); }
 </style>

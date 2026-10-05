@@ -1,8 +1,11 @@
 <script setup>
+import AppSkeleton from '@/components/AppSkeleton.vue'
+import AppEmpty from '@/components/AppEmpty.vue'
+import AppButton from '@/components/AppButton.vue'
 import { useConfirmandosStore } from '../../stores/confirmandos';
 import { useGruposStore } from '../../stores/grupos';
 import { storeToRefs } from 'pinia';
-import { onMounted, onUnmounted, ref, nextTick, watch, defineAsyncComponent } from 'vue';
+import { onMounted, onUnmounted, ref, computed, nextTick, watch, defineAsyncComponent } from 'vue';
 import {
     Pencil, Trash, Plus, User, Phone, Calendar, Users,
     Wand2, Trash2, Save, Upload, Eye, Search, X, ArrowRight, Info,
@@ -137,6 +140,7 @@ watch(modalRef, (instance) => {
 const recargarTabla = () => confirmandosStore.fetchPaginado({ force: true });
 
 const { filtros, limpiarFiltros, totalPages, cambiarPagina, gruposDisponibles } = useConfirmandosFilters();
+const hayFiltros = computed(() => Boolean(filtros.search) || filtros.grupo !== 'todos' || filtros.procedencia !== 'todos' || filtros.estado !== 'todos');
 
 const {
     fileInputRef, isImporting, initImportModal, abrirImportModal, triggerImport,
@@ -274,30 +278,27 @@ onUnmounted(() => {
             <input type="file" ref="fileInputRef" class="d-none" accept=".xlsx, .xls, .csv"
                 aria-label="Seleccionar archivo Excel o CSV para importar" @change="handleFileUpload">
 
-            <button v-if="authStore.can('ver todos los confirmandos')" @click="abrirExportar"
-                :disabled="isExportModalLoading" class="btn-outline">
-                <span v-if="isExportModalLoading" class="spinner-border spinner-border-sm me-2"></span>
-                <Download v-else :size="16" class="mr-1.5" />
-                <span class="text-sm">Exportar</span>
-            </button>
+            <AppButton
+              v-if="authStore.can('ver todos los confirmandos')"
+              variant="secondary"
+              :icon="Download"
+              :loading="isExportModalLoading"
+              @click="abrirExportar">Exportar</AppButton>
 
-            <button v-if="authStore.can('crear confirmandos')" @click="abrirImportModal" :disabled="isImporting"
-                class="btn-outline">
-                <span v-if="isImporting" class="spinner-border spinner-border-sm me-2"></span>
-                <Upload v-else :size="16" class="mr-1.5" />
-                <span class="text-sm">{{ isImporting ? 'Importando…' : 'Importar' }}</span>
-            </button>
+            <AppButton
+              v-if="authStore.can('crear confirmandos')"
+              variant="secondary"
+              :icon="Upload"
+              :loading="isImporting"
+              @click="abrirImportModal">{{ isImporting ? 'Importando…' : 'Importar' }}</AppButton>
 
-            <button v-if="authStore.can('crear grupos')" @click="abrirGenerador" class="btn-outline">
-                <Wand2 :size="16" class="mr-1.5" /> <span class="text-sm">Generar grupos</span>
-            </button>
+            <AppButton v-if="authStore.can('crear grupos')" variant="secondary" :icon="Wand2" @click="abrirGenerador">Generar grupos</AppButton>
 
-            <button v-if="authStore.can('crear confirmandos')" @click="abrirCrear" :disabled="isConfirmandoModalLoading"
-                class="btn-primary">
-                <span v-if="isConfirmandoModalLoading" class="spinner-border spinner-border-sm me-2"></span>
-                <Plus v-else :size="18" class="mr-1.5" />
-                <span class="text-sm">Nuevo confirmando</span>
-            </button>
+            <AppButton
+              v-if="authStore.can('crear confirmandos')"
+              :icon="Plus"
+              :loading="isConfirmandoModalLoading"
+              @click="abrirCrear">Nuevo confirmando</AppButton>
         </template>
 
         <!-- El contenedor principal (Los filtros NUNCA desaparecen) -->
@@ -315,11 +316,13 @@ onUnmounted(() => {
                         <input type="text" class="form-control border-start-0 ps-0" v-model="filtros.search"
                             placeholder="Buscar por apellido o nombre..." aria-label="Buscar confirmando por nombre o apellido"
                             :disabled="loading">
-                        <button v-if="filtros.search" @click="filtros.search = ''"
-                            aria-label="Limpiar búsqueda"
-                            class="btn btn-white border border-start-0 text-muted">
-                            <X class="h-4 w-4" aria-hidden="true" />
-                        </button>
+                        <AppButton
+                          v-if="filtros.search"
+                          variant="secondary"
+                          icon-only
+                          :icon="X"
+                          @click="filtros.search = ''"
+                          aria-label="Limpiar búsqueda"></AppButton>
                     </div>
 
                     <!-- Selector de Procedencia (Reducido) -->
@@ -377,37 +380,25 @@ onUnmounted(() => {
                 <table class="table align-middle mb-0">
                     <thead class="bg-light-gray">
                         <tr>
-                            <th class="ps-4 py-2 text-secondary text-uppercase fw-bold">#</th>
-                            <th class="ps-4 py-2 text-secondary text-uppercase fw-bold">Confirmando</th>
-                            <th class="ps-4 py-2 text-secondary text-uppercase fw-bold">Genero</th>
-                            <th class="py-2 text-secondary text-uppercase fw-bold">Contacto</th>
-                            <th class="py-2 text-center text-secondary text-uppercase fw-bold">Estado</th>
-                            <th class="py-2 text-secondary text-uppercase fw-bold">Grupo</th>
-                            <th class="py-2 text-secondary text-uppercase fw-bold">Sacramento</th>
-                            <th class="text-end pe-4 py-2 text-secondary text-uppercase fw-bold">Acciones</th>
+                            <th class="ps-4 py-2 text-secondary fw-bold">#</th>
+                            <th class="ps-4 py-2 text-secondary fw-bold">Confirmando</th>
+                            <th class="ps-4 py-2 text-secondary fw-bold">Genero</th>
+                            <th class="py-2 text-secondary fw-bold">Contacto</th>
+                            <th class="py-2 text-center text-secondary fw-bold">Estado</th>
+                            <th class="py-2 text-secondary fw-bold">Grupo</th>
+                            <th class="py-2 text-secondary fw-bold">Sacramento</th>
+                            <th class="text-end pe-4 py-2 text-secondary fw-bold">Acciones</th>
                         </tr>
                     </thead>
                     <TableSkeleton v-if="loading" :columns="8" />
                     <tbody v-else>
                         <tr v-if="!pagina.items || pagina.items.length === 0">
-                            <td colspan="8" class="text-center py-5">
-                                <div class="d-flex flex-column align-items-center justify-content-center">
-                                    <Users :size="48" class="text-muted opacity-25 mb-3" />
-                                    <h5 class="text-secondary fw-bold">No se encontraron confirmandos</h5>
-                                    <p class="text-muted small">
-                                        {{
-                                            filtros.search || filtros.grupo !== 'todos' || filtros.procedencia !== 'todos'
-                                                || filtros.estado !== 'todos'
-                                                ? 'No hay resultados que coincidan con tus filtros actuales.'
-                                                : 'Aún no hay confirmandos registrados en el sistema.'
-                                        }}
-                                    </p>
-                                    <button
-                                        v-if="filtros.search || filtros.grupo !== 'todos' || filtros.procedencia !== 'todos' || filtros.estado !== 'todos'"
-                                        @click="limpiarFiltros" class="btn btn-sm btn-outline-secondary mt-2 shadow-sm">
-                                        Limpiar todos los filtros
-                                    </button>
-                                </div>
+                            <td colspan="8">
+                                <AppEmpty :icon="Users"
+                                    :message="hayFiltros ? 'No hay confirmandos que coincidan con tus filtros.' : 'Aún no hay confirmandos registrados.'">
+                                    <AppButton v-if="hayFiltros" variant="secondary" size="sm" @click="limpiarFiltros">Limpiar todos los filtros</AppButton>
+                                    <AppButton v-else-if="authStore.can('crear confirmandos')" :icon="Plus" @click="abrirCrear">Nuevo confirmando</AppButton>
+                                </AppEmpty>
                             </td>
                         </tr>
 
@@ -459,7 +450,7 @@ onUnmounted(() => {
                                 </router-link>
 
                                 <span v-else-if="c.grupo" class="badge-soft-group"
-                                    :style="{ borderColor: c.grupo.color, color: '#334155', cursor: 'default' }">
+                                    :style="{ borderColor: c.grupo.color, color: 'var(--text)', cursor: 'default' }">
                                     <span class="dot-indicator"
                                         :style="{ backgroundColor: c.grupo.color || '#cbd5e1' }"></span>
                                     {{ c.grupo.nombre }}
@@ -471,41 +462,56 @@ onUnmounted(() => {
                             </td>
                             <td class="text-end pe-4 py-2">
                                 <div class="d-inline-flex gap-2">
-                                    <button @click="abrirPerfil(c.id)" :disabled="isPerfilModalLoading"
-                                        class="btn-action btn-soft-suggest" title="Ver Ficha Completa"
-                                        aria-label="Ver ficha completa">
-                                        <span v-if="isPerfilModalLoading" class="spinner-border spinner-border-sm"></span>
-                                        <Eye v-else :size="16" />
-                                    </button>
-                                    <button class="btn-action btn-soft-info" title="Ver Apoderados"
-                                        aria-label="Ver apoderados" @click="openApoderadosModal(c)">
-                                        <Users :size="18" />
-                                    </button>
-                                    <button v-if="authStore.can('editar confirmandos')"
-                                        class="btn-action btn-soft-primary" title="Editar"
-                                        aria-label="Editar confirmando" :disabled="isConfirmandoModalLoading"
-                                        @click="abrirEditar(c.id)">
-                                        <span v-if="isConfirmandoModalLoading" class="spinner-border spinner-border-sm"></span>
-                                        <Pencil v-else :size="18" />
-                                    </button>
-                                    <button v-if="authStore.can('editar confirmandos') && c.estado !== 'retirado'"
-                                        class="btn-action btn-soft-warning" title="Retirar del programa"
-                                        aria-label="Retirar del programa" :disabled="borrandoId === c.id"
-                                        @click="accionEstado('retirar', c)">
-                                        <UserX :size="18" />
-                                    </button>
-                                    <button v-if="authStore.can('editar confirmandos') && c.estado === 'retirado'"
-                                        class="btn-action btn-soft-success" title="Reingresar al programa"
-                                        aria-label="Reingresar al programa" :disabled="borrandoId === c.id"
-                                        @click="accionEstado('reingresar', c)">
-                                        <UserCheck :size="18" />
-                                    </button>
-                                    <button v-if="authStore.can('eliminar confirmandos')"
-                                        class="btn-action btn-soft-danger" title="Eliminar"
-                                        aria-label="Eliminar confirmando" :disabled="borrandoId === c.id"
-                                        @click="removeConfirmando(c.id, c.apellidos + ' ' + c.nombres)">
-                                        <Trash :size="18" />
-                                    </button>
+                                    <AppButton
+                                      variant="soft"
+                                      tone="suggest"
+                                      icon-only
+                                      :loading="isPerfilModalLoading"
+                                      @click="abrirPerfil(c.id)"
+                                      title="Ver Ficha Completa"
+                                      aria-label="Ver ficha completa"><Eye :size="16" /></AppButton>
+                                    <AppButton
+                                      variant="soft"
+                                      tone="info"
+                                      icon-only
+                                      title="Ver Apoderados"
+                                      aria-label="Ver apoderados"
+                                      @click="openApoderadosModal(c)"><Users :size="18" /></AppButton>
+                                    <AppButton
+                                      v-if="authStore.can('editar confirmandos')"
+                                      variant="soft"
+                                      icon-only
+                                      :loading="isConfirmandoModalLoading"
+                                      title="Editar"
+                                      aria-label="Editar confirmando"
+                                      @click="abrirEditar(c.id)"><Pencil :size="18" /></AppButton>
+                                    <AppButton
+                                      v-if="authStore.can('editar confirmandos') && c.estado !== 'retirado'"
+                                      variant="soft"
+                                      tone="warning"
+                                      icon-only
+                                      title="Retirar del programa"
+                                      aria-label="Retirar del programa"
+                                      :disabled="borrandoId === c.id"
+                                      @click="accionEstado('retirar', c)"><UserX :size="18" /></AppButton>
+                                    <AppButton
+                                      v-if="authStore.can('editar confirmandos') && c.estado === 'retirado'"
+                                      variant="soft"
+                                      tone="success"
+                                      icon-only
+                                      title="Reingresar al programa"
+                                      aria-label="Reingresar al programa"
+                                      :disabled="borrandoId === c.id"
+                                      @click="accionEstado('reingresar', c)"><UserCheck :size="18" /></AppButton>
+                                    <AppButton
+                                      v-if="authStore.can('eliminar confirmandos')"
+                                      variant="soft"
+                                      tone="danger"
+                                      icon-only
+                                      title="Eliminar"
+                                      aria-label="Eliminar confirmando"
+                                      :disabled="borrandoId === c.id"
+                                      @click="removeConfirmando(c.id, c.apellidos + ' ' + c.nombres)"><Trash :size="18" /></AppButton>
                                 </div>
                             </td>
                         </tr>
@@ -543,27 +549,21 @@ onUnmounted(() => {
         <div class="modal fade" id="apoderadosModal" tabindex="-1" role="dialog" aria-modal="true"
             aria-labelledby="apoderadosModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
-                    <header class="modal-header p-4">
-                        <div>
-                            <h5 id="apoderadosModalLabel" class="modal-title fw-bold mb-0">
-                                <Users class="h-5 w-5 me-2 d-inline-block align-text-bottom" aria-hidden="true" /> Apoderados
-                            </h5>
-                            <p class="text-white-50 small mb-0 mt-1">Familiares de {{ selectedConfirmandoName }}</p>
-                        </div>
-                        <button type="button" class="btn-close" aria-label="Cerrar" data-bs-dismiss="modal"></button>
+                <div class="modal-content">
+                    <header class="modal-header">
+                      <span class="modal-header__icon" aria-hidden="true"><Users :size="18" /></span>
+                      <div class="modal-header__text">
+                        <h5 id="apoderadosModalLabel" class="modal-title">Apoderados</h5>
+                        <p class="modal-subtitle">Familiares de {{ selectedConfirmandoName }}</p>
+                      </div>
+                      <button type="button" class="btn-close" aria-label="Cerrar" data-bs-dismiss="modal"></button>
                     </header>
                     <div class="modal-body p-4 bg-light-gray-body">
-                        <div v-if="loadingApoderados" class="text-center text-muted py-4" role="status" aria-live="polite">
-                            <span class="spinner-border spinner-border-sm me-2"></span>
-                            <span class="small">Cargando apoderados…</span>
+                        <div v-if="loadingApoderados" role="status" aria-live="polite" aria-label="Cargando apoderados">
+                            <AppSkeleton skeleton="lines" />
                         </div>
-                        <div v-else-if="selectedApoderados.length === 0" class="text-center text-muted py-4">
-                            <div class="mb-2">
-                                <Users :size="48" class="opacity-25" />
-                            </div>
-                            <p class="mb-0 small">No hay apoderados registrados.</p>
-                        </div>
+                        <AppEmpty v-else-if="selectedApoderados.length === 0" compact :icon="Users"
+                            message="Este confirmando aún no tiene apoderados registrados." />
                         <div v-else class="d-flex flex-column gap-3">
                             <div v-for="ap in selectedApoderados" :key="ap.id" class="card border-0 shadow-sm">
                                 <div class="card-body p-3 d-flex justify-content-between align-items-center">
@@ -581,9 +581,8 @@ onUnmounted(() => {
                             </div>
                         </div>
                     </div>
-                    <footer class="modal-footer bg-white border-top-0 p-3">
-                        <button type="button" class="btn btn-light w-100 fw-medium text-secondary"
-                            data-bs-dismiss="modal">Cerrar</button>
+                    <footer class="modal-footer">
+                        <AppButton variant="ghost" type="button" data-bs-dismiss="modal">Cerrar</AppButton>
                     </footer>
                 </div>
             </div>
@@ -592,14 +591,14 @@ onUnmounted(() => {
         <div class="modal fade" id="generadorGruposModal" tabindex="-1" role="dialog" aria-modal="true"
             aria-labelledby="generadorGruposModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-                <div class="modal-content border-0 shadow-lg rounded-4">
-                    <header class="modal-header bg-white border-bottom-0 pt-4 px-4">
-                        <div>
-                            <h5 id="generadorGruposModalLabel" class="fw-bold text-dark mb-1">Generador Automático de
-                                Grupos</h5>
-                            <p class="text-muted small mb-0">Reparte los confirmandos sin grupo de forma pareja.</p>
-                        </div>
-                        <button type="button" class="btn-close" aria-label="Cerrar" data-bs-dismiss="modal"></button>
+                <div class="modal-content">
+                    <header class="modal-header">
+                      <span class="modal-header__icon" aria-hidden="true"><Wand2 :size="18" /></span>
+                      <div class="modal-header__text">
+                        <h5 id="generadorGruposModalLabel" class="modal-title">Generador automático de grupos</h5>
+                        <p class="modal-subtitle">Reparte los confirmandos sin grupo de forma pareja.</p>
+                      </div>
+                      <button type="button" class="btn-close" aria-label="Cerrar" data-bs-dismiss="modal"></button>
                     </header>
 
                     <div class="modal-body px-4 py-2">
@@ -619,7 +618,7 @@ onUnmounted(() => {
                             </div>
                         </div>
 
-                        <label class="form-label fw-bold small text-uppercase text-secondary mb-2">Criterio del
+                        <label class="form-label fw-bold small text-secondary mb-2">Criterio del
                             reparto</label>
                         <div class="btn-group w-100 mb-3" role="group" aria-label="Criterio del reparto">
                             <template v-for="[val, label] in ESTRATEGIAS" :key="val">
@@ -630,7 +629,7 @@ onUnmounted(() => {
                         </div>
 
                         <label id="gruposNombresLabel"
-                            class="form-label fw-bold small text-uppercase text-secondary mb-2">Nombres de los
+                            class="form-label fw-bold small text-secondary mb-2">Nombres de los
                             Grupos</label>
                         <div class="d-flex flex-column gap-2 mb-3" role="group" aria-labelledby="gruposNombresLabel"
                             style="max-height: 200px; overflow-y: auto;">
@@ -641,18 +640,18 @@ onUnmounted(() => {
                                     <input type="text" class="form-control border-start-0" v-model="groupNames[index]"
                                         :aria-label="`Nombre del grupo ${index + 1}`" placeholder="Nombre del grupo">
                                 </div>
-                                <button @click="removeGroupInput(index)" class="btn btn-outline-danger border-0"
-                                    :disabled="groupNames.length === 1" title="Eliminar"
-                                    :aria-label="`Eliminar grupo ${index + 1}`">
-                                    <Trash2 :size="18" />
-                                </button>
+                                <AppButton
+                                  variant="soft-danger"
+                                  icon-only
+                                  :icon="Trash2"
+                                  @click="removeGroupInput(index)"
+                                  :disabled="groupNames.length === 1"
+                                  title="Eliminar"
+                                  :aria-label="`Eliminar grupo ${index + 1}`"></AppButton>
                             </div>
                         </div>
 
-                        <button @click="addGroupInput"
-                            class="btn btn-sm btn-light text-primary border w-100 mb-3 dashed-border">
-                            <Plus :size="16" class="me-1" /> Agregar otro grupo
-                        </button>
+                        <AppButton variant="secondary" size="sm" block :icon="Plus" class="mb-3" @click="addGroupInput">Agregar otro grupo</AppButton>
 
                         <div v-if="prediccion" class="bg-blue-subtle p-3 rounded-3 mb-2">
                             <div class="d-flex align-items-center gap-2 mb-1">
@@ -667,14 +666,9 @@ onUnmounted(() => {
                         </div>
                     </div>
 
-                    <footer class="modal-footer border-top-0 px-4 pb-4">
-                        <button type="button" class="btn btn-light text-secondary fw-medium"
-                            data-bs-dismiss="modal">Cancelar</button>
-                        <button @click="generarGruposApi" :disabled="loadingGenerador" class="btn btn-primary px-4">
-                            <span v-if="loadingGenerador" class="spinner-border spinner-border-sm me-2"></span>
-                            <Save v-else :size="18" class="me-2" />
-                            Generar y Asignar
-                        </button>
+                    <footer class="modal-footer">
+                        <AppButton variant="secondary" type="button" data-bs-dismiss="modal">Cancelar</AppButton>
+                        <AppButton :icon="Save" :loading="loadingGenerador" @click="generarGruposApi">Generar y Asignar</AppButton>
                     </footer>
                 </div>
             </div>
@@ -685,20 +679,14 @@ onUnmounted(() => {
         <div class="modal fade" id="importFormatModal" tabindex="-1" role="dialog" aria-modal="true"
             aria-labelledby="importFormatModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content border-0 shadow-lg rounded-4">
-                    <header class="modal-header bg-success-subtle border-bottom-0 pt-4 px-4">
-                        <div class="d-flex align-items-center">
-                            <div
-                                class="bg-success text-white rounded-circle p-2 me-3 d-flex align-items-center justify-content-center">
-                                <Upload :size="24" aria-hidden="true" />
-                            </div>
-                            <div>
-                                <h5 id="importFormatModalLabel" class="fw-bold text-dark mb-1">Importar Confirmandos
-                                </h5>
-                                <p class="text-muted small mb-0">Revisa el formato antes de subir tu Excel</p>
-                            </div>
-                        </div>
-                        <button type="button" class="btn-close" aria-label="Cerrar" data-bs-dismiss="modal"></button>
+                <div class="modal-content">
+                    <header class="modal-header">
+                      <span class="modal-header__icon" aria-hidden="true"><Upload :size="18" /></span>
+                      <div class="modal-header__text">
+                        <h5 id="importFormatModalLabel" class="modal-title">Importar confirmandos</h5>
+                        <p class="modal-subtitle">Revisa el formato antes de subir tu Excel</p>
+                      </div>
+                      <button type="button" class="btn-close" aria-label="Cerrar" data-bs-dismiss="modal"></button>
                     </header>
 
                     <div class="modal-body px-4 py-4">
@@ -708,7 +696,7 @@ onUnmounted(() => {
                             apellidos.
                         </div>
 
-                        <h6 class="fw-bold text-secondary text-uppercase fs-7 mb-3">Estructura Obligatoria (Fila 1 =
+                        <h6 class="fw-bold text-secondary mb-3" style="font-size: var(--fs-sm);">Estructura Obligatoria (Fila 1 =
                             Títulos)</h6>
                         <div class="table-responsive border rounded-3 mb-3">
                             <table class="table table-sm table-bordered mb-0 text-center align-middle">
@@ -749,13 +737,9 @@ onUnmounted(() => {
                         </ul>
                     </div>
 
-                    <footer class="modal-footer border-top-0 px-4 pb-4 d-flex justify-content-between">
-                        <button type="button" class="btn btn-light text-secondary fw-medium"
-                            data-bs-dismiss="modal">Cancelar</button>
-                        <button @click="triggerImport" class="btn btn-success px-4 d-flex align-items-center">
-                            <Upload :size="18" class="me-2" aria-hidden="true" />
-                            Seleccionar Archivo y Subir
-                        </button>
+                    <footer class="modal-footer">
+                        <AppButton variant="secondary" type="button" data-bs-dismiss="modal">Cancelar</AppButton>
+                        <AppButton :icon="Upload" @click="triggerImport">Seleccionar Archivo y Subir</AppButton>
                     </footer>
                 </div>
             </div>
@@ -769,7 +753,7 @@ onUnmounted(() => {
 <style scoped>
 /* ESTILOS GLOBALES */
 .page-title {
-    font-size: 1.5rem;
+    font-size: var(--fs-xl);
     font-weight: 700;
     color: #111827;
     margin-bottom: 0;
@@ -777,49 +761,49 @@ onUnmounted(() => {
 }
 
 .page-subtitle {
-    font-size: 0.875rem;
+    font-size: var(--fs-ui);
     color: #6b7280;
 }
 
 .icon-box {
     width: 36px;
     height: 36px;
-    background-color: #f3f4f6;
-    border-radius: 8px;
+    background-color: var(--surface-sunken);
+    border-radius: var(--radius-md);
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--line);
 }
 
 .bg-light-gray {
-    background-color: #f8fafc;
-    border-bottom: 1px solid #e5e7eb;
+    background-color: var(--surface-sunken);
+    border-bottom: 1px solid var(--line);
 }
 
 .bg-light-gray th {
-    font-size: 0.75rem;
+    font-size: var(--fs-xs);
     letter-spacing: 0.5px;
 }
 
 .hover-row:hover td {
-    background-color: #f9fafb;
+    background-color: var(--surface-sunken);
 }
 
 .hover-row td {
-    border-bottom: 1px solid #f3f4f6;
+    border-bottom: 1px solid var(--line);
     color: #374151;
-    font-size: 0.95rem;
+    font-size: var(--fs-base);
 }
 
 /* BADGES */
 .badge-soft-group {
-    background-color: #ffffff;
+    background-color: var(--surface);
     border: 1px solid;
     padding: 0.25em 0.65em;
-    font-size: 0.8rem;
+    font-size: var(--fs-sm);
     font-weight: 600;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -833,37 +817,26 @@ onUnmounted(() => {
 }
 
 .badge-soft-blue {
-    background-color: #eff6ff;
-    color: #2563eb;
+    background-color: var(--accent-soft);
+    color: var(--accent);
     border: 1px solid #bfdbfe;
     padding: 0.25em 0.65em;
-    font-size: 0.8rem;
+    font-size: var(--fs-sm);
     font-weight: 600;
-    border-radius: 6px;
-}
-
-/* BOTONES — .btn-action y .btn-soft-* ahora son globales (src/assets/main.css) */
-.btn-primary {
-    background-color: #2563eb;
-    border-color: #2563eb;
-    font-size: 0.9rem;
-}
-
-.btn-primary:hover {
-    background-color: #1d4ed8;
+    border-radius: var(--radius-sm);
 }
 
 /* MODALS — la cabecera usa el estilo global unificado (src/assets/main.css) */
 .bg-light-gray-body {
-    background-color: #f8fafc;
+    background-color: var(--surface-sunken);
 }
 
 .bg-blue-subtle {
-    background-color: #e0e7ff;
+    background-color: var(--accent-soft);
 }
 
 .border-blue-200 {
-    border-color: #c7d2fe !important;
+    border-color: var(--accent-ring) !important;
 }
 
 .dashed-border {
@@ -871,19 +844,19 @@ onUnmounted(() => {
 }
 
 /* ===== MODO OSCURO ===== */
-:root[data-bs-theme="dark"] .page-subtitle { color: #94a3b8; }
+:root[data-bs-theme="dark"] .page-subtitle { color: var(--text-muted); }
 :root[data-bs-theme="dark"] .icon-box {
-    background-color: #334155;
-    border-color: #475569;
+    background-color: var(--line);
+    border-color: var(--line-strong);
 }
 :root[data-bs-theme="dark"] .bg-light-gray {
-    background-color: #0f172a;
-    border-bottom-color: #334155;
+    background-color: var(--surface-sunken);
+    border-bottom-color: var(--line);
 }
-:root[data-bs-theme="dark"] .hover-row:hover td { background-color: #334155; }
+:root[data-bs-theme="dark"] .hover-row:hover td { background-color: var(--line); }
 :root[data-bs-theme="dark"] .hover-row td {
-    border-bottom-color: #334155;
-    color: #e2e8f0;
+    border-bottom-color: var(--line);
+    color: var(--text);
 }
-:root[data-bs-theme="dark"] .badge-soft-group { background-color: #1e293b; }
+:root[data-bs-theme="dark"] .badge-soft-group { background-color: var(--surface); }
 </style>

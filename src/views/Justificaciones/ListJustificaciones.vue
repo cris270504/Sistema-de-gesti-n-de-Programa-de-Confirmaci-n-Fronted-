@@ -1,13 +1,12 @@
 <script setup>
+import AppEmpty from '@/components/AppEmpty.vue'
+import AppButton from '@/components/AppButton.vue'
 import { ref, onMounted, computed } from 'vue';
 import { useJustificacionesStore } from '../../stores/justificaciones';
 import { storeToRefs } from 'pinia';
 import { showAlerta, showErroresDeValidacion, confirmar } from '@/funciones';
 import { completeJustificacion } from '@/services/justificaciones';
-import {
-    Pencil, Trash, Plus, User, Phone, Calendar, Users,
-    Wand2, Trash2, Save, Upload, Check, X, Search
-} from 'lucide-vue-next';
+import { Pencil, Trash, Plus, User, Phone, Calendar, Users, Wand2, Trash2, Save, Upload, Check, X, Search, FileCheck } from 'lucide-vue-next';
 import PerfilConfirmandoModal from '../../components/Modals/PerfilConfirmandoModal.vue';
 import AppPage from '@/components/AppPage.vue';
 import { useMediaQuery } from '@/composables/useMediaQuery';
@@ -263,29 +262,17 @@ const rechazarCumplimientoSwal = async (item) => {
         <!-- TABS DE ESTADOS (PILLS MODERNOS) -->
         <div class="just-tabs mb-4">
             <div class="just-tabs__pills">
-                <button type="button" @click="filtroActual = 'TODOS'"
-                    class="btn rounded-pill fw-medium transition-all"
-                    :class="filtroActual === 'TODOS' ? 'btn-dark shadow-sm' : 'btn-light text-muted border'">
-                    Todos
-                </button>
-                <button type="button" @click="filtroActual = 'INJUSTIFICADO'"
-                    class="btn rounded-pill fw-medium transition-all"
-                    :class="filtroActual === 'INJUSTIFICADO' ? 'btn-danger shadow-sm' : 'btn-light text-danger border'">
-                    Injustificados
-                </button>
-                <button type="button" @click="filtroActual = 'PENDIENTE'"
-                    class="btn rounded-pill fw-medium transition-all"
-                    :class="filtroActual === 'PENDIENTE' ? 'btn-warning text-dark shadow-sm' : 'btn-light text-warning-emphasis border'">
-                    Pendientes
-                </button>
-                <button type="button" @click="filtroActual = 'JUSTIFICADO'"
-                    class="btn rounded-pill fw-medium transition-all"
-                    :class="filtroActual === 'JUSTIFICADO' ? 'btn-success shadow-sm' : 'btn-light text-success border'">
-                    Justificados
-                </button>
+                <AppButton type="button" size="sm" :variant="filtroActual === 'TODOS' ? 'primary' : 'secondary'"
+                    :aria-pressed="filtroActual === 'TODOS'" @click="filtroActual = 'TODOS'">Todos</AppButton>
+                <AppButton type="button" size="sm" :variant="filtroActual === 'INJUSTIFICADO' ? 'primary' : 'secondary'"
+                    :aria-pressed="filtroActual === 'INJUSTIFICADO'" @click="filtroActual = 'INJUSTIFICADO'">Injustificados</AppButton>
+                <AppButton type="button" size="sm" :variant="filtroActual === 'PENDIENTE' ? 'primary' : 'secondary'"
+                    :aria-pressed="filtroActual === 'PENDIENTE'" @click="filtroActual = 'PENDIENTE'">Pendientes</AppButton>
+                <AppButton type="button" size="sm" :variant="filtroActual === 'JUSTIFICADO' ? 'primary' : 'secondary'"
+                    :aria-pressed="filtroActual === 'JUSTIFICADO'" @click="filtroActual = 'JUSTIFICADO'">Justificados</AppButton>
             </div>
 
-            <span class="badge bg-secondary-subtle text-secondary fs-7 px-3 py-2 rounded-pill border just-tabs__count">
+            <span class="badge bg-secondary-subtle text-secondary px-3 py-2 rounded-pill border just-tabs__count" style="font-size: var(--fs-sm);">
                 Mostrando {{ justificacionesFiltradas.length }} registros
             </span>
         </div>
@@ -304,7 +291,7 @@ const rechazarCumplimientoSwal = async (item) => {
                 <!-- Datos: tabla en escritorio -->
                 <div v-else-if="!esMovil" class="table-responsive cards-sm">
                     <table class="table table-hover align-middle mb-0 text-nowrap">
-                        <thead class="bg-light text-uppercase text-secondary" style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                        <thead class="bg-light text-secondary" style="font-size: 0.75rem; letter-spacing: 0.5px;">
                             <tr>
                                 <th class="ps-4 py-3 text-center" style="width: 1%">#</th>
                                 <th class="py-3">Confirmando</th>
@@ -317,8 +304,8 @@ const rechazarCumplimientoSwal = async (item) => {
                         </thead>
                         <tbody>
                             <tr v-if="justificacionesFiltradas.length === 0">
-                                <td colspan="7" class="text-center py-5 text-muted fst-italic">
-                                    No hay resultados para tu búsqueda en "{{ filtroActual }}".
+                                <td colspan="7">
+                                    <AppEmpty :icon="FileCheck" message="No hay justificaciones que coincidan con el filtro elegido." />
                                 </td>
                             </tr>
 
@@ -367,11 +354,7 @@ const rechazarCumplimientoSwal = async (item) => {
                                 </td>
 
                                 <td class="text-center">
-                                    <span class="badge text-uppercase border rounded-pill px-3 py-2" :class="{
-                                        'bg-danger-subtle text-danger border-danger': item.estado_justificacion === 'injustificado',
-                                        'bg-warning-subtle text-warning-emphasis border-warning': item.estado_justificacion === 'pendiente',
-                                        'bg-success-subtle text-success border-success': item.estado_justificacion === 'justificado'
-                                    }">
+                                    <span class="badge border rounded-pill px-3 py-2" :class="{ 'bg-danger-subtle text-danger border-danger': item.estado_justificacion === 'injustificado', 'bg-warning-subtle text-warning-emphasis border-warning': item.estado_justificacion === 'pendiente', 'bg-success-subtle text-success border-success': item.estado_justificacion === 'justificado' }">
                                         {{ item.estado_justificacion }}
                                     </span>
                                 </td>
@@ -379,46 +362,61 @@ const rechazarCumplimientoSwal = async (item) => {
                                 <td class="text-end pe-4">
                                     <div class="d-inline-flex gap-2">
                                         <!-- Botón Perfil -->
-                                        <button @click="perfilModalRef.abrir(item.confirmando_id)"
-                                            class="btn-action btn-soft-secondary" title="Ver Ficha del Confirmando">
-                                            <User :size="15" />
-                                        </button>
+                                        <AppButton
+                                          variant="soft"
+                                          tone="secondary"
+                                          icon-only
+                                          @click="perfilModalRef.abrir(item.confirmando_id)"
+                                          title="Ver Ficha del Confirmando"
+                                          aria-label="Ver Ficha del Confirmando"><User :size="15" /></AppButton>
 
                                         <!-- Acciones Injustificado -->
                                         <template v-if="item.estado_justificacion === 'injustificado'">
-                                            <button @click="abrirModalAcuerdo(item)"
-                                                class="btn-action btn-soft-primary" title="Registrar Acuerdo">
-                                                <Plus :size="16" stroke-width="2.5" />
-                                            </button>
+                                            <AppButton
+                                              variant="soft"
+                                              icon-only
+                                              @click="abrirModalAcuerdo(item)"
+                                              title="Registrar Acuerdo"
+                                              aria-label="Registrar Acuerdo"><Plus :size="16" stroke-width="2.5" /></AppButton>
                                         </template>
 
                                         <!-- Acciones Pendiente -->
                                         <template v-else-if="item.estado_justificacion === 'pendiente'">
-                                            <button @click="abrirModalAcuerdo(item)"
-                                                class="btn-action btn-soft-warning" title="Editar acuerdo">
-                                                <Pencil :size="14" />
-                                            </button>
-                                            <button @click="confirmarCumplimientoSwal(item)"
-                                                class="btn-action btn-soft-success" :disabled="!puedeMarcarCumplido(item)"
-                                                :title="puedeMarcarCumplido(item) ? 'Validar Cumplimiento' : `Recién se puede validar desde el ${formatFechaFalta(item.fecha_acuerdo)}`">
-                                                <Check :size="18" stroke-width="2.5" />
-                                            </button>
-                                            <button @click="rechazarCumplimientoSwal(item)"
-                                                class="btn-action btn-soft-danger" title="Marcar como no cumplido"
-                                                aria-label="Marcar como no cumplido">
-                                                <X :size="18" stroke-width="2.5" />
-                                            </button>
+                                            <AppButton
+                                              variant="soft"
+                                              tone="warning"
+                                              icon-only
+                                              @click="abrirModalAcuerdo(item)"
+                                              title="Editar acuerdo"
+                                              aria-label="Editar acuerdo"><Pencil :size="14" /></AppButton>
+                                            <AppButton
+                                              variant="soft"
+                                              tone="success"
+                                              icon-only
+                                              @click="confirmarCumplimientoSwal(item)"
+                                              :disabled="!puedeMarcarCumplido(item)"
+                                              :title="puedeMarcarCumplido(item) ? 'Validar Cumplimiento' : `Recién se puede validar desde el ${formatFechaFalta(item.fecha_acuerdo)}`"
+                                              :aria-label="puedeMarcarCumplido(item) ? 'Validar Cumplimiento' : `Recién se puede validar desde el ${formatFechaFalta(item.fecha_acuerdo)}`"><Check :size="18" stroke-width="2.5" /></AppButton>
+                                            <AppButton
+                                              variant="soft"
+                                              tone="danger"
+                                              icon-only
+                                              @click="rechazarCumplimientoSwal(item)"
+                                              title="Marcar como no cumplido"
+                                              aria-label="Marcar como no cumplido"><X :size="18" stroke-width="2.5" /></AppButton>
                                         </template>
 
                                         <!-- Acciones Justificado -->
                                         <template v-else-if="item.estado_justificacion !== 'justificado'">
-                                            <button @click="abrirModalAcuerdo(item)"
-                                                class="btn-action btn-soft-secondary" title="Ver detalles">
-                                                <Pencil :size="14" />
-                                            </button>
-                                            <span class="btn-action btn-soft-success" style="pointer-events: none;"
-                                                title="Completado">
-                                                <Check :size="16" stroke-width="3" />
+                                            <AppButton
+                                              variant="soft"
+                                              tone="secondary"
+                                              icon-only
+                                              @click="abrirModalAcuerdo(item)"
+                                              title="Ver detalles"
+                                              aria-label="Ver detalles"><Pencil :size="14" /></AppButton>
+                                            <span class="just-done" role="img" aria-label="Completado" title="Completado">
+                                                <Check :size="16" stroke-width="3" aria-hidden="true" />
                                             </span>
                                         </template>
                                     </div>
@@ -430,9 +428,8 @@ const rechazarCumplimientoSwal = async (item) => {
 
                 <!-- Datos: tarjetas en móvil -->
                 <div v-else class="just-cards">
-                    <div v-if="justificacionesFiltradas.length === 0" class="text-center py-5 text-muted fst-italic">
-                        No hay resultados en "{{ filtroActual }}".
-                    </div>
+                    <AppEmpty v-if="justificacionesFiltradas.length === 0" :icon="FileCheck"
+                        message="No hay justificaciones que coincidan con el filtro elegido." />
                     <article v-for="item in justificacionesFiltradas" :key="item.asistencia_id" class="just-card"
                         :class="getClaseAlertaFecha(item.fecha_falta)">
                         <div class="just-card__top">
@@ -440,11 +437,7 @@ const rechazarCumplimientoSwal = async (item) => {
                                 <div class="fw-bold text-dark">{{ item.confirmando }}</div>
                                 <span class="badge bg-light text-secondary border mt-1">{{ item.grupo }}</span>
                             </div>
-                            <span class="badge text-uppercase border rounded-pill px-2 py-1" :class="{
-                                'bg-danger-subtle text-danger border-danger': item.estado_justificacion === 'injustificado',
-                                'bg-warning-subtle text-warning-emphasis border-warning': item.estado_justificacion === 'pendiente',
-                                'bg-success-subtle text-success border-success': item.estado_justificacion === 'justificado'
-                            }">{{ item.estado_justificacion }}</span>
+                            <span class="badge border rounded-pill px-2 py-1" :class="{ 'bg-danger-subtle text-danger border-danger': item.estado_justificacion === 'injustificado', 'bg-warning-subtle text-warning-emphasis border-warning': item.estado_justificacion === 'pendiente', 'bg-success-subtle text-success border-success': item.estado_justificacion === 'justificado' }">{{ item.estado_justificacion }}</span>
                         </div>
 
                         <dl class="just-card__data">
@@ -470,33 +463,45 @@ const rechazarCumplimientoSwal = async (item) => {
                         </dl>
 
                         <div class="just-card__acciones">
-                            <button @click="perfilModalRef.abrir(item.confirmando_id)" class="btn-action btn-soft-secondary"
-                                title="Ver ficha">
-                                <User :size="15" />
-                            </button>
+                            <AppButton
+                              variant="soft"
+                              tone="secondary"
+                              icon-only
+                              @click="perfilModalRef.abrir(item.confirmando_id)"
+                              title="Ver ficha"
+                              aria-label="Ver ficha"><User :size="15" /></AppButton>
                             <template v-if="item.estado_justificacion === 'injustificado'">
-                                <button @click="abrirModalAcuerdo(item)" class="btn just-btn btn-primary">
-                                    <Plus :size="15" /> Registrar acuerdo
-                                </button>
+                                <AppButton :icon="Plus" @click="abrirModalAcuerdo(item)">Registrar acuerdo</AppButton>
                             </template>
                             <template v-else-if="item.estado_justificacion === 'pendiente'">
-                                <button @click="abrirModalAcuerdo(item)" class="btn-action btn-soft-warning" title="Editar acuerdo">
-                                    <Pencil :size="14" />
-                                </button>
-                                <button @click="confirmarCumplimientoSwal(item)" class="btn just-btn btn-success"
-                                    :disabled="!puedeMarcarCumplido(item)"
-                                    :title="puedeMarcarCumplido(item) ? '' : `Recién se puede validar desde el ${formatFechaFalta(item.fecha_acuerdo)}`">
-                                    <Check :size="15" /> Cumplió
-                                </button>
-                                <button @click="rechazarCumplimientoSwal(item)" class="btn-action btn-soft-danger" title="No cumplió"
-                                    aria-label="Marcar como no cumplido">
-                                    <X :size="16" />
-                                </button>
+                                <AppButton
+                                  variant="soft"
+                                  tone="warning"
+                                  icon-only
+                                  @click="abrirModalAcuerdo(item)"
+                                  title="Editar acuerdo"
+                                  aria-label="Editar acuerdo"><Pencil :size="14" /></AppButton>
+                                <AppButton
+                                  :icon="Check"
+                                  @click="confirmarCumplimientoSwal(item)"
+                                  :disabled="!puedeMarcarCumplido(item)"
+                                  :title="puedeMarcarCumplido(item) ? '' : `Recién se puede validar desde el ${formatFechaFalta(item.fecha_acuerdo)}`">Cumplió</AppButton>
+                                <AppButton
+                                  variant="soft"
+                                  tone="danger"
+                                  icon-only
+                                  @click="rechazarCumplimientoSwal(item)"
+                                  title="No cumplió"
+                                  aria-label="Marcar como no cumplido"><X :size="16" /></AppButton>
                             </template>
                             <template v-else-if="item.estado_justificacion !== 'justificado'">
-                                <button @click="abrirModalAcuerdo(item)" class="btn-action btn-soft-secondary" title="Ver detalles">
-                                    <Pencil :size="14" />
-                                </button>
+                                <AppButton
+                                  variant="soft"
+                                  tone="secondary"
+                                  icon-only
+                                  @click="abrirModalAcuerdo(item)"
+                                  title="Ver detalles"
+                                  aria-label="Ver detalles"><Pencil :size="14" /></AppButton>
                             </template>
                         </div>
                     </article>
@@ -510,7 +515,7 @@ const rechazarCumplimientoSwal = async (item) => {
             <div v-if="modalVisible" class="mini-dialog shadow-lg rounded-4 bg-white overflow-hidden" style="width: 420px;">
                 
                 <div class="bg-primary text-white p-4 text-center position-relative">
-                    <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3" @click="cerrarModal"></button>
+                    <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3" @click="cerrarModal" aria-label="Cerrar"></button>
                     <div class="bg-white bg-opacity-25 rounded-circle d-inline-flex p-3 mb-2">
                         <Pencil :size="24" class="text-white" />
                     </div>
@@ -522,13 +527,13 @@ const rechazarCumplimientoSwal = async (item) => {
                     <div class="mb-4 bg-primary-subtle p-3 rounded-3 border border-primary-subtle d-flex align-items-center">
                         <User :size="20" class="text-primary me-3" />
                         <div>
-                            <span class="text-primary text-uppercase fw-bold d-block" style="font-size: 0.65rem; letter-spacing: 0.5px;">Confirmando</span>
+                            <span class="text-primary fw-bold d-block" style="font-size: 0.65rem; letter-spacing: 0.5px;">Confirmando</span>
                             <span class="text-dark fw-bold">{{ form.confirmando }}</span>
                         </div>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label text-xs fw-bold text-muted text-uppercase mb-1">Motivo del Apoderado</label>
+                        <label class="form-label text-xs fw-bold text-muted mb-1">Motivo del Apoderado</label>
                         <select class="form-select bg-light border-0 shadow-none" v-model="form.motivo">
                             <option value="">Seleccione un motivo...</option>
                             <option value="Salud / Enfermedad">Salud / Enfermedad</option>
@@ -539,12 +544,12 @@ const rechazarCumplimientoSwal = async (item) => {
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label text-xs fw-bold text-muted text-uppercase mb-1">Fecha a realizar el Acuerdo</label>
+                        <label class="form-label text-xs fw-bold text-muted mb-1">Fecha a realizar el Acuerdo</label>
                         <input type="date" class="form-control bg-light border-0 shadow-none" v-model="form.fecha_acuerdo">
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label text-xs fw-bold text-muted text-uppercase mb-1">Acción Reparadora Pactada</label>
+                        <label class="form-label text-xs fw-bold text-muted mb-1">Acción Reparadora Pactada</label>
                         <select class="form-select bg-light border-0 shadow-none" v-model="form.tipo_accion">
                             <option value="">Seleccione una acción...</option>
                             <option value="lectura">Lectura (máx. 3 por fecha)</option>
@@ -554,19 +559,14 @@ const rechazarCumplimientoSwal = async (item) => {
                     </div>
 
                     <div class="mb-4" v-if="form.tipo_accion === 'otros'">
-                        <label class="form-label text-xs fw-bold text-muted text-uppercase mb-1">Especifica la acción</label>
+                        <label class="form-label text-xs fw-bold text-muted mb-1">Especifica la acción</label>
                         <textarea class="form-control bg-light border-0 shadow-none" rows="3" v-model="form.descripcion"
                             placeholder="Ej: El joven apoyará ordenando las sillas del salón..."></textarea>
                     </div>
 
                     <div class="d-flex gap-2 justify-content-end pt-2 border-top">
-                        <button type="button" class="btn btn-light fw-medium px-4 rounded-pill text-secondary" @click="cerrarModal" :disabled="saving">
-                            Cancelar
-                        </button>
-                        <button type="button" class="btn btn-primary fw-medium px-4 rounded-pill shadow-sm" @click="guardarAcuerdo" :disabled="saving">
-                            <span v-if="saving" class="spinner-border spinner-border-sm me-2"></span>
-                            Guardar Acuerdo
-                        </button>
+                        <AppButton variant="secondary" type="button" @click="cerrarModal" :disabled="saving">Cancelar</AppButton>
+                        <AppButton :loading="saving" type="button" @click="guardarAcuerdo">Guardar Acuerdo</AppButton>
                     </div>
                 </div>
             </div>
@@ -577,6 +577,18 @@ const rechazarCumplimientoSwal = async (item) => {
 </template>
 
 <style scoped>
+.just-done {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: var(--radius-md);
+    color: var(--success);
+    background: color-mix(in srgb, var(--success) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--success) 22%, transparent);
+}
+
 /* ===== Pestañas de estado ===== */
 .just-tabs {
     display: flex;
@@ -606,7 +618,7 @@ const rechazarCumplimientoSwal = async (item) => {
     .just-tabs__pills .btn {
         flex: 0 0 auto;
         padding: 0.35rem 0.85rem;
-        font-size: 0.85rem;
+        font-size: var(--fs-ui);
     }
     .just-tabs__count { display: none; }
 }
@@ -618,7 +630,7 @@ const rechazarCumplimientoSwal = async (item) => {
 }
 .just-card {
     padding: 0.85rem;
-    border-top: 1px solid #f1f5f9;
+    border-top: 1px solid var(--line);
 }
 .just-card:first-child { border-top: 0; }
 .just-card__top {
@@ -634,16 +646,14 @@ const rechazarCumplimientoSwal = async (item) => {
     gap: 0.4rem;
 }
 .just-card__data dt {
-    font-size: 0.64rem;
+    font-size: var(--fs-xs);
     font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    color: #94a3b8;
+    color: var(--text-muted);
 }
 .just-card__data dd {
     margin: 0;
-    font-size: 0.83rem;
-    color: #334155;
+    font-size: var(--fs-sm);
+    color: var(--text);
 }
 .just-card__acciones {
     display: flex;
@@ -652,19 +662,9 @@ const rechazarCumplimientoSwal = async (item) => {
     gap: 0.4rem;
     margin-top: 0.7rem;
 }
-.just-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    min-height: 36px;
-    padding: 0 0.9rem;
-    border-radius: 8px;
-    font-size: 0.82rem;
-    font-weight: 600;
-}
 
 .rounded-4 {
-    border-radius: 1rem !important;
+    border-radius: var(--radius-xl) !important;
 }
 
 .bg-success-subtle {
@@ -682,7 +682,7 @@ const rechazarCumplimientoSwal = async (item) => {
 }
 
 .small-text {
-    font-size: 0.82rem;
+    font-size: var(--fs-sm);
 }
 
 .popover-backdrop {
@@ -720,14 +720,14 @@ const rechazarCumplimientoSwal = async (item) => {
 }
 
 .text-xs {
-    font-size: 0.72rem;
+    font-size: var(--fs-xs);
 }
 
 /* Los botones de acción (.btn-action / .btn-soft-*) son globales: src/assets/main.css */
 
 /* Efecto hover general de las filas */
 .hover-row:hover {
-    background-color: #f8fafc;
+    background-color: var(--surface-sunken);
     transition: background-color 0.15s ease;
 }
 
@@ -761,7 +761,7 @@ const rechazarCumplimientoSwal = async (item) => {
     color: #fbbf24 !important;
 }
 :root[data-bs-theme="dark"] .hover-row:hover {
-    background-color: #334155;
+    background-color: var(--line);
 }
 :root[data-bs-theme="dark"] .fila-alerta-amarilla td {
     background-color: #4a3412 !important;

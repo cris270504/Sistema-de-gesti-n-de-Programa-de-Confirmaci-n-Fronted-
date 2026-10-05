@@ -6,8 +6,6 @@ import { useConfirmandosStore } from '@/stores/confirmandos'
 import { useGruposStore } from '@/stores/grupos'
 import { useParroquiaStore } from '@/stores/parroquia'
 
-const PERIODO_ACTUAL = '2026'
-
 export const ESTRATEGIAS = [
   ['genero', 'Por género'],
   ['edad', 'Por edad'],
@@ -91,7 +89,7 @@ export function useGeneradorGrupos() {
     try {
       const response = await gruposStore.generateGroups({
         nombres_grupos: groupNames.value,
-        periodo: PERIODO_ACTUAL,
+        periodo: String(new Date().getFullYear()),
         estrategia: estrategiaGrupos.value,
       })
       generadorModalInstance.value?.hide()

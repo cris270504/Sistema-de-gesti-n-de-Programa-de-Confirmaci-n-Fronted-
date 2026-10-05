@@ -1,4 +1,6 @@
 <script setup>
+import AppSkeleton from '@/components/AppSkeleton.vue'
+import AppButton from '@/components/AppButton.vue'
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useGruposStore } from '@/stores/grupos';
 import { useUsersStore } from '@/stores/users';
@@ -70,28 +72,31 @@ const save = async () => {
 <template>
     <div class="modal fade" ref="modalRef" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-            <div class="modal-content !border-0 !rounded-2xl !shadow-lg overflow-hidden">
-                <div class="!p-6 flex justify-between items-center" style="background: linear-gradient(135deg, var(--color-primary) 0%, #1e293b 150%);">
-                    <h5 class="modal-title font-bold text-white flex items-center"><IdCard class="h-5 w-5 !mr-2" aria-hidden="true" />Asignar Catequistas</h5>
-                    <button type="button" class="btn-close btn-close-white" @click="close" aria-label="Cerrar"></button>
+            <div class="modal-content">
+                <div class="modal-header">
+                  <span class="modal-header__icon" aria-hidden="true"><IdCard :size="18" /></span>
+                  <div class="modal-header__text">
+                    <h5 class="modal-title">Asignar catequistas</h5>
+                  </div>
+                  <button type="button" class="btn-close" @click="close" aria-label="Cerrar"></button>
                 </div>
                 <div class="modal-body p-0">
-                    <div v-if="loadingUsers" class="!p-4 !text-center"><div class="spinner-border !text-primary"></div></div>
+                    <div v-if="loadingUsers" class="p-3" role="status" aria-live="polite" aria-label="Cargando catequistas">
+                        <AppSkeleton skeleton="lines" />
+                    </div>
                     <div v-else class="divide-y divide-gray-100">
-                        <label v-for="cat in availableCatechists" :key="cat.id" class="!py-3 !px-4 flex items-center cursor-pointer hover:bg-gray-50 transition-colors">
+                        <label v-for="cat in availableCatechists" :key="cat.id" class="!py-3 !px-4 flex items-center cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
                             <input class="form-check-input !mr-3 fs-5" type="checkbox" :value="cat.id" v-model="selectedCatechistIds" :disabled="saving">
                             <div>
-                                <div class="font-medium text-gray-800">{{ cat.name }}</div>
-                                <div class="text-sm text-gray-500">{{ cat.email }}</div>
+                                <div class="font-medium text-gray-800 dark:text-gray-100">{{ cat.name }}</div>
+                                <div class="text-sm text-gray-500 dark:text-gray-400">{{ cat.email }}</div>
                             </div>
                         </label>
                     </div>
                 </div>
-                <div class="modal-footer bg-gray-50 border-t !gap-2">
-                    <button class="btn-outline !rounded-full !px-4 text-sm" @click="close">Cancelar</button>
-                    <button class="btn-primary !rounded-full !px-4 text-sm" @click="save" :disabled="saving">
-                        {{ saving ? 'Guardando...' : 'Guardar' }}
-                    </button>
+                <div class="modal-footer">
+                    <AppButton variant="secondary" @click="close">Cancelar</AppButton>
+                    <AppButton @click="save" :disabled="saving">{{ saving ? 'Guardando...' : 'Guardar' }}</AppButton>
                 </div>
             </div>
         </div>

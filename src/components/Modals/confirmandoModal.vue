@@ -1,4 +1,7 @@
 <script setup>
+import AppSkeleton from '@/components/AppSkeleton.vue'
+import AppEmpty from '@/components/AppEmpty.vue'
+import AppButton from '@/components/AppButton.vue'
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useConfirmandosStore } from '../../stores/confirmandos';
 import { useGruposStore } from '../../stores/grupos';
@@ -300,21 +303,19 @@ async function submitUpdate() {
       <div class="modal-content">
 
         <header class="modal-header">
-          <div>
-            <h5 id="confirmandoModalLabel" class="modal-title fw-bold text-white">
-              <component :is="isEditing ? SquarePen : UserPlus" class="h-5 w-5 me-2 text-white-50 d-inline-block align-text-bottom"
-                aria-hidden="true" />
-              {{ title }}
-            </h5>
-            <p class="text-white-50 small mb-0">Gestión de datos del confirmando y familia.</p>
+          <span class="modal-header__icon" aria-hidden="true">
+            <component :is="isEditing ? SquarePen : UserPlus" :size="18" />
+          </span>
+          <div class="modal-header__text">
+            <h5 id="confirmandoModalLabel" class="modal-title">{{ title }}</h5>
+            <p class="modal-subtitle">Gestión de datos del confirmando y familia.</p>
           </div>
-          <button type="button" class="btn-close btn-close-white" @click="close" aria-label="Cerrar"></button>
+          <button type="button" class="btn-close" @click="close" aria-label="Cerrar"></button>
         </header>
 
         <div class="modal-body">
-          <div v-if="loading && isEditing" class="text-center py-5" role="status" aria-live="polite">
-            <div class="spinner-border text-primary"></div>
-            <p class="mt-2 text-muted fw-medium">Cargando expediente...</p>
+          <div v-if="loading && isEditing" role="status" aria-live="polite" aria-label="Cargando expediente">
+            <AppSkeleton skeleton="form" />
           </div>
 
           <form v-else @submit.prevent="submitUpdate" id="confirmandoForm" class="needs-validation"
@@ -322,11 +323,11 @@ async function submitUpdate() {
             <div class="row g-4">
 
               <div class="col-12">
-                <h6 class="text-uppercase text-secondary fw-bold small mb-3 border-bottom pb-2">Datos Personales</h6>
+                <h6 class="text-secondary fw-bold small mb-3 border-bottom pb-2">Datos Personales</h6>
               </div>
 
               <div class="col-md-6">
-                <label class="form-label fw-bold text-secondary small text-uppercase">Apellidos <span
+                <label class="form-label fw-bold text-secondary small">Apellidos <span
                     class="text-danger">*</span></label>
                 <div class="input-group">
                   <span class="input-group-text bg-blue-soft text-primary border-end-0">
@@ -338,7 +339,7 @@ async function submitUpdate() {
               </div>
 
               <div class="col-md-6">
-                <label class="form-label fw-bold text-secondary small text-uppercase">Nombres <span
+                <label class="form-label fw-bold text-secondary small">Nombres <span
                     class="text-danger">*</span></label>
                 <div class="input-group">
                   <span class="input-group-text bg-blue-soft text-primary border-end-0">
@@ -350,7 +351,7 @@ async function submitUpdate() {
               </div>
 
               <div class="col-md-5">
-                <label class="form-label fw-bold text-secondary small text-uppercase">Fecha Nacimiento
+                <label class="form-label fw-bold text-secondary small">Fecha Nacimiento
                   <span v-if="obligatorio('fecha_nacimiento')" class="text-danger">*</span></label>
                 <div class="input-group">
                   <span class="input-group-text bg-blue-soft text-primary border-end-0">
@@ -362,7 +363,7 @@ async function submitUpdate() {
               </div>
 
               <div class="col-md-3">
-                <label class="form-label fw-bold text-secondary small text-uppercase">Celular
+                <label class="form-label fw-bold text-secondary small">Celular
                   <span v-if="obligatorio('celular')" class="text-danger">*</span></label>
                 <div class="input-group">
                   <span class="input-group-text bg-blue-soft text-primary border-end-0">
@@ -377,7 +378,7 @@ async function submitUpdate() {
               </div>
 
               <div class="col-md-4">
-                <label class="form-label fw-bold text-secondary small text-uppercase">Género
+                <label class="form-label fw-bold text-secondary small">Género
                   <span v-if="obligatorio('genero')" class="text-danger">*</span></label>
                 <div class="input-group">
                   <span class="input-group-text bg-blue-soft text-primary border-end-0">
@@ -394,12 +395,12 @@ async function submitUpdate() {
               </div>
 
               <div class="col-12 mt-4">
-                <h6 class="text-uppercase text-secondary fw-bold small mb-3 border-bottom pb-2">Información Eclesiástica
+                <h6 class="text-secondary fw-bold small mb-3 border-bottom pb-2">Información Eclesiástica
                 </h6>
               </div>
 
               <div class="col-md-6">
-                <label class="form-label fw-bold text-secondary small text-uppercase">Grupo Asignado</label>
+                <label class="form-label fw-bold text-secondary small">Grupo Asignado</label>
                 <select v-model="draft.grupo_id" class="form-select" aria-label="Grupo asignado al confirmando"
                   :disabled="saving || authStore.user?.roles?.includes('catequista')">
                   <option :value="null">-- Sin asignar --</option>
@@ -410,7 +411,7 @@ async function submitUpdate() {
               </div>
 
               <div class="col-md-6">
-                <label class="form-label fw-bold text-secondary small text-uppercase">Estado del Confirmando</label>
+                <label class="form-label fw-bold text-secondary small">Estado del Confirmando</label>
                 <div v-if="draft.estado === 'retirado'" class="form-control-plaintext fw-semibold text-danger py-1">
                   Retirado del programa
                   <small class="d-block text-muted fw-normal">Para reingresarlo, usa el botón en la lista de confirmandos.</small>
@@ -424,7 +425,7 @@ async function submitUpdate() {
               </div>
 
               <div class="col-md-6">
-                <label class="form-label fw-bold text-secondary small text-uppercase">
+                <label class="form-label fw-bold text-secondary small">
                   Sacramento faltante
                 </label>
                 <select v-model="draft.sacramento_faltante_id" class="form-select border-primary" required
@@ -436,18 +437,12 @@ async function submitUpdate() {
 
               <div class="col-12 mt-4">
                 <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
-                  <h6 class="text-uppercase text-secondary fw-bold small mb-0">Apoderados</h6>
-                  <button type="button" class="btn btn-sm btn-soft-primary fw-bold" @click="addApoderado"
-                    :disabled="saving">
-                    <Plus class="h-4 w-4 me-1" aria-hidden="true" /> Agregar
-                  </button>
+                  <h6 class="text-secondary fw-bold small mb-0">Apoderados</h6>
+                  <AppButton variant="soft" size="sm" :icon="Plus" type="button" @click="addApoderado" :disabled="saving">Agregar</AppButton>
                 </div>
 
-                <div v-if="draft.apoderados.length === 0"
-                  class="text-center p-4 bg-light rounded-3 text-muted border border-dashed">
-                  <Users class="opacity-25" :size="48" aria-hidden="true" />
-                  <p class="mb-0 mt-2 small">No hay apoderados registrados.</p>
-                </div>
+                <AppEmpty v-if="draft.apoderados.length === 0" compact :icon="Users"
+                  message="Aún no hay apoderados registrados." />
 
                 <div v-else class="d-flex flex-column gap-3">
                   <div v-for="(ap, index) in draft.apoderados" :key="index"
@@ -478,13 +473,15 @@ async function submitUpdate() {
                           <ul v-if="ap.sugerencias && ap.sugerencias.length > 0"
                             class="list-group position-absolute w-100 shadow-lg z-3 mt-1"
                             aria-label="Sugerencias de apoderados existentes">
-                            <li v-for="p in ap.sugerencias" :key="p.id" @click="seleccionarPadreExistente(p, index)"
-                              class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 cursor-pointer">
-                              <div>
-                                <div class="fw-bold small">{{ p.apellidos }}, {{ p.nombres }}</div>
-                                <div class="text-muted extra-small">Cel: {{ p.celular || '---' }}</div>
-                              </div>
-                              <span class="badge rounded-pill bg-info-subtle text-info border small">Existente</span>
+                            <li v-for="p in ap.sugerencias" :key="p.id" class="list-group-item p-0">
+                              <button type="button" @click="seleccionarPadreExistente(p, index)"
+                                class="list-group-item-action w-100 d-flex justify-content-between align-items-center py-2 px-3 border-0 bg-transparent text-start cursor-pointer">
+                                <span>
+                                  <span class="d-block fw-bold small">{{ p.apellidos }}, {{ p.nombres }}</span>
+                                  <span class="d-block text-muted extra-small">Cel: {{ p.celular || '---' }}</span>
+                                </span>
+                                <span class="badge rounded-pill bg-info-subtle text-info border small">Existente</span>
+                              </button>
                             </li>
                           </ul>
                         </div>
@@ -500,11 +497,14 @@ async function submitUpdate() {
                           <div class="input-group input-group-sm">
                             <input type="tel" v-model="ap.celular" class="form-control" maxlength="9"
                               :aria-label="`Celular del apoderado ${index + 1}`" :disabled="saving">
-                            <button v-if="ap.es_existente" class="btn btn-outline-danger" type="button"
+                            <AppButton
+                              v-if="ap.es_existente"
+                              variant="soft-danger"
+                              icon-only
+                              :icon="CircleX"
+                              type="button"
                               :aria-label="`Quitar selección de apoderado existente ${index + 1}`"
-                              @click="limpiarSeleccion(index)">
-                              <CircleX class="h-4 w-4" aria-hidden="true" />
-                            </button>
+                              @click="limpiarSeleccion(index)"></AppButton>
                           </div>
                         </div>
                       </div>
@@ -517,20 +517,9 @@ async function submitUpdate() {
           </form>
         </div>
 
-        <footer class="modal-footer bg-light-subtle">
-          <button type="button" class="btn btn-outline-secondary px-4 fw-medium border-0" @click="close"
-            :disabled="saving">
-            Cancelar
-          </button>
-          <button type="submit" form="confirmandoForm" class="btn btn-primary px-4 fw-medium shadow-sm"
-            :disabled="saving">
-            <template v-if="saving">
-              <span class="spinner-border spinner-border-sm me-2" role="status" aria-label="Guardando"></span>
-            </template>
-            <template v-else>
-              <Check class="h-4 w-4 me-1" aria-hidden="true" /> Guardar
-            </template>
-          </button>
+        <footer class="modal-footer">
+          <AppButton variant="secondary" type="button" @click="close" :disabled="saving">Cancelar</AppButton>
+          <AppButton type="submit" form="confirmandoForm" :icon="Check" :loading="saving">Guardar</AppButton>
         </footer>
 
       </div>
@@ -551,7 +540,7 @@ async function submitUpdate() {
 }
 
 .extra-small {
-  font-size: 0.7rem;
+  font-size: var(--fs-xs);
 }
 
 .border-dashed {
@@ -568,22 +557,13 @@ async function submitUpdate() {
   overflow-y: auto;
 }
 
-/* La estructura del modal (marco, cabecera, footer) usa el estilo global
-   unificado de src/assets/main.css (mismas propiedades con !important, esta
-   copia local quedaba inerte). Acá solo lo propio del formulario. */
-
-/* 3. BODY & INPUTS */
-.modal-body {
-  padding: 2rem;
-}
-
 .form-control,
 .form-select {
-  background-color: #ffffff;
-  border: 1px solid #cbd5e1;
+  background-color: var(--surface);
+  border: 1px solid var(--line-strong);
   padding: 0.6rem 1rem;
-  font-size: 0.95rem;
-  color: #334155;
+  font-size: var(--fs-base);
+  color: var(--text);
 }
 
 /* Inputs con grupo */
@@ -592,44 +572,33 @@ async function submitUpdate() {
 }
 
 .bg-blue-soft {
-  background-color: #eff6ff !important;
-  border: 1px solid #cbd5e1;
+  background-color: var(--accent-soft) !important;
+  border: 1px solid var(--line-strong);
   border-right: none;
-  color: #2563eb !important;
+  color: var(--accent) !important;
 }
 
 /* Focus State */
 .input-group:focus-within {
-  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
-  border-radius: 0.375rem;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 15%, transparent);
+  border-radius: var(--radius-sm);
 }
 
 .input-group:focus-within .form-control,
 .input-group:focus-within .bg-blue-soft {
-  border-color: #2563eb;
+  border-color: var(--accent);
 }
 
 .form-select:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
 /* 4. EXTRAS ESPECÍFICOS (Apoderados) */
 .bg-primary-subtle {
-  background-color: #e0e7ff !important;
+  background-color: var(--accent-soft) !important;
   color: #1e40af;
-  border-color: #c7d2fe;
-}
-
-.btn-soft-primary {
-  background-color: #eff6ff;
-  color: #2563eb;
-  border: 1px solid #bfdbfe;
-}
-
-.btn-soft-primary:hover {
-  background-color: #2563eb;
-  color: white;
+  border-color: var(--accent-ring);
 }
 
 .border-dashed {
@@ -642,25 +611,7 @@ async function submitUpdate() {
 
 .apoderado-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05) !important;
-}
-
-/* 5. BOTONES */
-.btn-primary {
-  background-color: #2563eb;
-  border-color: #2563eb;
-  padding: 0.6rem 1.5rem;
-}
-
-.btn-primary:hover {
-  background-color: #1d4ed8;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
-}
-
-.btn-outline-secondary:hover {
-  background-color: #f1f5f9;
-  color: #0f172a;
+  box-shadow: var(--shadow-md) !important;
 }
 
 /* ===== MODO OSCURO =====
@@ -668,27 +619,18 @@ async function submitUpdate() {
    con colores propios (gana por scoping a los de main.css). */
 :root[data-bs-theme="dark"] .form-control,
 :root[data-bs-theme="dark"] .form-select {
-  background-color: #0f172a;
-  border-color: #475569;
-  color: #e2e8f0;
+  background-color: var(--surface-sunken);
+  border-color: var(--line-strong);
+  color: var(--text);
 }
 :root[data-bs-theme="dark"] .bg-blue-soft {
   background-color: #1e2547 !important;
-  border-color: #475569;
+  border-color: var(--line-strong);
   color: #93c5fd !important;
 }
 :root[data-bs-theme="dark"] .bg-primary-subtle {
   background-color: #1e2547 !important;
-  color: #c7d2fe;
+  color: color-mix(in srgb, var(--accent) 55%, #fff);
   border-color: #3730a3;
-}
-:root[data-bs-theme="dark"] .btn-soft-primary {
-  background-color: #1e3a5f;
-  color: #93c5fd;
-  border-color: #2c4a70;
-}
-:root[data-bs-theme="dark"] .btn-outline-secondary:hover {
-  background-color: #334155;
-  color: #f1f5f9;
 }
 </style>

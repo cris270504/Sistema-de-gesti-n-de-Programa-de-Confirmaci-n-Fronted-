@@ -1,4 +1,5 @@
 <script setup>
+import AppButton from '@/components/AppButton.vue'
 import { useRouter } from 'vue-router'
 import { CompassIcon } from 'lucide-vue-next'
 
@@ -17,8 +18,6 @@ const volverAlInicio = () => {
     <p class="text-muted mb-5">
       La ruta que intentas buscar no existe o ha sido movida.
     </p>
-    <button @click="volverAlInicio" class="btn btn-primary px-4 py-2">
-      Volver al Inicio
-    </button>
+    <AppButton @click="volverAlInicio">Volver al Inicio</AppButton>
   </div>
 </template>

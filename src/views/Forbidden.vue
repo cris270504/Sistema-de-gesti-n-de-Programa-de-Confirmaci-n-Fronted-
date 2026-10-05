@@ -1,4 +1,5 @@
 <script setup>
+import AppButton from '@/components/AppButton.vue'
 import { useRouter } from 'vue-router'
 import { ShieldAlertIcon } from 'lucide-vue-next'
 
@@ -17,8 +18,6 @@ const volverAlInicio = () => {
     <p class="text-muted mb-5">
       Si crees que deberías tener acceso, contacta a un coordinador o administrador.
     </p>
-    <button @click="volverAlInicio" class="btn btn-primary px-4 py-2">
-      Volver al Inicio
-    </button>
+    <AppButton @click="volverAlInicio">Volver al Inicio</AppButton>
   </div>
 </template>

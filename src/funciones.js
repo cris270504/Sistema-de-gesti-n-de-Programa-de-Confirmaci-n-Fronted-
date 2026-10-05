@@ -90,8 +90,8 @@ export function confirmar(opciones = {}) {
 
   const swal = Swal.mixin({
     customClass: {
-      confirmButton: 'btn btn-success me-3',
-      cancelButton: 'btn btn-danger'
+      confirmButton: 'swal-btn swal-btn--primary',
+      cancelButton: 'swal-btn swal-btn--secondary'
     },
     buttonsStyling: false
   })

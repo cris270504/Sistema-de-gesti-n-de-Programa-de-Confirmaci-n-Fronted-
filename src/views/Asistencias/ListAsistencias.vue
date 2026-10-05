@@ -1,4 +1,6 @@
 <script setup>
+import AppEmpty from '@/components/AppEmpty.vue'
+import AppButton from '@/components/AppButton.vue'
 import { ref, onMounted, watch, computed, nextTick } from 'vue';
 import { useAsistenciasStore } from '../../stores/asistencias';
 import { useGruposStore } from '../../stores/grupos';
@@ -7,10 +9,7 @@ import { useParroquiaStore } from '../../stores/parroquia';
 import { storeToRefs } from 'pinia';
 import { showAlerta } from '@/funciones';
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router';
-import {
-    Save, Check, Clock, FileHeart, X, ChartPie, CalendarX,
-    CircleCheck, CircleX, Lock, TriangleAlert, MessageSquareText,
-} from 'lucide-vue-next';
+import { Save, Check, Clock, FileHeart, X, ChartPie, CalendarX, CircleCheck, CircleX, Lock, TriangleAlert, MessageSquareText, Users } from 'lucide-vue-next';
 import AppPage from '@/components/AppPage.vue';
 import AppSkeleton from '@/components/AppSkeleton.vue';
 import { useMediaQuery } from '@/composables/useMediaQuery';
@@ -643,13 +642,10 @@ const formatColDate = (dateStr) => {
     <AppPage :title="`Asistencia · ${tipoActual}`" subtitle="Registro mensual" class="position-relative"
         :loading="cargaInicial" skeleton="table">
         <template #actions>
-            <button class="btn-primary" @click="saveChanges"
-                :disabled="Object.keys(changes).length === 0 || saving">
-                <span v-if="saving" class="spinner-border spinner-border-sm me-2"></span>
-                <Save v-else :size="16" class="mr-1.5" />
-                <span class="text-sm">Guardar</span>
-                <span v-if="Object.keys(changes).length > 0" class="badge bg-white text-primary ms-2">{{ Object.keys(changes).length }}</span>
-            </button>
+            <AppButton :icon="Save" :loading="saving" @click="saveChanges" :disabled="Object.keys(changes).length === 0">
+              Guardar
+              <span v-if="Object.keys(changes).length > 0" class="badge bg-white text-primary ms-2">{{ Object.keys(changes).length }}</span>
+            </AppButton>
         </template>
 
         <div class="row g-3 mb-4">
@@ -664,8 +660,8 @@ const formatColDate = (dateStr) => {
                                 </div>
                             </div>
                             <div>
-                                <p class="text-muted mb-0 small fw-bold text-uppercase">Asistencias</p>
-                                <h4 class="mb-0 fw-bold text-gray-800">{{ stats.asistio }}</h4>
+                                <p class="text-muted mb-0 small fw-bold">Asistencias</p>
+                                <h4 class="mb-0 fw-bold text-gray-800 dark:text-gray-100">{{ stats.asistio }}</h4>
                             </div>
                         </div>
                     </div>
@@ -683,8 +679,8 @@ const formatColDate = (dateStr) => {
                                 </div>
                             </div>
                             <div>
-                                <p class="text-muted mb-0 small fw-bold text-uppercase">Tardanzas</p>
-                                <h4 class="mb-0 fw-bold text-gray-800">{{ stats.tardanza }}</h4>
+                                <p class="text-muted mb-0 small fw-bold">Tardanzas</p>
+                                <h4 class="mb-0 fw-bold text-gray-800 dark:text-gray-100">{{ stats.tardanza }}</h4>
                             </div>
                         </div>
                     </div>
@@ -702,8 +698,8 @@ const formatColDate = (dateStr) => {
                                 </div>
                             </div>
                             <div>
-                                <p class="text-muted mb-0 small fw-bold text-uppercase">Faltas (Totales)</p>
-                                <h4 class="mb-0 fw-bold text-gray-800">{{ stats.justificada + stats.injustificada }}
+                                <p class="text-muted mb-0 small fw-bold">Faltas (Totales)</p>
+                                <h4 class="mb-0 fw-bold text-gray-800 dark:text-gray-100">{{ stats.justificada + stats.injustificada }}
                                 </h4>
                                 <small class="text-xs text-muted">
                                     <span class="text-info">{{ stats.justificada }} Just.</span> /
@@ -726,8 +722,8 @@ const formatColDate = (dateStr) => {
                                 </div>
                             </div>
                             <div>
-                                <p class="text-muted mb-0 small fw-bold text-uppercase">% Participación</p>
-                                <h4 class="mb-0 fw-bold text-gray-800">{{ stats.porcentaje }}%</h4>
+                                <p class="text-muted mb-0 small fw-bold">% Participación</p>
+                                <h4 class="mb-0 fw-bold text-gray-800 dark:text-gray-100">{{ stats.porcentaje }}%</h4>
                             </div>
                         </div>
                     </div>
@@ -739,11 +735,11 @@ const formatColDate = (dateStr) => {
             <div class="card-body py-3">
                 <div class="row g-3 align-items-center">
                     <div class="col-md-3 col-sm-6">
-                        <label class="form-label text-xs fw-bold text-uppercase text-muted">Mes</label>
+                        <label class="form-label text-xs fw-bold text-muted">Mes</label>
                         <input type="month" class="form-control form-control-sm" v-model="currentMonth">
                     </div>
                     <div v-if="authStore.can('ver todas las asistencias')" class="col-md-4 col-sm-6">
-                        <label class="form-label text-xs fw-bold text-uppercase text-muted">Grupo</label>
+                        <label class="form-label text-xs fw-bold text-muted">Grupo</label>
                         <select class="form-select form-select-sm" v-model="filterGrupo">
                             <option value="">Todos los grupos</option>
                             <option v-for="g in grupos" :key="g.id" :value="g.id">{{ g.nombre }}</option>
@@ -769,10 +765,7 @@ const formatColDate = (dateStr) => {
                 <div v-if="loading" class="p-3">
                     <AppSkeleton skeleton="table" />
                 </div>
-                <div v-else-if="reuniones.length === 0" class="text-center py-5 text-muted bg-light">
-                    <CalendarX :size="48" class="mb-3 d-block mx-auto opacity-50" aria-hidden="true" />
-                    <p>No hay reuniones registradas en este mes.</p>
-                </div>
+                <AppEmpty v-else-if="reuniones.length === 0" :icon="CalendarX" message="No hay reuniones registradas en este mes." />
 
                 <!-- ===== Vista MÓVIL: una reunión a la vez ===== -->
                 <div v-else-if="esMovil" class="asis-movil">
@@ -793,9 +786,8 @@ const formatColDate = (dateStr) => {
                         Esta reunión todavía no empezó. Vas a poder registrar la asistencia cuando ocurra.
                     </div>
 
-                    <div v-else-if="filteredPersonas.length === 0" class="text-center py-5 text-muted">
-                        No hay {{ labelSingular.toLowerCase() }}s en esta selección.
-                    </div>
+                    <AppEmpty v-else-if="filteredPersonas.length === 0" :icon="Users"
+                        :message="`No hay ${labelSingular.toLowerCase()}s en esta selección.`" />
 
                     <ul v-else class="asis-lista">
                         <li v-for="(p, index) in filteredPersonas" :key="p.id" class="asis-persona"
@@ -897,14 +889,7 @@ const formatColDate = (dateStr) => {
                                     class="cell-interactive p-1"
                                     :class="{ 'cursor-not-allowed': p.estado === 'retirado' || reunionFutura(r) }">
                                     <div class="cell-content d-flex align-items-center justify-content-center rounded position-relative"
-                                        :class="{
-                                            'bg-success-subtle text-success': attendanceMap[p.id]?.[r.id]?.estado === 'asistio',
-                                            'bg-warning-subtle text-warning': attendanceMap[p.id]?.[r.id]?.estado === 'tardanza',
-                                            'bg-info-subtle text-info': attendanceMap[p.id]?.[r.id]?.estado === 'falta justificada',
-                                            'bg-danger-subtle text-danger': attendanceMap[p.id]?.[r.id]?.estado === 'falta injustificada',
-                                            'bg-secondary-subtle text-muted': (p.estado === 'retirado' || reunionFutura(r)) && !attendanceMap[p.id]?.[r.id]?.estado,
-                                            'cell-empty': !attendanceMap[p.id]?.[r.id]?.estado && p.estado !== 'retirado' && !reunionFutura(r)
-                                        }" style="height: 40px; width: 100%;">
+                                        :class="{ 'bg-success-subtle text-success': attendanceMap[p.id]?.[r.id]?.estado === 'asistio', 'bg-warning-subtle text-warning': attendanceMap[p.id]?.[r.id]?.estado === 'tardanza', 'bg-info-subtle text-info': attendanceMap[p.id]?.[r.id]?.estado === 'falta justificada', 'bg-danger-subtle text-danger': attendanceMap[p.id]?.[r.id]?.estado === 'falta injustificada', 'bg-secondary-subtle text-muted': (p.estado === 'retirado' || reunionFutura(r)) && !attendanceMap[p.id]?.[r.id]?.estado, 'cell-empty': !attendanceMap[p.id]?.[r.id]?.estado && p.estado !== 'retirado' && !reunionFutura(r) }" style="height: 40px; width: 100%;">
 
                                         <Check v-if="attendanceMap[p.id]?.[r.id]?.estado === 'asistio'"
                                             :size="20" aria-hidden="true" />
@@ -954,12 +939,7 @@ const formatColDate = (dateStr) => {
                         Solo el coordinador puede editarla.
                     </p>
                     <div class="mt-2">
-                        <span class="badge rounded-pill border px-3 py-2" :class="{
-                            'bg-success-subtle text-success border-success': popover.estado === 'asistio',
-                            'bg-warning-subtle text-warning border-warning': popover.estado === 'tardanza',
-                            'bg-info-subtle text-info border-info': popover.estado === 'falta justificada',
-                            'bg-danger-subtle text-danger border-danger': popover.estado === 'falta injustificada'
-                        }">
+                        <span class="badge rounded-pill border px-3 py-2" :class="{ 'bg-success-subtle text-success border-success': popover.estado === 'asistio', 'bg-warning-subtle text-warning border-warning': popover.estado === 'tardanza', 'bg-info-subtle text-info border-info': popover.estado === 'falta justificada', 'bg-danger-subtle text-danger border-danger': popover.estado === 'falta injustificada' }">
                             {{ popover.estado }}
                         </span>
                     </div>
@@ -998,7 +978,7 @@ const formatColDate = (dateStr) => {
                     <div v-else class="mb-3">
                         <div v-if="getApoderadosDeHijo(popover.personaId).length > 0">
                             <div class="text-center mb-2 bg-light p-2 rounded-3">
-                                <small class="text-muted d-block tracking-wider text-uppercase fw-bold"
+                                <small class="text-muted d-block fw-bold"
                                     style="font-size: 0.65rem;">
                                     {{ getApoderadosDeHijo(popover.personaId)[0].pivot?.tipo || 'Apoderado' }} Asignado:
                                 </small>
@@ -1055,8 +1035,7 @@ const formatColDate = (dateStr) => {
                 </div>
 
                 <div class="mt-3 text-center">
-                    <button class="btn btn-light btn-sm rounded-pill px-4 text-muted"
-                        @click="closePopover">Cerrar</button>
+                    <AppButton variant="secondary" size="sm" @click="closePopover">Cerrar</AppButton>
                 </div>
             </div>
         </transition>
@@ -1071,7 +1050,7 @@ const formatColDate = (dateStr) => {
     overflow-x: auto;
     padding: 0.75rem;
     -webkit-overflow-scrolling: touch;
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid var(--line);
 }
 .asis-chip {
     flex: 0 0 auto;
@@ -1081,34 +1060,34 @@ const formatColDate = (dateStr) => {
     gap: 2px;
     min-width: 92px;
     padding: 0.45rem 0.7rem;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    background: #f8fafc;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background: var(--surface-sunken);
     cursor: pointer;
 }
 .asis-chip--on {
-    border-color: var(--parroquia-color, #2563eb);
-    background: #eff6ff;
+    border-color: var(--accent);
+    background: var(--accent-soft);
 }
 .asis-chip--futura {
     border-style: dashed;
-    color: #94a3b8;
+    color: var(--text-muted);
 }
 .asis-chip--futura .asis-chip__fecha {
-    color: #94a3b8;
+    color: var(--text-muted);
     display: inline-flex;
     align-items: center;
     gap: 3px;
 }
 .asis-chip__fecha {
     font-weight: 700;
-    font-size: 0.9rem;
-    color: #1e293b;
+    font-size: var(--fs-ui);
+    color: var(--text);
     text-transform: capitalize;
 }
 .asis-chip__tema {
-    font-size: 0.68rem;
-    color: #64748b;
+    font-size: var(--fs-xs);
+    color: var(--text-muted);
     max-width: 130px;
     white-space: nowrap;
     overflow: hidden;
@@ -1118,16 +1097,16 @@ const formatColDate = (dateStr) => {
 .asis-lista { list-style: none; margin: 0; padding: 0; }
 .asis-persona {
     padding: 0.7rem 0.75rem;
-    border-top: 1px solid #f1f5f9;
+    border-top: 1px solid var(--line);
 }
 .asis-persona:first-child { border-top: 0; }
 .asis-persona--retirado { opacity: 0.55; }
 .asis-persona__nom {
     font-weight: 600;
-    color: #1e293b;
-    font-size: 0.88rem;
+    color: var(--text);
+    font-size: var(--fs-ui);
 }
-.asis-persona__grupo { font-weight: 400; color: #94a3b8; font-size: 0.78rem; }
+.asis-persona__grupo { font-weight: 400; color: var(--text-muted); font-size: var(--fs-xs); }
 
 .asis-estados {
     display: grid;
@@ -1141,16 +1120,16 @@ const formatColDate = (dateStr) => {
     justify-content: center;
     gap: 0.25rem;
     min-height: 42px;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    background: #ffffff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    background: var(--surface);
     font-weight: 700;
-    font-size: 0.85rem;
-    color: #64748b;
+    font-size: var(--fs-ui);
+    color: var(--text-muted);
     cursor: pointer;
     transition: background-color 0.12s, color 0.12s, border-color 0.12s;
 }
-.asis-btn--editar { grid-column: 1 / -1; font-size: 0.82rem; }
+.asis-btn--editar { grid-column: 1 / -1; font-size: var(--fs-sm); }
 .asis-btn--on.asis-btn--a { background: #16a34a; border-color: #16a34a; color: #fff; }
 .asis-btn--on.asis-btn--t { background: #d97706; border-color: #d97706; color: #fff; }
 .asis-btn--on.asis-btn--j { background: #0891b2; border-color: #0891b2; color: #fff; }
@@ -1172,12 +1151,12 @@ tr.opacity-75:hover td {
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-    background-color: #cbd5e1;
-    border-radius: 4px;
+    background-color: var(--line-strong);
+    border-radius: var(--radius-sm);
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-    background-color: #f1f5f9;
+    background-color: var(--surface-sunken);
 }
 
 /* --- COLUMNA FIJA CON SOMBRA --- */
@@ -1185,17 +1164,17 @@ tr.opacity-75:hover td {
     position: sticky;
     left: 0;
     z-index: 2;
-    border-right: 1px solid #e2e8f0 !important;
+    border-right: 1px solid var(--line) !important;
 }
 
 .shadow-sm-right {
-    box-shadow: 4px 0 10px -5px rgba(0, 0, 0, 0.05);
+    box-shadow: var(--shadow-md);
 }
 
 /* --- CELDAS --- */
 .matrix-table th,
 .matrix-table td {
-    border-color: #f1f5f9 !important;
+    border-color: var(--line) !important;
 }
 
 .cell-interactive {
@@ -1205,7 +1184,7 @@ tr.opacity-75:hover td {
 
 .cell-interactive:hover .cell-content {
     transform: scale(0.95);
-    background-color: #f8fafc;
+    background-color: var(--surface-sunken);
 }
 
 .cell-empty {
@@ -1315,25 +1294,25 @@ tr.opacity-75:hover td {
     justify-content: center;
     padding: 0.75rem 0.5rem;
     border: 1px solid transparent;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     background-color: #f8f9fa;
     color: #6c757d;
     transition: all 0.2s ease;
-    font-size: 0.8rem;
+    font-size: var(--fs-sm);
     font-weight: 600;
     height: auto;
     /* Importante: deja que el contenido defina la altura */
 }
 
 .icon-lg {
-    font-size: 1.4rem;
+    font-size: var(--fs-xl);
     margin-bottom: 0.25rem;
     transition: transform 0.2s;
 }
 
 .btn-status:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    box-shadow: var(--shadow-md);
 }
 
 /* Variantes de Color (Sólido al activar) */
@@ -1345,7 +1324,7 @@ tr.opacity-75:hover td {
 .btn-status-success.active {
     background-color: #198754;
     color: white;
-    box-shadow: 0 4px 10px rgba(25, 135, 84, 0.3);
+    box-shadow: var(--shadow-md);
 }
 
 .btn-status-warning:hover {
@@ -1356,7 +1335,7 @@ tr.opacity-75:hover td {
 .btn-status-warning.active {
     background-color: #ffc107;
     color: #000;
-    box-shadow: 0 4px 10px rgba(255, 193, 7, 0.3);
+    box-shadow: var(--shadow-md);
 }
 
 .btn-status-info:hover {
@@ -1367,7 +1346,7 @@ tr.opacity-75:hover td {
 .btn-status-info.active {
     background-color: #0dcaf0;
     color: #000;
-    box-shadow: 0 4px 10px rgba(13, 202, 240, 0.3);
+    box-shadow: var(--shadow-md);
 }
 
 .btn-status-danger:hover {
@@ -1378,7 +1357,7 @@ tr.opacity-75:hover td {
 .btn-status-danger.active {
     background-color: #dc3545;
     color: white;
-    box-shadow: 0 4px 10px rgba(220, 53, 69, 0.3);
+    box-shadow: var(--shadow-md);
 }
 
 /* Animación icono al activar */
@@ -1408,7 +1387,7 @@ tr.opacity-75:hover td {
 }
 
 .text-xs {
-    font-size: 0.75rem;
+    font-size: var(--fs-xs);
 }
 
 /* ===== MODO OSCURO =====
@@ -1416,29 +1395,29 @@ tr.opacity-75:hover td {
    colores propios en vez de los de Bootstrap — quedan sin variante oscura por
    defecto, se le agrega acá. */
 :root[data-bs-theme="dark"] .asis-btn {
-    border-color: #475569;
-    background: #1e293b;
-    color: #94a3b8;
+    border-color: var(--line-strong);
+    background: var(--surface);
+    color: var(--text-muted);
 }
 :root[data-bs-theme="dark"] .matrix-table th,
 :root[data-bs-theme="dark"] .matrix-table td {
-    border-color: #334155 !important;
+    border-color: var(--line) !important;
 }
 :root[data-bs-theme="dark"] .sticky-col {
-    border-right-color: #334155 !important;
+    border-right-color: var(--line) !important;
 }
 :root[data-bs-theme="dark"] .cell-interactive:hover .cell-content {
-    background-color: #334155;
+    background-color: var(--line);
 }
 :root[data-bs-theme="dark"] .bg-success-subtle { background-color: #14432a !important; }
 :root[data-bs-theme="dark"] .bg-warning-subtle { background-color: #4a3412 !important; }
 :root[data-bs-theme="dark"] .bg-info-subtle { background-color: #164e56 !important; }
 :root[data-bs-theme="dark"] .bg-danger-subtle { background-color: #4c1d1d !important; }
 :root[data-bs-theme="dark"] .bg-primary-subtle { background-color: #1e3a5f !important; }
-:root[data-bs-theme="dark"] .popover-arrow { background: #1e293b; }
+:root[data-bs-theme="dark"] .popover-arrow { background: var(--surface); }
 :root[data-bs-theme="dark"] .btn-status {
-    background-color: #1e293b;
-    color: #94a3b8;
+    background-color: var(--surface);
+    color: var(--text-muted);
 }
 :root[data-bs-theme="dark"] .btn-status-success:hover { background-color: #14432a; color: #4ade80; }
 :root[data-bs-theme="dark"] .btn-status-warning:hover { background-color: #4a3412; color: #fbbf24; }

@@ -1,10 +1,11 @@
 <script setup>
+import AppButton from '@/components/AppButton.vue'
 import { ref, onMounted, onUnmounted, computed, nextTick, watch } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { storeToRefs } from 'pinia';
 import { Modal } from 'bootstrap';
 import { showAlerta } from '@/funciones';
-import { Pencil, Trash, CalendarDays, ClipboardCheck } from 'lucide-vue-next';
+import { Pencil, Trash, CalendarDays, CalendarPlus, ClipboardCheck } from 'lucide-vue-next';
 import { attachModalFocusReturn } from '@/composables/useModalFocusReturn';
 
 // --- FullCalendar Imports ---
@@ -328,7 +329,7 @@ onUnmounted(() => {
 <template>
   <AppPage title="Cronograma" subtitle="Calendario de reuniones y actividades" :loading="loading">
     <div class="d-flex flex-wrap gap-3 mb-3 align-items-center bg-white p-3 rounded shadow-sm border">
-      <span class="text-muted small fw-bold text-uppercase me-2">Referencias:</span>
+      <span class="text-muted small fw-bold me-2">Referencias:</span>
       <div v-for="t in tiposReunion" :key="t" class="d-flex align-items-center">
         <span class="d-inline-block rounded-circle me-2" style="width: 12px; height: 12px;"
           :style="{ backgroundColor: colorTipo(t) }"></span>
@@ -344,8 +345,11 @@ onUnmounted(() => {
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title fw-bold">{{ selectedEvent.title }}</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            <span class="modal-header__icon" aria-hidden="true"><CalendarDays :size="18" /></span>
+            <div class="modal-header__text">
+              <h5 class="modal-title">{{ selectedEvent.title }}</h5>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
           </div>
           <div class="modal-body">
             <div class="mb-3">
@@ -359,22 +363,32 @@ onUnmounted(() => {
               <p class="mb-0 text-secondary">{{ selectedEvent.description || 'Sin descripción.' }}</p>
             </div>
           </div>
-          <div class="modal-footer border-0 justify-content-between">
+          <div class="modal-footer">
             <div class="d-flex gap-2">
-              <button v-if="authStore.can('eliminar cronograma')" class="btn btn-sm btn-danger" @click="handleDelete">
-                <Trash />
-              </button>
-              <button v-if="authStore.can('editar cronograma')" class="btn btn-sm btn-warning me-2"
-                @click="openEditFromDetails">
-                <Pencil />
-              </button>
+              <AppButton
+                v-if="authStore.can('eliminar cronograma')"
+                variant="danger"
+                size="sm"
+                icon-only
+                :icon="Trash"
+                @click="handleDelete"
+                aria-label="Eliminar reunión"
+                title="Eliminar reunión"></AppButton>
+              <AppButton
+                v-if="authStore.can('editar cronograma')"
+                variant="soft"
+                tone="warning"
+                size="sm"
+                icon-only
+                :icon="Pencil"
+                class="me-2"
+                @click="openEditFromDetails"
+                aria-label="Editar reunión"
+                title="Editar reunión"></AppButton>
             </div>
             <div class="d-flex gap-2">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-              <button v-if="canRegisterAttendance" class="btn btn-success" @click="handleAttendance">
-                <ClipboardCheck class="h-4 w-4 me-1" aria-hidden="true" />
-                Asistencia
-              </button>
+              <AppButton variant="secondary" type="button" data-bs-dismiss="modal">Cerrar</AppButton>
+              <AppButton v-if="canRegisterAttendance" :icon="ClipboardCheck" @click="handleAttendance">Asistencia</AppButton>
             </div>
           </div>
         </div>
@@ -386,8 +400,11 @@ onUnmounted(() => {
         
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title">{{ isEditing ? 'Editar Actividad' : 'Agendar Nueva Actividad' }}</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            <span class="modal-header__icon" aria-hidden="true"><CalendarPlus :size="18" /></span>
+            <div class="modal-header__text">
+              <h5 class="modal-title">{{ isEditing ? 'Editar actividad' : 'Agendar nueva actividad' }}</h5>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
           </div>
           <div class="modal-body">
             <form @submit.prevent="handleSubmit">
@@ -435,12 +452,8 @@ onUnmounted(() => {
               </div>
 
               <div class="d-flex justify-content-end gap-2">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
-                  :disabled="saving">Cancelar</button>
-                <button type="submit" class="btn btn-success" :disabled="saving">
-                  <span v-if="saving" class="spinner-border spinner-border-sm me-1"></span>
-                  {{ saving ? 'Guardando...' : 'Guardar' }}
-                </button>
+                <AppButton variant="secondary" type="button" data-bs-dismiss="modal" :disabled="saving">Cancelar</AppButton>
+                <AppButton :loading="saving" type="submit">{{ saving ? 'Guardando...' : 'Guardar' }}</AppButton>
               </div>
             </form>
           </div>
@@ -475,7 +488,7 @@ onUnmounted(() => {
 :deep(.fc-daygrid-body),
 :deep(.fc-scrollgrid),
 :deep(.fc-scrollgrid-section) {
-  background-color: #ffffff !important;
+  background-color: var(--surface) !important;
 }
 
 /* Anulamos cualquier hover en los contenedores grandes */
@@ -483,24 +496,24 @@ onUnmounted(() => {
 :deep(.fc-scroller:hover),
 :deep(.fc-daygrid-body:hover),
 :deep(.fc-scrollgrid:hover) {
-  background-color: #ffffff !important;
+  background-color: var(--surface) !important;
 }
 
 /* --- 2. VARIABLES Y FUENTES --- */
 :deep(.fc) {
   font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --fc-border-color: #dee2e6;
-  --fc-page-bg-color: #ffffff;
+  --fc-page-bg-color: var(--surface);
   --fc-neutral-bg-color: #f8f9fa;
   --fc-list-event-hover-bg-color: #e9ecef;
   /* 'Hoy' y los botones siguen el color de la parroquia (--parroquia-color). */
-  --fc-today-bg-color: color-mix(in srgb, var(--parroquia-color, #2563eb) 8%, transparent);
-  --fc-button-bg-color: var(--parroquia-color, #2563eb);
-  --fc-button-border-color: var(--parroquia-color, #2563eb);
-  --fc-button-hover-bg-color: color-mix(in srgb, var(--parroquia-color, #2563eb), #000 12%);
-  --fc-button-hover-border-color: color-mix(in srgb, var(--parroquia-color, #2563eb), #000 12%);
-  --fc-button-active-bg-color: color-mix(in srgb, var(--parroquia-color, #2563eb), #000 22%);
-  --fc-button-active-border-color: color-mix(in srgb, var(--parroquia-color, #2563eb), #000 22%);
+  --fc-today-bg-color: color-mix(in srgb, var(--accent) 8%, transparent);
+  --fc-button-bg-color: var(--accent);
+  --fc-button-border-color: var(--accent);
+  --fc-button-hover-bg-color: color-mix(in srgb, var(--accent), #000 12%);
+  --fc-button-hover-border-color: color-mix(in srgb, var(--accent), #000 12%);
+  --fc-button-active-bg-color: color-mix(in srgb, var(--accent), #000 22%);
+  --fc-button-active-border-color: color-mix(in srgb, var(--accent), #000 22%);
 }
 
 /* --- 3. EL ÚNICO HOVER QUE QUEREMOS (DÍA INDIVIDUAL) --- */
@@ -510,7 +523,7 @@ onUnmounted(() => {
 }
 
 :deep(.fc-daygrid-day:hover) {
-  background-color: #f1f5f9 !important;
+  background-color: var(--surface-sunken) !important;
   /* Gris suave */
   cursor: pointer;
 }
@@ -521,7 +534,7 @@ onUnmounted(() => {
 
 /* --- 4. CABECERA Y BOTONES --- */
 :deep(.fc-toolbar-title) {
-  font-size: 1.5rem !important;
+  font-size: var(--fs-xl) !important;
   font-weight: 700;
   color: #343a40;
 }
@@ -530,42 +543,41 @@ onUnmounted(() => {
   background-color: var(--fc-neutral-bg-color) !important;
   padding: 0.75rem 0;
   color: #495057;
-  text-transform: uppercase;
-  font-size: 0.85rem;
+  font-size: var(--fs-ui);
 }
 
 :deep(.fc-button-primary) {
-  background-color: var(--parroquia-color, #2563eb) !important;
-  border-color: var(--parroquia-color, #2563eb) !important;
+  background-color: var(--accent) !important;
+  border-color: var(--accent) !important;
   text-transform: capitalize;
   /* Capitaliza "mes", "semana" */
 }
 
 :deep(.fc-button-primary:hover) {
-  background-color: color-mix(in srgb, var(--parroquia-color, #2563eb), #000 12%) !important;
-  border-color: color-mix(in srgb, var(--parroquia-color, #2563eb), #000 12%) !important;
+  background-color: color-mix(in srgb, var(--accent), #000 12%) !important;
+  border-color: color-mix(in srgb, var(--accent), #000 12%) !important;
 }
 
 :deep(.fc-button-primary:disabled) {
-  background-color: var(--parroquia-color, #2563eb) !important;
-  border-color: var(--parroquia-color, #2563eb) !important;
+  background-color: var(--accent) !important;
+  border-color: var(--accent) !important;
   opacity: 0.65;
 }
 
 :deep(.fc-button-primary:not(:disabled).fc-button-active),
 :deep(.fc-button-primary:not(:disabled):active) {
-  background-color: color-mix(in srgb, var(--parroquia-color, #2563eb), #000 22%) !important;
-  border-color: color-mix(in srgb, var(--parroquia-color, #2563eb), #000 22%) !important;
+  background-color: color-mix(in srgb, var(--accent), #000 22%) !important;
+  border-color: color-mix(in srgb, var(--accent), #000 22%) !important;
 }
 
 /* --- 5. EVENTOS --- */
 :deep(.fc-event) {
   border: none !important;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   padding: 2px 4px;
-  font-size: 0.85rem;
+  font-size: var(--fs-ui);
   font-weight: 500;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-md);
   /* Sombra un poco más fuerte */
   transition: transform 0.1s ease, box-shadow 0.1s ease;
   margin-bottom: 2px !important;
@@ -575,7 +587,7 @@ onUnmounted(() => {
 
 :deep(.fc-event:hover) {
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.25);
+  box-shadow: var(--shadow-md);
   cursor: pointer;
   filter: brightness(110%);
   /* Aclara un poco el color al pasar el mouse */
@@ -608,11 +620,11 @@ onUnmounted(() => {
    arriba lo dejaba blanco sobre fondo blanco). */
 :deep(.fc-list-event-title),
 :deep(.fc-list-event-title a) {
-  color: #1e293b !important;
+  color: var(--text) !important;
   font-weight: 600 !important;
   text-decoration: none;
 }
-:deep(.fc-list-event-time) { color: #64748b !important; }
+:deep(.fc-list-event-time) { color: var(--text-muted) !important; }
 
 /* --- 7. MÓVIL --- */
 @media (max-width: 767px) {
@@ -622,7 +634,7 @@ onUnmounted(() => {
     align-items: stretch;
   }
   :deep(.fc-toolbar-title) {
-    font-size: 1.05rem !important;
+    font-size: var(--fs-base) !important;
     text-align: center;
   }
   :deep(.fc-toolbar-chunk) {
@@ -631,7 +643,7 @@ onUnmounted(() => {
   }
   :deep(.fc-button) {
     padding: 0.3rem 0.7rem !important;
-    font-size: 0.85rem !important;
+    font-size: var(--fs-ui) !important;
   }
   :deep(.fc-list-event-title) { white-space: normal; }
 }
@@ -651,7 +663,7 @@ onUnmounted(() => {
 /* Opcional: Hacer que el NÚMERO del día hoy sea más grueso y de color primario */
 :deep(.fc-day-today .fc-daygrid-day-number) {
   font-weight: 800;
-  color: #0d6efd;
+  color: var(--accent);
   font-size: 1.1em;
   background-color: #d1e7dd !important;
 }
@@ -661,13 +673,13 @@ onUnmounted(() => {
    scopea a mano vía `.surface` (el contenedor propio de esta vista que
    envuelve el calendario) para no afectar otras vistas con FullCalendar. */
 :root[data-bs-theme="dark"] .surface :deep(.fc-day-today) {
-  background-color: rgba(37, 99, 235, 0.15) !important;
+  background-color: color-mix(in srgb, var(--accent) 15%, transparent) !important;
 }
 :root[data-bs-theme="dark"] .surface :deep(.fc-day-today:hover) {
-  background-color: rgba(37, 99, 235, 0.25) !important;
+  background-color: color-mix(in srgb, var(--accent) 25%, transparent) !important;
 }
 :root[data-bs-theme="dark"] .surface :deep(.fc-day-today .fc-daygrid-day-number) {
   color: #93c5fd;
-  background-color: rgba(37, 99, 235, 0.25) !important;
+  background-color: color-mix(in srgb, var(--accent) 25%, transparent) !important;
 }
 </style>

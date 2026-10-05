@@ -59,17 +59,15 @@ defineProps({
   .app-page__head { gap: 1rem; margin-bottom: 1.25rem; }
 }
 .app-page__title {
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: #1e293b;
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-semibold);
+  letter-spacing: -0.01em;
+  color: var(--text);
   margin: 0;
 }
-@media (min-width: 768px) {
-  .app-page__title { font-size: 1.25rem; }
-}
 .app-page__subtitle {
-  font-size: .85rem;
-  color: #64748b;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
   margin: .15rem 0 0;
 }
 .app-page__actions { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
