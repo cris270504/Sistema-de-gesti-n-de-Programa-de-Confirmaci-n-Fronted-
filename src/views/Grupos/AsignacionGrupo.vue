@@ -21,6 +21,7 @@ import AsignarConfirmandosModal from '@/components/Modals/AsignarConfirmandosMod
 import PerfilConfirmandoModal from '../../components/Modals/PerfilConfirmandoModal.vue';
 import ApoderadosModal from '@/components/Modals/ApoderadosModal.vue'; // NUEVO MODAL
 import AppPage from '@/components/AppPage.vue';
+import AppSkeleton from '@/components/AppSkeleton.vue';
 import { useMediaQuery } from '@/composables/useMediaQuery';
 
 const esMovil = useMediaQuery('(max-width: 767px)');
@@ -132,13 +133,16 @@ const countEntregados = (requisitos) => requisitos?.filter(r => r.pivot.estado =
 </script>
 
 <template>
-    <AppPage :title="grupo?.nombre ?? ''" :subtitle="grupo ? `Periodo ${grupo.periodo}` : ''" :loading="loadingGrupo"
-        skeleton="cards" class="main-container">
+    <AppPage :title="grupo?.nombre ?? ''" :subtitle="grupo ? `Periodo ${grupo.periodo}` : ''" class="main-container">
         <template v-if="grupo && canViewGrupos" #actions>
             <AppButton variant="secondary" :icon="ArrowLeft" to="/grupos">Volver a grupos</AppButton>
         </template>
 
-        <div v-if="!grupo" class="alert-error">Grupo no encontrado.</div>
+        <!-- El esqueleto se maneja acá (no con :loading de AppPage) para que los modales de abajo
+             sigan montados al recargar el grupo y no pierdan su estado ni sus refs. -->
+        <AppSkeleton v-if="loadingGrupo" skeleton="cards" />
+
+        <div v-else-if="!grupo" class="alert-error">Grupo no encontrado.</div>
 
         <div v-else>
             <div class="row g-4">

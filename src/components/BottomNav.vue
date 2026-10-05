@@ -89,13 +89,6 @@ const isActive = (to) => route.name === to.name
   color: var(--accent);
 }
 
-:root[data-bs-theme="dark"] .bottomnav {
-  background: var(--surface);
-  border-top-color: var(--line);
-}
-:root[data-bs-theme="dark"] .bottomnav__item {
-  color: var(--text-muted);
-}
 
 @media (min-width: 768px) {
   .bottomnav { display: none; }

@@ -77,7 +77,6 @@ const { toasts } = storeToRefs(uiStore)
   background: var(--surface);
   border-color: #14532d;
 }
-:root[data-bs-theme="dark"] .toast-item__msg { color: var(--text); }
 :root[data-bs-theme="dark"] .toast-item__close { color: var(--text-muted); }
 :root[data-bs-theme="dark"] .toast-item__close:hover {
   background: var(--line);

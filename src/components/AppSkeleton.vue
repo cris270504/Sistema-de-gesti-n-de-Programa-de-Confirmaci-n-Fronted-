@@ -75,7 +75,6 @@ defineProps({
 
 :root[data-bs-theme="dark"] .sk-card {
   border-color: var(--line);
-  background: var(--surface);
 }
 :root[data-bs-theme="dark"] .sk-line { background: var(--line); }
 :root[data-bs-theme="dark"] .sk-row { border-top-color: var(--line); }

@@ -73,7 +73,7 @@ const visible = ref(false)
   transition: color 0.15s, background-color 0.15s;
 }
 .pf__toggle:hover:not(:disabled) {
-  color: var(--text-muted);
+  color: var(--text);
   background: var(--surface-sunken);
 }
 .pf__toggle:disabled {

@@ -17,10 +17,15 @@ defineProps({
 
 <template>
   <main class="app-page" :class="{ 'app-page--narrow': !wide }">
-    <header v-if="title || $slots.actions" class="app-page__head">
-      <div class="app-page__titles">
-        <h1 class="app-page__title">{{ title }}</h1>
-        <p v-if="subtitle" class="app-page__subtitle">{{ subtitle }}</p>
+    <header v-if="title || $slots.actions || $slots.leading" class="app-page__head">
+      <div class="app-page__main">
+        <div v-if="$slots.leading" class="app-page__leading">
+          <slot name="leading" />
+        </div>
+        <div class="app-page__titles">
+          <h1 class="app-page__title">{{ title }}</h1>
+          <p v-if="subtitle" class="app-page__subtitle">{{ subtitle }}</p>
+        </div>
       </div>
       <div v-if="$slots.actions" class="app-page__actions">
         <slot name="actions" />
@@ -58,6 +63,8 @@ defineProps({
 @media (min-width: 768px) {
   .app-page__head { gap: 1rem; margin-bottom: 1.25rem; }
 }
+.app-page__main { display: flex; align-items: center; gap: 1rem; min-width: 0; }
+.app-page__leading { flex-shrink: 0; }
 .app-page__title {
   font-size: var(--fs-xl);
   font-weight: var(--fw-semibold);

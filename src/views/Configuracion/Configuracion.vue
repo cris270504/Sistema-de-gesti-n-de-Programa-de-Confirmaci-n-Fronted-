@@ -905,9 +905,10 @@ const UMBRALES = [
   padding: 0;
 }
 
+/* Anillo de selección con alto contraste: --text es oscuro en claro y claro en oscuro. */
 .swatch--on {
-  outline: 2px solid var(--surface-sunken);
-  outline-offset: 1px;
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
 }
 
 .warn-contraste {
@@ -1181,9 +1182,6 @@ const UMBRALES = [
   border-color: var(--line);
   background: var(--surface);
 }
-:root[data-bs-theme="dark"] .card__title {
-  color: var(--text);
-}
 :root[data-bs-theme="dark"] .field label {
   color: var(--text);
 }
@@ -1202,15 +1200,8 @@ const UMBRALES = [
   outline-color: color-mix(in srgb, var(--accent), #000 25%);
   border-color: #818cf8;
 }
-:root[data-bs-theme="dark"] .edad-row {
-  color: var(--text-muted);
-}
 :root[data-bs-theme="dark"] .logo-box {
   border-color: var(--line);
-  background: var(--surface-sunken);
-}
-:root[data-bs-theme="dark"] .swatch--on {
-  outline-color: var(--line);
 }
 :root[data-bs-theme="dark"] .warn-contraste {
   color: #fbbf24 !important;
@@ -1221,16 +1212,12 @@ const UMBRALES = [
 }
 :root[data-bs-theme="dark"] .bp-shell {
   border-color: var(--line);
-  background: var(--surface);
 }
 :root[data-bs-theme="dark"] .bp-side {
   border-bottom-color: var(--line);
 }
 :root[data-bs-theme="dark"] .bp-logo {
   background: var(--line);
-}
-:root[data-bs-theme="dark"] .bp-name {
-  color: var(--text);
 }
 :root[data-bs-theme="dark"] .bp-row {
   color: var(--text-muted);

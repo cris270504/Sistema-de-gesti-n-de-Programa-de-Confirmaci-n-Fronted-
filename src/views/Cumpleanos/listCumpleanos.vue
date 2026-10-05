@@ -25,12 +25,13 @@ import { useUsersStore } from '../../stores/users';
 import { useAuthStore } from '@/stores/auth';
 import { useGruposStore } from '../../stores/grupos';
 import AppPage from '@/components/AppPage.vue';
-import { colorAcento } from '@/lib/tema';
+import { useParroquiaStore } from '@/stores/parroquia';
 
 const router = useRouter();
 const confirmandosStore = useConfirmandosStore();
 const usersStore = useUsersStore();
 const authStore = useAuthStore();
+const parroquiaStore = useParroquiaStore();
 const gruposStore = useGruposStore();
 
 const { items: confirmandos, loading: loadingConf } = storeToRefs(confirmandosStore);
@@ -63,6 +64,9 @@ const selectedEvent = ref({
 // --- LÓGICA DE EVENTOS (CUMPLEAÑOS) ---
 const calendarEvents = computed(() => {
     const events = [];
+    // Color de los confirmandos = color de la parroquia. Se lee UNA vez (dentro del computed,
+    // así que reacciona si cambia en Configuración); FullCalendar necesita un color literal.
+    const colorConfirmando = parroquiaStore.colorEfectivo;
     const currentYear = new Date().getFullYear();
     const years = [currentYear - 1, currentYear, currentYear + 1];
 
@@ -103,7 +107,7 @@ const calendarEvents = computed(() => {
     // --- FILTRADO SEGÚN ROL ---
     if (esCoordinadorOAdmin.value) {
         // 1. El Coordinador/Admin ve TODOS los confirmandos
-        confirmandos.value.forEach(c => processPerson(c, 'Confirmando', colorAcento()));
+        confirmandos.value.forEach(c => processPerson(c, 'Confirmando', colorConfirmando));
 
         // 2. Ve TODOS los usuarios con rol de catequista o coordinador
         const catequistas = users.value.filter(u => {
@@ -121,7 +125,7 @@ const calendarEvents = computed(() => {
         const misConfirmandos = confirmandos.value.filter(c =>
             authStore.user?.grupo_ids?.includes(Number(c.grupo_id))
         );
-        misConfirmandos.forEach(c => processPerson(c, 'Confirmando', colorAcento()));
+        misConfirmandos.forEach(c => processPerson(c, 'Confirmando', colorConfirmando));
 
         // 2. Mis Colegas Catequistas (Incluido yo mismo)
         // Buscamos en la lista de todos los usuarios a aquellos que compartan grupo_id con mi sesión
@@ -416,7 +420,7 @@ onUnmounted(() => {
    :deep() sin selector propio antes compila a global (sin scoping) — se
    scopea a mano vía `.surface` (el contenedor propio de esta vista que
    envuelve el calendario) para no afectar otras vistas con FullCalendar
-   (ListCronograma.vue colorea sus botones con --parroquia-color, no necesita
+   (ListCronograma.vue colorea sus botones con --accent, no necesita
    este fix). */
 :root[data-bs-theme="dark"] .surface :deep(.fc-button-primary) {
   background-color: var(--line);

@@ -417,7 +417,6 @@ const borrarSacramento = (sac) => sacramentosStore.remove(sac.id, sac.nombre);
 }
 :root[data-bs-theme="dark"] .rs-card__title { color: var(--text); }
 :root[data-bs-theme="dark"] .rs-card__count {
-  color: var(--text-muted);
   background: var(--line);
 }
 
@@ -425,8 +424,5 @@ const borrarSacramento = (sac) => sacramentosStore.remove(sac.id, sac.nombre);
 :root[data-bs-theme="dark"] .rs-check__item:hover { background: var(--line); }
 :root[data-bs-theme="dark"] .rs-check__box { border-color: var(--line-strong); }
 :root[data-bs-theme="dark"] .rs-check__item.is-on { color: #5eead4; }
-
-:root[data-bs-theme="dark"] .rs-docs__title { color: var(--text-muted); }
 :root[data-bs-theme="dark"] .rs-doc { border-bottom-color: var(--line); }
-:root[data-bs-theme="dark"] .rs-doc__name { color: var(--text); }
 </style>

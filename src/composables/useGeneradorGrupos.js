@@ -6,6 +6,17 @@ import { useConfirmandosStore } from '@/stores/confirmandos'
 import { useGruposStore } from '@/stores/grupos'
 import { useParroquiaStore } from '@/stores/parroquia'
 
+/**
+ * Periodo con el que se crean los grupos generados automáticamente: el año
+ * calendario en curso (p. ej. "2026"). Es el mismo criterio que usa ListGrupos al
+ * crear un grupo a mano; no depende de ningún año escrito en el código.
+ * @param {Date} [fecha] fecha de referencia (solo para pruebas)
+ * @returns {string}
+ */
+export function periodoActual(fecha = new Date()) {
+  return String(fecha.getFullYear())
+}
+
 export const ESTRATEGIAS = [
   ['genero', 'Por género'],
   ['edad', 'Por edad'],
@@ -89,7 +100,7 @@ export function useGeneradorGrupos() {
     try {
       const response = await gruposStore.generateGroups({
         nombres_grupos: groupNames.value,
-        periodo: String(new Date().getFullYear()),
+        periodo: periodoActual(),
         estrategia: estrategiaGrupos.value,
       })
       generadorModalInstance.value?.hide()

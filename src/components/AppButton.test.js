@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { mount, RouterLinkStub } from '@vue/test-utils'
 import { h } from 'vue'
+import { createRouter, createMemoryHistory } from 'vue-router'
 import AppButton from './AppButton.vue'
 
 const Icon = { name: 'FakeIcon', render: () => h('svg', { 'data-test': 'icon' }) }
@@ -139,11 +140,72 @@ describe('AppButton', () => {
     expect(w.find('.app-btn__spinner').exists()).toBe(true)
   })
 
-  it('router-link variant is not disabled natively but reports aria-disabled', () => {
+  it('disabled link mode renders a non-link element (no href, not focusable) with aria-disabled', () => {
     const w = mount(AppButton, {
       props: { to: '/x', disabled: true },
+      slots: { default: 'Ir' },
       global: { stubs: { RouterLink: RouterLinkStub } },
     })
+    expect(w.findComponent(RouterLinkStub).exists()).toBe(false)
+    expect(w.element.tagName).not.toBe('A')
+    expect(w.attributes('href')).toBeUndefined()
+    expect(w.attributes('tabindex')).toBeUndefined()
     expect(w.attributes('aria-disabled')).toBe('true')
+    expect(w.text()).toBe('Ir')
+  })
+
+  it('loading link mode is also inert', () => {
+    const w = mount(AppButton, {
+      props: { to: '/x', loading: true },
+      global: { stubs: { RouterLink: RouterLinkStub } },
+    })
+    expect(w.findComponent(RouterLinkStub).exists()).toBe(false)
+    expect(w.attributes('aria-disabled')).toBe('true')
+  })
+
+  it('enabled link mode still renders the router-link', () => {
+    const w = mount(AppButton, { props: { to: '/x' }, global: { stubs: { RouterLink: RouterLinkStub } } })
+    expect(w.findComponent(RouterLinkStub).props('to')).toBe('/x')
+    expect(w.attributes('aria-disabled')).toBeUndefined()
+  })
+
+  it('disabled link does not navigate on click or Enter (real router)', async () => {
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/', component: { render: () => h('div') } },
+        { path: '/x', component: { render: () => h('div') } },
+      ],
+    })
+    router.push('/')
+    await router.isReady()
+    const w = mount(AppButton, { props: { to: '/x', disabled: true }, global: { plugins: [router] } })
+    await w.trigger('click')
+    await w.trigger('keydown', { key: 'Enter' })
+    await w.trigger('keyup', { key: 'Enter' })
+    await new Promise((r) => setTimeout(r, 0))
+    expect(router.currentRoute.value.path).toBe('/')
+  })
+
+  it('enabled link navigates on click (real router)', async () => {
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/', component: { render: () => h('div') } },
+        { path: '/x', component: { render: () => h('div') } },
+      ],
+    })
+    router.push('/')
+    await router.isReady()
+    const w = mount(AppButton, { props: { to: '/x' }, global: { plugins: [router] } })
+    await w.trigger('click')
+    await new Promise((r) => setTimeout(r, 0))
+    expect(router.currentRoute.value.path).toBe('/x')
+  })
+
+  it('does not set pointer-events:none inline so title tooltips of disabled buttons still show', () => {
+    const w = mount(AppButton, { props: { disabled: true }, attrs: { title: 'Falta un dato' } })
+    expect(w.attributes('title')).toBe('Falta un dato')
+    expect(w.attributes('style') || '').not.toContain('pointer-events')
   })
 })

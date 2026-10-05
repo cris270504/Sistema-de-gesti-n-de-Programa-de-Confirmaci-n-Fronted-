@@ -1306,19 +1306,14 @@ function copiar(txt) {
   border-color: #d97706;
   color: #fbbf24;
 }
-:root[data-bs-theme="dark"] .lp-count { color: var(--text-muted); }
-:root[data-bs-theme="dark"] .lp-row--off td { color: var(--text-muted); }
 :root[data-bs-theme="dark"] .lp-card {
-  background: var(--surface);
   border-color: var(--line);
 }
-:root[data-bs-theme="dark"] .lp-card__nombre { color: var(--text); }
 :root[data-bs-theme="dark"] .lp-card__slug,
 :root[data-bs-theme="dark"] .lp-card__stats { color: var(--text-muted); }
 :root[data-bs-theme="dark"] .lp-card__stats b { color: var(--text); }
 :root[data-bs-theme="dark"] .lp-logobox {
   border-color: var(--line);
-  background: var(--surface-sunken);
 }
 :root[data-bs-theme="dark"] .lp-sac {
   border-color: var(--line-strong);
@@ -1328,12 +1323,7 @@ function copiar(txt) {
   background: color-mix(in srgb, var(--accent) 16%, var(--surface));
   color: color-mix(in srgb, var(--accent) 70%, var(--text));
 }
-:root[data-bs-theme="dark"] .lp-readonly {
-  background: var(--surface-sunken);
-  color: var(--text-muted);
-}
 :root[data-bs-theme="dark"] .lp-stats > div {
-  background: var(--surface-sunken);
   border-color: var(--line);
 }
 :root[data-bs-theme="dark"] .lp-stats b { color: var(--text); }
@@ -1345,7 +1335,5 @@ function copiar(txt) {
 :root[data-bs-theme="dark"] .lp-section__head { color: var(--text); }
 :root[data-bs-theme="dark"] .lp-toggle-row { background: #14432a; }
 :root[data-bs-theme="dark"] .lp-toggle-row--off { background: #4a3412; }
-:root[data-bs-theme="dark"] .lp-toggle-row__titulo { color: var(--text); }
-:root[data-bs-theme="dark"] .lp-toggle-row__desc { color: var(--text-muted); }
 :root[data-bs-theme="dark"] .lp-switch__track { background: var(--line-strong); }
 </style>

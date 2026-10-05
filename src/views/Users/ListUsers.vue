@@ -383,7 +383,6 @@ onMounted(() => {
   background: var(--surface);
 }
 :root[data-bs-theme="dark"] .user-card:hover { border-color: var(--line-strong); }
-:root[data-bs-theme="dark"] .user-card--off { background: var(--surface-sunken); }
 :root[data-bs-theme="dark"] .icon-box {
   background-color: var(--line);
   border-color: var(--line-strong);
@@ -391,10 +390,8 @@ onMounted(() => {
 :root[data-bs-theme="dark"] .user-card__name { color: var(--text); }
 :root[data-bs-theme="dark"] .user-card__contact {
   border-top-color: var(--line);
-  color: var(--text-muted);
 }
 :root[data-bs-theme="dark"] .user-badge-off {
   color: var(--text);
-  background: var(--line);
 }
 </style>

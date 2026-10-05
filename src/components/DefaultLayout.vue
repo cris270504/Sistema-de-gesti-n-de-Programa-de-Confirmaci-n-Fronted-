@@ -104,21 +104,13 @@ onUnmounted(() => { document.body.style.overflow = '' })
 
 .app-footer {
     flex-shrink: 0;
-    border-top: 1px solid #eef2f6;
+    border-top: 1px solid var(--line);
     background: var(--surface);
     padding: 10px 14px;
 }
 
 .app-footer--with-bottomnav {
     margin-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
-}
-
-:root[data-bs-theme="dark"] .main-content {
-    background-color: var(--surface-sunken);
-}
-:root[data-bs-theme="dark"] .app-footer {
-    background: var(--surface);
-    border-top-color: var(--line);
 }
 
 /* ===== Móvil / tablet: barra lateral como cajón ===== */

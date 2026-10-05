@@ -16,13 +16,6 @@ export function hexARgb(hex) {
   return `${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}`
 }
 
-// Color de acento vigente (--accent resuelve a --parroquia-color) para APIs que
-// exigen un color literal (p. ej. eventos de FullCalendar) y no aceptan var().
-export function colorAcento() {
-  const v = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()
-  return HEX6.test(v) ? v : '#2563eb'
-}
-
 export function aplicarColorParroquia(hex) {
   if (!HEX6.test(hex || '')) return
   const root = document.documentElement.style

@@ -405,7 +405,6 @@ textarea:focus {
   @apply bg-white dark:bg-slate-800 rounded-xl shadow-sm overflow-hidden;
   border: 1px solid var(--line);
 }
-:root[data-bs-theme="dark"] .surface { border-color: var(--line); }
 .surface--pad {
   @apply p-4 md:p-5;
 }
@@ -464,8 +463,6 @@ table {
   /* Oculta la primera celda cuando es solo un número de fila (#/N°). */
   .cards-sm--hide-first td:first-child { display: none !important; }
 }
-:root[data-bs-theme="dark"] .cards-sm tr { border-color: var(--line) !important; background: var(--surface) !important; }
-:root[data-bs-theme="dark"] .cards-sm tr:hover { background: var(--surface) !important; }
 thead {
   @apply bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-200;
 }
@@ -594,11 +591,11 @@ tbody tr:hover {
   --fc-list-event-hover-bg-color: var(--line);
   --fc-today-bg-color: color-mix(in srgb, var(--accent) 15%, transparent);
 }
-/* ListCronograma.vue fuerza background-color: var(--surface) !important directamente
-   en estos contenedores (no usa la variable --fc-page-bg-color) — hace falta
-   pisarlo con la misma especificidad+importancia; al ser más específico
-   (:root[data-bs-theme="dark"] + selector) gana sin importar el orden de
-   carga entre este archivo y el <style> del componente. */
+/* Fondo oscuro para cualquier calendario (Cumpleaños depende de este bloque).
+   ListCronograma.vue ya pinta estos mismos contenedores con var(--surface) !important
+   (es token, se adapta solo), pero Cumpleaños no, así que el bloque se mantiene; al
+   ser más específico (:root[data-bs-theme="dark"] + selector) gana sin importar el
+   orden de carga entre este archivo y el <style> del componente. */
 :root[data-bs-theme="dark"] .fc,
 :root[data-bs-theme="dark"] .fc-view-harness,
 :root[data-bs-theme="dark"] .fc-scroller,

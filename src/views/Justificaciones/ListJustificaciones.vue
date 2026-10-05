@@ -604,7 +604,7 @@ const rechazarCumplimientoSwal = async (item) => {
     gap: 0.5rem;
     min-width: 0;
 }
-.just-tabs__pills .btn {
+.just-tabs__pills :deep(.app-btn) {
     padding: 0.4rem 1rem;
 }
 @media (max-width: 767px) {
@@ -615,7 +615,7 @@ const rechazarCumplimientoSwal = async (item) => {
         width: 100%;
         padding-bottom: 0.25rem;
     }
-    .just-tabs__pills .btn {
+    .just-tabs__pills :deep(.app-btn) {
         flex: 0 0 auto;
         padding: 0.35rem 0.85rem;
         font-size: var(--fs-ui);

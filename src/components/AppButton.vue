@@ -47,6 +47,12 @@ if (import.meta.env?.DEV && props.iconOnly && !props.ariaLabel) {
 
 const isLink = computed(() => props.to !== null && props.to !== '')
 const inactive = computed(() => props.disabled || props.loading)
+// Un enlace deshabilitado/cargando NO debe navegar (ni con mouse ni con teclado): se
+// renderiza como <span> inerte (sin href, fuera del orden de tabulación) en vez de <a>.
+const tag = computed(() => {
+  if (!isLink.value) return 'button'
+  return inactive.value ? 'span' : RouterLink
+})
 const iconSize = computed(() => (props.size === 'sm' ? 14 : 16))
 
 const toneClass = computed(() => {
@@ -70,13 +76,14 @@ const classes = computed(() => [
 
 <template>
   <component
-    :is="isLink ? RouterLink : 'button'"
+    :is="tag"
     v-bind="$attrs"
-    :to="isLink ? to : undefined"
+    :to="isLink && !inactive ? to : undefined"
     :type="isLink ? undefined : type"
     :class="classes"
     :disabled="isLink ? undefined : inactive"
     :aria-disabled="isLink && inactive ? 'true' : undefined"
+    :role="isLink && inactive ? 'link' : undefined"
     :aria-busy="loading ? 'true' : undefined"
     :aria-label="ariaLabel || undefined"
   >
@@ -121,11 +128,12 @@ const classes = computed(() => [
 }
 
 /* Disabled / loading */
+/* Sin pointer-events:none: el atributo title de un botón deshabilitado explica por qué
+   lo está. Los <button disabled> ya no emiten clic; el enlace inerte no tiene href. */
 .app-btn:disabled,
 .app-btn.is-disabled {
   opacity: 0.55;
   cursor: not-allowed;
-  pointer-events: none;
 }
 .app-btn.is-loading { cursor: progress; }
 

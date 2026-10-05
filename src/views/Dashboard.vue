@@ -23,8 +23,9 @@ const authStore = useAuthStore();
 const parroquiaStore = useParroquiaStore();
 const esGestor = authStore.can('ver usuarios');
 
-// Subtítulo del panel: programa de la parroquia + año en curso (sin año fijo en el código).
-const subtituloPanel = computed(() => `Programa de ${parroquiaStore.programaNombre} · ${new Date().getFullYear()}`);
+// Subtítulo del panel: programa de la parroquia. El año del badge sale de la fecha actual (sin año fijo).
+const anioActual = new Date().getFullYear();
+const subtituloPanel = computed(() => `Programa de ${parroquiaStore.programaNombre}`);
 
 // Un KPI se muestra si el usuario tiene el permiso Y la parroquia lo dejó activo
 // en Configuración (parroquiaStore.dashboardKpis). La config puede ocultar, nunca revelar.
@@ -110,7 +111,13 @@ const confirmarRetiroJoven = async (joven) => {
 
 <template>
   <AppPage title="Panel de control" :subtitle="subtituloPanel" :wide="true">
+    <template #leading>
+      <!-- Sobre el pliegue: carga inmediata, con ancho/alto para evitar saltos de layout. -->
+      <img src="@/assets/logo.png" alt="Logo de la parroquia" width="96" height="96" loading="eager"
+        decoding="async" class="dash-logo" />
+    </template>
     <template #actions>
+      <span class="dash-periodo">Periodo activo {{ anioActual }}</span>
       <a href="https://www.instagram.com/confirmacion_scj/" target="_blank" rel="noopener noreferrer"
         class="dash-social" aria-label="Instagram de la parroquia">
         <Instagram :size="16" aria-hidden="true" />Instagram</a>
@@ -238,7 +245,7 @@ const confirmarRetiroJoven = async (joven) => {
                       type="button"
                       @click="confirmarRetiroJoven(c)"
                       title="Dar de baja y retirar del programa"
-                      aria-label="Dar de baja y retirar del programa"><CircleAlert class="h-5 w-5 text-danger" /></AppButton>
+                      aria-label="Dar de baja y retirar del programa"><CircleAlert class="h-5 w-5" /></AppButton>
                   </td>
                 </tr>
                 <!-- Mensaje si no hay alertas -->
@@ -281,7 +288,7 @@ const confirmarRetiroJoven = async (joven) => {
                   type="button"
                   @click="confirmarRetiroJoven(c)"
                   title="Retirar del programa"
-                  aria-label="Retirar del programa"><CircleAlert class="h-5 w-5 text-danger" /></AppButton>
+                  aria-label="Retirar del programa"><CircleAlert class="h-5 w-5" /></AppButton>
               </div>
 
               <div class="dash-card__chips">
@@ -432,6 +439,27 @@ const confirmarRetiroJoven = async (joven) => {
   background-color: var(--surface-sunken) !important;
 }
 
+.dash-logo {
+  display: none;
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
+}
+@media (min-width: 768px) {
+  .dash-logo { display: block; }
+}
+.dash-periodo {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.85rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--accent-ring);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  box-shadow: var(--shadow-sm);
+}
 .dash-social {
   display: inline-flex;
   align-items: center;

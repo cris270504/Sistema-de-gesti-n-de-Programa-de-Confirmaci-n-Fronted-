@@ -481,7 +481,7 @@ onUnmounted(() => {
 }
 
 /* --- 1. CONTENEDORES PRINCIPALES (EL FONDO BLANCO) --- */
-/* Forzamos blanco en todas las capas contenedoras para tapar el gris */
+/* Forzamos el color de superficie (token) en todas las capas contenedoras para tapar el gris */
 :deep(.fc),
 :deep(.fc-view-harness),
 :deep(.fc-scroller),
@@ -506,7 +506,7 @@ onUnmounted(() => {
   --fc-page-bg-color: var(--surface);
   --fc-neutral-bg-color: #f8f9fa;
   --fc-list-event-hover-bg-color: #e9ecef;
-  /* 'Hoy' y los botones siguen el color de la parroquia (--parroquia-color). */
+  /* 'Hoy' y los botones siguen el color de la parroquia (--accent). */
   --fc-today-bg-color: color-mix(in srgb, var(--accent) 8%, transparent);
   --fc-button-bg-color: var(--accent);
   --fc-button-border-color: var(--accent);

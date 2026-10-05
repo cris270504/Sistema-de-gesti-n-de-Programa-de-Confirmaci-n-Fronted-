@@ -140,7 +140,7 @@ watch(modalRef, (instance) => {
 const recargarTabla = () => confirmandosStore.fetchPaginado({ force: true });
 
 const { filtros, limpiarFiltros, totalPages, cambiarPagina, gruposDisponibles } = useConfirmandosFilters();
-const hayFiltros = computed(() => Boolean(filtros.search) || filtros.grupo !== 'todos' || filtros.procedencia !== 'todos' || filtros.estado !== 'todos');
+const hayFiltros = computed(() => Boolean(filtros.value.search) || filtros.value.grupo !== 'todos' || filtros.value.procedencia !== 'todos' || filtros.value.estado !== 'todos');
 
 const {
     fileInputRef, isImporting, initImportModal, abrirImportModal, triggerImport,
