@@ -18,7 +18,7 @@ function makeQueryBuilder(resolveValue) {
 vi.mock('@/lib/supabase', () => ({ supabase: { from: vi.fn() } }))
 
 import { supabase } from '@/lib/supabase'
-import { buscarApoderados, getConfirmandosPaginado } from './confirmandos'
+import { buscarApoderados, getConfirmandosExport, getConfirmandosPaginado } from './confirmandos'
 
 describe('services/confirmandos — buscarApoderados', () => {
   it('escapa "%" y "_" del término antes de armar el patrón ilike', async () => {
@@ -138,5 +138,101 @@ describe('services/confirmandos — getConfirmandosPaginado', () => {
     supabase.from.mockReturnValue(builder)
 
     await expect(getConfirmandosPaginado({})).rejects.toThrow()
+  })
+})
+
+describe('services/confirmandos — getConfirmandosExport', () => {
+  // Builder cuya resolución cambia en cada `await` (una respuesta por página).
+  function makePagedBuilder(pages) {
+    const queue = [...pages]
+    const builder = {
+      select: vi.fn(() => builder),
+      order: vi.fn(() => builder),
+      eq: vi.fn(() => builder),
+      is: vi.fn(() => builder),
+      ilike: vi.fn(() => builder),
+      range: vi.fn(() => builder),
+      then: (resolve) => resolve(queue.shift() ?? { data: [], error: null }),
+    }
+    return builder
+  }
+  const filas = (n, desde = 1) => Array.from({ length: n }, (_, i) => ({ id: desde + i, nombres: 'N' }))
+
+  it('trae todas las páginas de 1000 en 1000 hasta recibir una incompleta', async () => {
+    const builder = makePagedBuilder([
+      { data: filas(1000), error: null },
+      { data: filas(1000, 1001), error: null },
+      { data: filas(5, 2001), error: null },
+    ])
+    supabase.from.mockReturnValue(builder)
+
+    const result = await getConfirmandosExport({ filters: {} })
+
+    expect(builder.range).toHaveBeenNthCalledWith(1, 0, 999)
+    expect(builder.range).toHaveBeenNthCalledWith(2, 1000, 1999)
+    expect(builder.range).toHaveBeenNthCalledWith(3, 2000, 2999)
+    expect(result).toHaveLength(2005)
+  })
+
+  it('se detiene tras la primera página si viene incompleta', async () => {
+    const builder = makePagedBuilder([{ data: filas(3), error: null }])
+    supabase.from.mockReturnValue(builder)
+
+    const result = await getConfirmandosExport({ filters: {} })
+
+    expect(builder.range).toHaveBeenCalledTimes(1)
+    expect(result).toHaveLength(3)
+  })
+
+  it('aplica los mismos filtros que el listado (estado, grupo, procedencia, búsqueda)', async () => {
+    const builder = makePagedBuilder([{ data: [], error: null }])
+    supabase.from.mockReturnValue(builder)
+
+    await getConfirmandosExport({
+      filters: { estado: 'retirado', grupo: '4', procedencia: 'sede', search: 'José' },
+    })
+
+    expect(builder.select.mock.calls[0][0]).toContain('grupo:grupos!inner(')
+    expect(builder.eq).toHaveBeenCalledWith('estado', 'retirado')
+    expect(builder.eq).toHaveBeenCalledWith('grupo_id', 4)
+    expect(builder.eq).toHaveBeenCalledWith('grupo.procedencia', 'sede')
+    expect(builder.ilike).toHaveBeenCalledWith('nombre_busqueda', '%jose%')
+  })
+
+  it('selecciona apoderados y requisitos y ordena de forma estable', async () => {
+    const builder = makePagedBuilder([{ data: [], error: null }])
+    supabase.from.mockReturnValue(builder)
+
+    await getConfirmandosExport({ filters: {} })
+
+    const select = builder.select.mock.calls[0][0]
+    expect(select).toContain('confirmando_apoderado(')
+    expect(select).toContain('confirmando_requisito(')
+    expect(builder.order).toHaveBeenCalledWith('apellidos', { ascending: true })
+    expect(builder.order).toHaveBeenCalledWith('id', { ascending: true })
+  })
+
+  it('aplana sacramentos, requisitos y apoderados', async () => {
+    const row = {
+      id: 1,
+      confirmando_sacramento: [{ estado: 'pendiente', sacramento: { id: 1, nombre: 'Bautismo' } }],
+      confirmando_requisito: [{ estado: 'entregado', fecha_entrega: null, requisito: { id: 2, nombre: 'Partida' } }],
+      confirmando_apoderado: [{ tipo_apoderado_id: 1, apoderado: { id: 3, nombres: 'Ana', apellidos: 'Paz', celular: '1' } }],
+    }
+    supabase.from.mockReturnValue(makePagedBuilder([{ data: [row], error: null }]))
+
+    const [c] = await getConfirmandosExport({ filters: {} })
+
+    expect(c.sacramentos[0].pivot.estado).toBe('pendiente')
+    expect(c.requisitos[0].nombre).toBe('Partida')
+    expect(c.apoderados[0].pivot.tipo_apoderado_id).toBe(1)
+  })
+
+  it('traduce el error de Supabase y no devuelve resultados parciales', async () => {
+    supabase.from.mockReturnValue(
+      makePagedBuilder([{ data: null, error: { message: 'permission denied for table confirmandos' } }]),
+    )
+
+    await expect(getConfirmandosExport({ filters: {} })).rejects.toThrow()
   })
 })

@@ -29,7 +29,7 @@ function aplanarM2M(rows, puente, entidad, pivotCols) {
 // `innerGrupo` cambia el embed de grupo a `!inner`: hace falta cuando se
 // filtra por `grupo.procedencia` (PostgREST solo permite filtrar sobre una
 // relación embebida cuando el join es inner).
-function selectListaConFiltro({ innerGrupo = false } = {}) {
+function selectListaConFiltro({ innerGrupo = false, extra = '' } = {}) {
   const grupoEmbed = innerGrupo
     ? 'grupo:grupos!inner(id, nombre, color, procedencia)'
     : 'grupo:grupos(id, nombre, color, procedencia)'
@@ -37,9 +37,15 @@ function selectListaConFiltro({ innerGrupo = false } = {}) {
     'id, nombres, apellidos, fecha_nacimiento, genero, celular, estado, grupo_id,' +
     ' fecha_retiro, motivo_retiro,' +
     ` ${grupoEmbed},` +
-    ' confirmando_sacramento(estado, sacramento:sacramentos(id, nombre))'
+    ' confirmando_sacramento(estado, sacramento:sacramentos(id, nombre))' +
+    extra
   )
 }
+
+// Export: la lista + apoderados y requisitos (mismos embeds que el detalle).
+const EXTRA_EXPORT =
+  ', confirmando_requisito(estado, fecha_entrega, requisito:requisitos(id, nombre)),' +
+  ' confirmando_apoderado(tipo_apoderado_id, apoderado:apoderados(id, nombres, apellidos, celular))'
 
 const SELECT_LISTA = selectListaConFiltro()
 
@@ -78,16 +84,10 @@ function normalizarBusqueda(str) {
   return (str ?? '').toString().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim()
 }
 
-// Paginación server-side para ListConfirmandos.vue: la lista completa crece sin
-// límite (histórico multi-año) y ya no se trae entera al cliente. `getConfirmandosList`
-// (arriba) se mantiene intacta para las pantallas que sí necesitan el dataset
-// completo (AsignacionGrupo, AsignarConfirmandosModal, Cumpleanos).
-export async function getConfirmandosPaginado({ page = 1, pageSize = 25, filters = {} } = {}) {
+// Filtros compartidos por el listado paginado y el export: misma semántica en
+// ambos para que el archivo coincida con lo que ve el usuario en la tabla.
+function aplicarFiltrosConfirmandos(query, filters = {}) {
   const { search = '', estado = 'todos', grupo = 'todos', procedencia = 'todos' } = filters
-
-  let query = supabase
-    .from('confirmandos')
-    .select(selectListaConFiltro({ innerGrupo: procedencia !== 'todos' }), { count: 'exact' })
 
   if (estado !== 'todos') query = query.eq('estado', estado)
 
@@ -99,15 +99,59 @@ export async function getConfirmandosPaginado({ page = 1, pageSize = 25, filters
   const termino = normalizarBusqueda(search)
   if (termino) query = query.ilike('nombre_busqueda', `%${escaparPatronIlike(termino)}%`)
 
+  return query
+}
+
+// Paginación server-side para ListConfirmandos.vue: la lista completa crece sin
+// límite (histórico multi-año) y ya no se trae entera al cliente. `getConfirmandosList`
+// (arriba) se mantiene intacta para las pantallas que sí necesitan el dataset
+// completo (AsignacionGrupo, AsignarConfirmandosModal, Cumpleanos).
+export async function getConfirmandosPaginado({ page = 1, pageSize = 25, filters = {} } = {}) {
+  const { procedencia = 'todos' } = filters
+
+  const query = aplicarFiltrosConfirmandos(
+    supabase
+      .from('confirmandos')
+      .select(selectListaConFiltro({ innerGrupo: procedencia !== 'todos' }), { count: 'exact' }),
+    filters,
+  )
+
   const from = (page - 1) * pageSize
   const to = page * pageSize - 1
-  query = query.order('id', { ascending: false }).range(from, to)
-
-  const { data, error, count } = await query
+  const { data, error, count } = await query.order('id', { ascending: false }).range(from, to)
   if (error) throw errorLegible(error)
 
   const items = (data ?? []).map((r) => aplanarM2M(r, 'confirmando_sacramento', 'sacramento', ['estado']))
   return { items, total: count ?? 0 }
+}
+
+// Export: todas las filas que cumplen los filtros (con apoderados y requisitos).
+// PostgREST limita las filas por request (1000 por defecto), así que se pagina
+// con `range` hasta recibir una página incompleta. Orden estable (apellidos,
+// nombres, id) para que ninguna fila se repita ni se pierda entre páginas.
+const EXPORT_PAGE_SIZE = 1000
+
+export async function getConfirmandosExport({ filters = {} } = {}) {
+  const { procedencia = 'todos' } = filters
+  const select = selectListaConFiltro({ innerGrupo: procedencia !== 'todos', extra: EXTRA_EXPORT })
+  const filas = []
+
+  for (let from = 0; ; from += EXPORT_PAGE_SIZE) {
+    const query = aplicarFiltrosConfirmandos(supabase.from('confirmandos').select(select), filters)
+      .order('apellidos', { ascending: true })
+      .order('nombres', { ascending: true })
+      .order('id', { ascending: true })
+      .range(from, from + EXPORT_PAGE_SIZE - 1)
+
+    const { data, error } = await query
+    if (error) throw errorLegible(error)
+
+    const pagina = data ?? []
+    filas.push(...pagina)
+    if (pagina.length < EXPORT_PAGE_SIZE) break
+  }
+
+  return filas.map(aplanarConfirmando)
 }
 
 export async function getConfirmandoById(id) {

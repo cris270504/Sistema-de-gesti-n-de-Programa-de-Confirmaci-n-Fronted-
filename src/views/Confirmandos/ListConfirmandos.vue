@@ -6,7 +6,7 @@ import { onMounted, onUnmounted, ref, nextTick, watch, defineAsyncComponent } fr
 import {
     Pencil, Trash, Plus, User, Phone, Calendar, Users,
     Wand2, Trash2, Save, Upload, Eye, Search, X, ArrowRight, Info,
-    UserX, UserCheck,
+    UserX, UserCheck, Download,
 } from 'lucide-vue-next';
 import { useAuthStore } from '@/stores/auth';
 import { useParroquiaStore } from '@/stores/parroquia';
@@ -24,6 +24,10 @@ const ConfirmandoModal = defineAsyncComponent(() =>
 );
 const PerfilConfirmandoModal = defineAsyncComponent(() =>
     import('../../components/Modals/PerfilConfirmandoModal.vue')
+);
+
+const ExportConfirmandosModal = defineAsyncComponent(() =>
+    import('../../components/Modals/ExportConfirmandosModal.vue')
 );
 
 const perfilModalRef = ref(null);
@@ -51,6 +55,29 @@ const abrirPerfil = (id) => {
     pendingPerfilId.value = id;
     hasPendingPerfilAction.value = true;
 };
+
+// Exportar: mismo patrón que el perfil (modal async → acción pendiente hasta que monte).
+const exportModalRef = ref(null);
+const isExportModalLoading = ref(false);
+const hasPendingExportAction = ref(false);
+
+const abrirExportar = () => {
+    const contexto = { filtros: { ...filtros.value }, grupos: gruposDisponibles.value };
+    if (exportModalRef.value) {
+        exportModalRef.value.abrir(contexto);
+        return;
+    }
+    isExportModalLoading.value = true;
+    hasPendingExportAction.value = true;
+};
+
+watch(exportModalRef, (instance) => {
+    if (instance && hasPendingExportAction.value) {
+        instance.abrir({ filtros: { ...filtros.value }, grupos: gruposDisponibles.value });
+        hasPendingExportAction.value = false;
+        isExportModalLoading.value = false;
+    }
+});
 
 // --- STORES ---
 const confirmandosStore = useConfirmandosStore();
@@ -246,6 +273,13 @@ onUnmounted(() => {
         <template #actions>
             <input type="file" ref="fileInputRef" class="d-none" accept=".xlsx, .xls, .csv"
                 aria-label="Seleccionar archivo Excel o CSV para importar" @change="handleFileUpload">
+
+            <button v-if="authStore.can('ver todos los confirmandos')" @click="abrirExportar"
+                :disabled="isExportModalLoading" class="btn-outline">
+                <span v-if="isExportModalLoading" class="spinner-border spinner-border-sm me-2"></span>
+                <Download v-else :size="16" class="mr-1.5" />
+                <span class="text-sm">Exportar</span>
+            </button>
 
             <button v-if="authStore.can('crear confirmandos')" @click="abrirImportModal" :disabled="isImporting"
                 class="btn-outline">
@@ -728,6 +762,7 @@ onUnmounted(() => {
         </div>
 
         <PerfilConfirmandoModal ref="perfilModalRef" />
+        <ExportConfirmandosModal ref="exportModalRef" />
     </AppPage>
 </template>
 
