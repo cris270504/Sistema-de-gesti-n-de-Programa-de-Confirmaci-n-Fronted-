@@ -272,17 +272,20 @@ const textoConteo = (s) => {
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar" :disabled="saving"></button>
         </div>
 
-        <ol class="ps-pasos" aria-label="Pasos">
-          <li v-for="(nombre, i) in PASOS" :key="nombre" class="ps-paso"
-            :class="{ 'is-actual': paso === i + 1, 'is-hecho': paso > i + 1 }"
-            :aria-current="paso === i + 1 ? 'step' : undefined">
-            <span class="ps-paso__num" aria-hidden="true">
-              <Check v-if="paso > i + 1" :size="12" :stroke-width="3" />
-              <template v-else>{{ i + 1 }}</template>
-            </span>
-            <span class="ps-paso__nombre">{{ nombre }}</span>
-          </li>
-        </ol>
+        <!-- El relleno va en el contenedor: main.css fuerza padding/margin 0 en todo <ol>. -->
+        <div class="ps-pasos">
+          <ol class="ps-pasos__lista" aria-label="Pasos">
+            <li v-for="(nombre, i) in PASOS" :key="nombre" class="ps-paso"
+              :class="{ 'is-actual': paso === i + 1, 'is-hecho': paso > i + 1 }"
+              :aria-current="paso === i + 1 ? 'step' : undefined">
+              <span class="ps-paso__num" aria-hidden="true">
+                <Check v-if="paso > i + 1" :size="12" :stroke-width="3" />
+                <template v-else>{{ i + 1 }}</template>
+              </span>
+              <span class="ps-paso__nombre">{{ nombre }}</span>
+            </li>
+          </ol>
+        </div>
 
         <div class="modal-body">
           <!-- Paso 1: sacramento -->
@@ -420,12 +423,16 @@ const textoConteo = (s) => {
 /* ── Pasos ─────────────────────────────────────────────────────────────── */
 .ps-pasos {
   display: flex;
-  gap: 0.5rem;
-  margin: 0;
+  justify-content: center;
   padding: 0.75rem 1.5rem;
-  list-style: none;
   border-bottom: 1px solid var(--line);
   background: var(--surface-sunken);
+}
+.ps-pasos__lista {
+  display: flex;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 36rem;
 }
 .ps-paso {
   display: flex;
@@ -435,6 +442,8 @@ const textoConteo = (s) => {
   color: var(--text-muted);
   font-size: var(--fs-sm);
 }
+/* El último paso no lleva conector: sin flex:1 no deja un hueco a la derecha. */
+.ps-paso:last-child { flex: none; }
 .ps-paso:not(:last-child)::after {
   content: '';
   flex: 1;
