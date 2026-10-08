@@ -146,6 +146,24 @@
   --shadow-lg: 0 24px 48px -12px rgb(0 0 0 / 0.5), 0 0 0 1px rgb(255 255 255 / 0.03);
 }
 
+/* Color litúrgico de cada sacramento (programación de sacramentos): agua,
+   trigo y fuego de Pentecostés. `--sac-*` es el tono para texto/borde (AA
+   sobre --surface en cada tema); `--sac-*-solid` es el fondo de los eventos
+   del calendario, siempre con texto blanco. */
+:root {
+  --sac-bautismo: #0e7490;
+  --sac-comunion: #a16207;
+  --sac-confirmacion: #b91c1c;
+  --sac-bautismo-solid: #0e7490;
+  --sac-comunion-solid: #a16207;
+  --sac-confirmacion-solid: #b91c1c;
+}
+:root[data-bs-theme="dark"] {
+  --sac-bautismo: #67e8f9;
+  --sac-comunion: #fcd34d;
+  --sac-confirmacion: #fca5a5;
+}
+
 /* Accesibilidad: sin transiciones ni animaciones para quien lo pide. */
 @media (prefers-reduced-motion: reduce) {
   *,

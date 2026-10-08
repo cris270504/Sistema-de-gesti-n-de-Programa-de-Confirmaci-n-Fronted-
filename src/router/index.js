@@ -171,6 +171,12 @@ const router = createRouter({
           component: RutaSacramental,
           meta: { title: 'Ruta sacramental', permission: 'ver todos los sacramentos', modulo: 'sacramentos' }
         },
+        {
+          path: '/sacramentos-programados',
+          name: 'sacramentos-programados',
+          component: () => import('../views/Sacramentos/ListSacramentosProgramados.vue'),
+          meta: { title: 'Sacramentos programados', permission: 'ver sacramentos programados', modulo: 'sacramentos' }
+        },
         // /requisitos quedó fusionado en /sacramentos (matriz). Enlaces viejos → ahí.
         {
           path: '/requisitos',

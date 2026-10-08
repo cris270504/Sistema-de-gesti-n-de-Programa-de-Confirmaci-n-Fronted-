@@ -62,6 +62,9 @@ const draft = ref({
 
 const loading = ref(false);
 const saving = ref(false);
+// Con un sacramento en una celebración programada, el faltante se gestiona
+// desde "Sacramentos programados" (cambiarlo aquí desincronizaría la celebración).
+const tieneProgramado = ref(false);
 
 const isEditing = computed(() => !!draft.value.id);
 const title = computed(() => (isEditing.value ? 'Editar Confirmando' : 'Nuevo Confirmando'));
@@ -144,6 +147,7 @@ const open = async (id = null) => {
     id: id, nombres: '', apellidos: '', celular: '', genero: null,
     fecha_nacimiento: '', grupo_id: null, sacramento_faltante_id: null, apoderados: []
   };
+  tieneProgramado.value = false;
 
   modalInstance.value.show();
 
@@ -181,7 +185,8 @@ async function loadData(id) {
     const confirmando = await confirmandoStore.fetchById(Number(id), { silent: true });
 
     if (confirmando) {
-      const sacramentoPendiente = confirmando.sacramentos?.find(s => s.pivot.estado === 'pendiente');
+      const sacramentoPendiente = confirmando.sacramentos?.find(s => ['pendiente', 'programado'].includes(s.pivot.estado));
+      tieneProgramado.value = !!confirmando.sacramentos?.some(s => s.pivot.estado === 'programado');
 
       draft.value = {
         id: confirmando.id,
@@ -238,7 +243,9 @@ async function submitUpdate() {
     genero: draft.value.genero ? draft.value.genero : null,
     fecha_nacimiento: draft.value.fecha_nacimiento ? draft.value.fecha_nacimiento : null,
     grupo_id: draft.value.grupo_id ? draft.value.grupo_id : null,
-    sacramento_faltante_id: draft.value.sacramento_faltante_id ? draft.value.sacramento_faltante_id : null,
+    // null => fn_guardar_confirmando no reescribe la ruta sacramental (fn_asignar_ruta_sacramental),
+    // que pisaría el estado 'programado' de una celebración pendiente.
+    sacramento_faltante_id: !tieneProgramado.value && draft.value.sacramento_faltante_id ? draft.value.sacramento_faltante_id : null,
     apoderados: draft.value.apoderados && draft.value.apoderados.length > 0 ? draft.value.apoderados : [],
     estado: draft.value.estado,
   };
@@ -429,10 +436,11 @@ async function submitUpdate() {
                   Sacramento faltante
                 </label>
                 <select v-model="draft.sacramento_faltante_id" class="form-select border-primary" required
-                  aria-label="Sacramento faltante" :disabled="saving">
+                  aria-label="Sacramento faltante" :disabled="saving || tieneProgramado">
                   <option :value="null" disabled>-- Seleccionar --</option>
                   <option v-for="sac in availableSacramentos" :key="sac.id" :value="sac.id">{{ sac.nombre }}</option>
                 </select>
+                <small v-if="tieneProgramado" class="text-muted">Tiene un sacramento programado; se actualiza desde Sacramentos programados.</small>
               </div>
 
               <div class="col-12 mt-4">

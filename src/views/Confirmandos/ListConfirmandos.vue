@@ -205,8 +205,9 @@ const formatFecha = (fechaString) => {
 
 const getSacramentoFaltante = (confirmando) => {
     if (!confirmando.sacramentos?.length) return 'Sin datos';
-    const pendiente = confirmando.sacramentos.find(s => s.pivot.estado === 'pendiente');
-    return pendiente ? pendiente.nombre : 'Completado';
+    const pendiente = confirmando.sacramentos.find(s => ['pendiente', 'programado'].includes(s.pivot.estado));
+    if (!pendiente) return 'Completado';
+    return pendiente.pivot.estado === 'programado' ? `${pendiente.nombre} (programado)` : pendiente.nombre;
 };
 
 const openApoderadosModal = async (confirmando) => {

@@ -1,11 +1,11 @@
 <script setup>
 import AppButton from '@/components/AppButton.vue'
-import { ref, onMounted, onUnmounted, computed, nextTick, watch } from 'vue';
+import { ref, onMounted, onUnmounted, computed, nextTick, watch, defineAsyncComponent } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { storeToRefs } from 'pinia';
 import { Modal } from 'bootstrap';
 import { showAlerta } from '@/funciones';
-import { Pencil, Trash, CalendarDays, CalendarPlus, ClipboardCheck } from 'lucide-vue-next';
+import { Pencil, Trash, CalendarDays, CalendarPlus, ClipboardCheck, Flame } from 'lucide-vue-next';
 import { attachModalFocusReturn } from '@/composables/useModalFocusReturn';
 
 // --- FullCalendar Imports ---
@@ -20,6 +20,11 @@ import { useParroquiaStore } from '@/stores/parroquia';
 import { useRoute, useRouter } from 'vue-router';
 import AppPage from '@/components/AppPage.vue';
 import { useMediaQuery } from '@/composables/useMediaQuery';
+import { useProgramacionesSacramentoStore } from '@/stores/programacionesSacramento';
+import { sacramentoUi, formatearFechaCelebracion } from '@/lib/sacramentosUi';
+
+// Modal pesado (3 pasos + lista de jóvenes): solo se descarga si se usa.
+const ProgramarSacramentoModal = defineAsyncComponent(() => import('@/components/Modals/ProgramarSacramentoModal.vue'));
 
 const esMovil = useMediaQuery('(max-width: 767px)');
 const calendarRef = ref(null);
@@ -29,6 +34,10 @@ const reunionesStore = useReunionesStore();
 const authStore = useAuthStore();
 const { items: reuniones, loading } = storeToRefs(reunionesStore);
 const { fetchAll, add, save, remove } = reunionesStore;
+const programacionesStore = useProgramacionesSacramentoStore();
+const { activas: programacionesActivas } = storeToRefs(programacionesStore);
+const programarModalRef = ref(null);
+const puedeProgramar = computed(() => authStore.can('programar sacramentos'));
 const route = useRoute();
 const router = useRouter();
 
@@ -72,6 +81,30 @@ const formattedEvents = computed(() => {
   });
 });
 
+// Celebraciones de sacramentos (no canceladas), con su color litúrgico.
+const eventosSacramentos = computed(() =>
+  programacionesActivas.value.map(p => {
+    const color = sacramentoUi(p.sacramento?.clave).hex;
+    const jovenes = p.total_jovenes === 1 ? '1 joven' : `${p.total_jovenes} jóvenes`;
+    return {
+      id: `sac-${p.id}`,
+      title: `${p.sacramento?.nombre ?? 'Sacramento'} (${jovenes})`,
+      start: p.fecha,
+      backgroundColor: color,
+      borderColor: color,
+      extendedProps: { kind: 'sacramento', programacionId: p.id, fecha: p.fecha }
+    };
+  }));
+
+// Sacramentos presentes en el calendario, para la leyenda.
+const referenciasSacramentos = computed(() => {
+  const vistos = new Map();
+  for (const p of programacionesActivas.value) {
+    if (p.sacramento && !vistos.has(p.sacramento.id)) vistos.set(p.sacramento.id, p.sacramento);
+  }
+  return [...vistos.values()];
+});
+
 const calendarOptions = computed(() => ({
   plugins: [dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin],
   // En celular el calendario mensual es ilegible: arranca en vista de lista.
@@ -85,7 +118,7 @@ const calendarOptions = computed(() => ({
     ? { left: 'prev,next', center: 'title', right: 'today' }
     : { left: 'prev,next today', center: 'title', right: 'dayGridMonth,listMonth' },
   buttonText: { today: 'Hoy', month: 'Mes', list: 'Lista' },
-  events: formattedEvents.value,
+  events: [...formattedEvents.value, ...eventosSacramentos.value],
   displayEventTime: false,
 
   // INTERACCIÓN
@@ -171,6 +204,15 @@ const handleDateClick = (info) => {
 
 // 2. Clic en un evento (VER DETALLES)
 const handleEventClick = (info) => {
+  if (info.event.extendedProps.kind === 'sacramento') {
+    const { programacionId, fecha } = info.event.extendedProps;
+    if (authStore.can('ver sacramentos programados')) {
+      router.push({ name: 'sacramentos-programados', query: { id: programacionId } });
+    } else {
+      showAlerta(`${info.event.title}, ${formatearFechaCelebracion(fecha)}`, 'info');
+    }
+    return;
+  }
   selectedEvent.value = {
     id: Number(info.event.id),
     title: info.event.title,
@@ -300,7 +342,7 @@ let detachFormFocusReturn = () => {};
 
 onMounted(async () => {
   if (authStore.can('ver cronograma')) {
-    await fetchAll();
+    await Promise.all([fetchAll(), programacionesStore.fetchAll()]);
   }
   nextTick(() => {
     // Inicializar ambos modales
@@ -328,12 +370,21 @@ onUnmounted(() => {
 
 <template>
   <AppPage title="Cronograma" subtitle="Calendario de reuniones y actividades" :loading="loading">
+    <template v-if="puedeProgramar" #actions>
+      <AppButton :icon="Flame" @click="programarModalRef?.open()">Programar sacramento</AppButton>
+    </template>
+
     <div class="d-flex flex-wrap gap-3 mb-3 align-items-center bg-white p-3 rounded shadow-sm border">
       <span class="text-muted small fw-bold me-2">Referencias:</span>
       <div v-for="t in tiposReunion" :key="t" class="d-flex align-items-center">
         <span class="d-inline-block rounded-circle me-2" style="width: 12px; height: 12px;"
           :style="{ backgroundColor: colorTipo(t) }"></span>
         <span class="small text-dark">{{ t }}</span>
+      </div>
+      <div v-for="s in referenciasSacramentos" :key="`sac-${s.id}`" class="d-flex align-items-center">
+        <span class="d-inline-block rounded-circle me-2" style="width: 12px; height: 12px;"
+          :style="{ backgroundColor: sacramentoUi(s.clave).hex }"></span>
+        <span class="small text-dark">{{ s.nombre }}</span>
       </div>
     </div>
 
@@ -460,6 +511,8 @@ onUnmounted(() => {
         </div>
       </div>
     </div>
+
+    <ProgramarSacramentoModal v-if="puedeProgramar" ref="programarModalRef" />
   </AppPage>
 </template>
 

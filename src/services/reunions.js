@@ -29,7 +29,7 @@ export function getReunionById(id) {
 // `reunions.fecha` es timestamp sin zona (hora local de la parroquia). "Ahora"
 // hay que expresarlo en esa misma zona (no en UTC) para que la comparación no
 // se desfase según dónde esté la parroquia — ver parroquia.zonaHoraria.
-function ahoraEnZona(timeZone) {
+export function ahoraEnZona(timeZone) {
   const partes = new Intl.DateTimeFormat('en-CA', {
     timeZone,
     year: 'numeric', month: '2-digit', day: '2-digit',

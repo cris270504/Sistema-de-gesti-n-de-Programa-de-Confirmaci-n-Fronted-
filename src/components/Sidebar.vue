@@ -19,6 +19,7 @@ import {
   ClipboardList,
   ChevronDown,
   Flame,
+  CalendarHeart,
   Wallet,
   Cake,
   Clipboard,
@@ -228,6 +229,7 @@ const menuSections = computed(() => {
     title: 'Catequesis',
     items: [
       { name: 'Ruta sacramental', to: { name: 'sacramentos' }, icon: Flame, permission: 'ver todos los sacramentos' },
+      { name: 'Sacramentos programados', to: { name: 'sacramentos-programados' }, icon: CalendarHeart, permission: 'ver sacramentos programados' },
     ]
   });
 
