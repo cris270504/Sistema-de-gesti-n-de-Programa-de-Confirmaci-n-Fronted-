@@ -41,7 +41,7 @@ const POR_TEXTO = [
 ]
 
 // Marcas de un mensaje crudo de Postgres (no redactado por nosotros).
-const CRUDO = /(violates|constraint|relation ["']|column ["']|null value in|duplicate key|invalid input syntax|permission denied for|does not exist|out of range|syntax error)/i
+const CRUDO = /(violates|constraint|relation ["']|column ["']|null value in|duplicate key|invalid input syntax|permission denied for|does not exist|out of range|syntax error|could not embed|more than one relationship)/i
 
 export function traducirError(error) {
   if (!error) return 'Ocurrió un error inesperado.'

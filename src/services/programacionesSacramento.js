@@ -15,17 +15,20 @@ async function unwrap(promise) {
 export const ORDEN_CLAVE = { bautismo: 1, comunion: 2, confirmacion: 3 }
 export const CLAVES_PROGRAMABLES = Object.keys(ORDEN_CLAVE)
 
+// programaciones_sacramento llega a sacramentos por dos caminos (su FK directa
+// y el detalle como tabla puente), así que PostgREST exige nombrar la FK.
+const SAC_PRINCIPAL = 'sacramento:sacramentos!programaciones_sacramento_sacramento_id_fkey(id, nombre, clave)'
+const SAC_DETALLE = 'sacramento:sacramentos!programacion_sacramento_detalle_sacramento_id_fkey(id, nombre, clave)'
+
 const COLS_LISTA =
-  'id, fecha, estado, registrada_at, sacramento_id,' +
-  ' sacramento:sacramentos(id, nombre, clave),' +
+  `id, fecha, estado, registrada_at, sacramento_id, ${SAC_PRINCIPAL},` +
   ' detalle:programacion_sacramento_detalle(confirmando_id, sacramento_id, recibio)'
 
 const COLS_DETALLE =
-  'id, fecha, estado, registrada_at, sacramento_id,' +
-  ' sacramento:sacramentos(id, nombre, clave),' +
+  `id, fecha, estado, registrada_at, sacramento_id, ${SAC_PRINCIPAL},` +
   ' detalle:programacion_sacramento_detalle(confirmando_id, sacramento_id, recibio,' +
   ' confirmando:confirmandos(id, nombres, apellidos, estado, grupo:grupos(id, nombre)),' +
-  ' sacramento:sacramentos(id, nombre, clave))'
+  ` ${SAC_DETALLE})`
 
 // Agrega los conteos que usan la lista y el calendario (jóvenes distintos y
 // cuántos recibieron el sacramento principal).
