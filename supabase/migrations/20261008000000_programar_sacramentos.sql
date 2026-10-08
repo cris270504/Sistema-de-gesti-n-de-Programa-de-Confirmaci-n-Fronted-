@@ -607,6 +607,8 @@ begin
     foreach _perm in array array['ver sacramentos programados', 'programar sacramentos', 'registrar sacramentos']
     loop
         insert into public.permissions (name, guard_name, created_at, updated_at)
+        -- guard 'web' fue un error (fn_get_user filtra por 'api'): lo corrige
+        -- 20261008010000_fix_guard_permisos_sacramentos.sql.
         select _perm, 'web', now(), now()
          where not exists (select 1 from public.permissions where name = _perm);
 
