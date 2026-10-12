@@ -1,0 +1,25 @@
+{
+  "browser": {
+    "browserName": "chromium",
+    "isolated": true,
+    "launchOptions": {
+      "headless": false,
+      "channel": "msedge"
+    },
+    "contextOptions": {
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "locale": "es-PE",
+      "recordVideo": {
+        "dir": "./video-tutorial/raw",
+        "size": {
+          "width": 1280,
+          "height": 720
+        }
+      }
+    }
+  },
+  "outputDir": "./video-tutorial"
+}

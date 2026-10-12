@@ -33,3 +33,6 @@ coverage
 *.sw?
 
 *.tsbuildinfo
+
+# Grabaciones del tutorial (Playwright MCP)
+video-tutorial/
