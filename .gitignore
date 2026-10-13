@@ -36,3 +36,6 @@ coverage
 
 # Grabaciones del tutorial (Playwright MCP)
 video-tutorial/
+
+# Credenciales locales de prueba: nunca subir al repositorio
+ARCHIVO_DE_SEED_O_.env.example
