@@ -83,7 +83,7 @@ onMounted(() => {
             <AppButton :icon="Plus" @click="abrirCrear">Nuevo grupo</AppButton>
         </template>
 
-        <div class="surface table-wrap cards-sm">
+        <div class="surface table-wrap cards-sm grp-tabla">
                 <table class="table align-middle mb-0">
                     <thead class="bg-light-gray">
                         <tr>
@@ -165,6 +165,23 @@ onMounted(() => {
 </template>
 
 <style scoped>
+/* Celular: el contador de confirmandos va en la misma fila que las acciones */
+@media (max-width: 767px) {
+  .grp-tabla tr.hover-row {
+    display: grid !important;
+    grid-template-columns: auto 1fr;
+    grid-template-areas: "grupo grupo" "cats cats" "total acciones";
+    column-gap: 0.6rem;
+    row-gap: 0.4rem;
+    align-items: center;
+  }
+  .grp-tabla tr.hover-row > td { padding: 0 !important; }
+  .grp-tabla tr.hover-row > td:nth-child(1) { grid-area: grupo; }
+  .grp-tabla tr.hover-row > td:nth-child(2) { grid-area: cats; }
+  .grp-tabla tr.hover-row > td:nth-child(3) { grid-area: total; }
+  .grp-tabla tr.hover-row > td:nth-child(4) { grid-area: acciones; justify-self: end; }
+}
+
 /* (Mismos estilos que tenías anteriormente) */
 .page-title {
     font-size: var(--fs-xl);

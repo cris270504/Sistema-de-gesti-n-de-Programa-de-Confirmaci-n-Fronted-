@@ -284,6 +284,8 @@ onUnmounted(() => {
               variant="secondary"
               :icon="Download"
               :loading="isExportModalLoading"
+              class="conf-accion-sec"
+              aria-label="Exportar"
               @click="abrirExportar">Exportar</AppButton>
 
             <AppButton
@@ -291,9 +293,11 @@ onUnmounted(() => {
               variant="secondary"
               :icon="Upload"
               :loading="isImporting"
+              class="conf-accion-sec"
+              aria-label="Importar"
               @click="abrirImportModal">{{ isImporting ? 'Importando…' : 'Importar' }}</AppButton>
 
-            <AppButton v-if="authStore.can('crear grupos')" variant="secondary" :icon="Wand2" @click="abrirGenerador">Generar grupos</AppButton>
+            <AppButton v-if="authStore.can('crear grupos')" variant="secondary" :icon="Wand2" class="conf-accion-sec" aria-label="Generar grupos" @click="abrirGenerador">Generar grupos</AppButton>
 
             <AppButton
               v-if="authStore.can('crear confirmandos')"
@@ -303,10 +307,10 @@ onUnmounted(() => {
         </template>
 
         <!-- El contenedor principal (Los filtros NUNCA desaparecen) -->
-        <section class="card border-0 shadow-sm rounded-3 overflow-hidden" aria-label="Listado de confirmandos">
+        <section class="card border-0 shadow-sm rounded-3 overflow-hidden conf-lista" aria-label="Listado de confirmandos">
 
             <div role="search" aria-label="Filtrar confirmandos"
-                class="p-3 bg-light-gray border-bottom d-flex flex-column flex-xl-row justify-content-between align-items-center gap-3">
+                class="p-3 bg-light-gray border-bottom d-flex flex-column flex-xl-row justify-content-between align-items-center gap-3 conf-filtros">
                 <!-- Sección Izquierda: Buscador + Selector de Grupos -->
                 <div class="d-flex flex-column flex-sm-row gap-2 w-100" style="max-width: 650px;">
                     <!-- Buscador -->
@@ -347,7 +351,7 @@ onUnmounted(() => {
                 </div>
 
                 <!-- Sección Derecha: Filtros de Estado (Botones compactos) -->
-                <div class="btn-group shadow-sm w-100 w-xl-auto" role="group" aria-label="Filtrar por estado"
+                <div class="btn-group shadow-sm w-100 w-xl-auto conf-estados" role="group" aria-label="Filtrar por estado"
                     style="overflow-x: auto; white-space: nowrap;">
                     <input type="radio" class="btn-check" name="btnradio" id="btnradio1" value="en_preparacion"
                         v-model="filtros.estado" :disabled="loading">
@@ -373,7 +377,7 @@ onUnmounted(() => {
             <div v-if="error" class="alert alert-danger m-3" role="alert">{{ error }}</div>
 
             <!-- Contenedor de la Tabla (tarjetas en celular) -->
-            <div class="table-responsive cards-sm cards-sm--hide-first">
+            <div class="table-responsive cards-sm cards-sm--hide-first conf-tabla">
 
                 <!-- El <thead> queda visible durante la carga (skeleton en el <tbody>) para que
                      el usuario ubique la estructura de la tabla de inmediato, en vez de un
@@ -752,6 +756,41 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+/* ===== Celular: encabezado, filtros y tarjetas compactos ===== */
+@media (max-width: 767px) {
+  .conf-accion-sec { padding-left: 0.6rem !important; padding-right: 0.6rem !important; }
+  .conf-accion-sec :deep(.app-btn__label) { display: none; }
+
+  .conf-lista { padding: 0 !important; }
+  .conf-filtros { padding: 0.6rem !important; gap: 0.5rem !important; }
+  .conf-estados { overflow-x: visible !important; }
+  .conf-estados > label { flex: 1 1 auto; padding: 0.3rem 0.35rem !important; font-size: 0.72rem; }
+
+  /* Cada fila: nombre + estado · género + celular · grupo + sacramento · acciones */
+  .conf-tabla tr.hover-row {
+    display: grid !important;
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas:
+      "nombre nombre estado"
+      "genero contacto contacto"
+      "grupo grupo sacramento"
+      "acciones acciones acciones";
+    column-gap: 0.6rem;
+    row-gap: 0.2rem;
+    align-items: center;
+    padding: 0.6rem 0.75rem !important;
+  }
+  .conf-tabla tr.hover-row > td { padding: 0 !important; min-width: 0; }
+  .conf-tabla tr.hover-row > td:nth-child(2) { grid-area: nombre; }
+  .conf-tabla tr.hover-row > td:nth-child(3) { grid-area: genero; font-size: 0.75rem; }
+  .conf-tabla tr.hover-row > td:nth-child(4) { grid-area: contacto; font-size: 0.75rem; }
+  .conf-tabla tr.hover-row > td:nth-child(5) { grid-area: estado; justify-self: end; align-self: start; }
+  .conf-tabla tr.hover-row > td:nth-child(6) { grid-area: grupo; }
+  .conf-tabla tr.hover-row > td:nth-child(7) { grid-area: sacramento; justify-self: end; }
+  .conf-tabla tr.hover-row > td:nth-child(8) { grid-area: acciones; margin-top: 0.35rem; }
+  .conf-tabla tr.hover-row > td:nth-child(6) .px-2 { padding-left: 0 !important; }
+}
+
 /* ESTILOS GLOBALES */
 .page-title {
     font-size: var(--fs-xl);

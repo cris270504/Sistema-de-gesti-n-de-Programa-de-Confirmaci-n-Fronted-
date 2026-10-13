@@ -234,7 +234,7 @@ const rechazarCumplimientoSwal = async (item) => {
 <template>
     <AppPage title="Justificaciones" subtitle="Gestión, seguimiento y recuperación de faltas" :loading="loading">
         <!-- BARRA DE BÚSQUEDA Y FILTROS -->
-        <div class="card border-0 shadow-sm mb-4 rounded-4">
+        <div class="card border-0 shadow-sm mb-4 rounded-4 just-filtros">
             <div class="card-body p-3">
                 <div class="row g-3 align-items-center">
                     <div class="col-md-5">
@@ -260,7 +260,7 @@ const rechazarCumplimientoSwal = async (item) => {
         </div>
 
         <!-- TABS DE ESTADOS (PILLS MODERNOS) -->
-        <div class="just-tabs mb-4">
+        <div class="just-tabs mb-3 mb-md-4">
             <div class="just-tabs__pills">
                 <AppButton type="button" size="sm" :variant="filtroActual === 'TODOS' ? 'primary' : 'secondary'"
                     :aria-pressed="filtroActual === 'TODOS'" @click="filtroActual = 'TODOS'">Todos</AppButton>
@@ -278,7 +278,7 @@ const rechazarCumplimientoSwal = async (item) => {
         </div>
 
         <!-- TABLA PRINCIPAL -->
-        <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden just-lista">
             <div class="card-body p-0">
 
                 <!-- Estado Vacío -->
@@ -437,7 +437,17 @@ const rechazarCumplimientoSwal = async (item) => {
                                 <div class="fw-bold text-dark">{{ item.confirmando }}</div>
                                 <span class="badge bg-light text-secondary border mt-1">{{ item.grupo }}</span>
                             </div>
-                            <span class="badge border rounded-pill px-2 py-1" :class="{ 'bg-danger-subtle text-danger border-danger': item.estado_justificacion === 'injustificado', 'bg-warning-subtle text-warning-emphasis border-warning': item.estado_justificacion === 'pendiente', 'bg-success-subtle text-success border-success': item.estado_justificacion === 'justificado' }">{{ item.estado_justificacion }}</span>
+                            <div class="just-card__estado">
+                                <span class="badge border rounded-pill px-2 py-1" :class="{ 'bg-danger-subtle text-danger border-danger': item.estado_justificacion === 'injustificado', 'bg-warning-subtle text-warning-emphasis border-warning': item.estado_justificacion === 'pendiente', 'bg-success-subtle text-success border-success': item.estado_justificacion === 'justificado' }">{{ item.estado_justificacion }}</span>
+                                <AppButton
+                                  variant="soft"
+                                  tone="secondary"
+                                  size="sm"
+                                  icon-only
+                                  @click="perfilModalRef.abrir(item.confirmando_id)"
+                                  title="Ver ficha"
+                                  aria-label="Ver ficha"><User :size="14" /></AppButton>
+                            </div>
                         </div>
 
                         <dl class="just-card__data">
@@ -462,14 +472,7 @@ const rechazarCumplimientoSwal = async (item) => {
                             </div>
                         </dl>
 
-                        <div class="just-card__acciones">
-                            <AppButton
-                              variant="soft"
-                              tone="secondary"
-                              icon-only
-                              @click="perfilModalRef.abrir(item.confirmando_id)"
-                              title="Ver ficha"
-                              aria-label="Ver ficha"><User :size="15" /></AppButton>
+                        <div v-if="item.estado_justificacion !== 'justificado'" class="just-card__acciones">
                             <template v-if="item.estado_justificacion === 'injustificado'">
                                 <AppButton :icon="Plus" @click="abrirModalAcuerdo(item)">Registrar acuerdo</AppButton>
                             </template>
@@ -623,7 +626,38 @@ const rechazarCumplimientoSwal = async (item) => {
     .just-tabs__count { display: none; }
 }
 
+/* ===== Celular: filtros, pestañas y lista compactos ===== */
+@media (max-width: 767px) {
+    .just-filtros { padding: 0 !important; margin-bottom: 0.75rem !important; }
+    .just-filtros .card-body { padding: 0.6rem !important; }
+    .just-filtros .row { --bs-gutter-y: 0.5rem; }
+    .just-filtros .form-control,
+    .just-filtros .form-select { padding-top: 0.4rem !important; padding-bottom: 0.4rem !important; }
+    .just-filtros .input-group-text { padding-left: 0.75rem !important; padding-right: 0.6rem !important; }
+
+    .just-tabs__pills { gap: 0.35rem; scrollbar-width: none; padding-bottom: 0; }
+    .just-tabs__pills::-webkit-scrollbar { display: none; }
+    .just-tabs__pills :deep(.app-btn) { flex: 1 0 auto; padding: 0.3rem 0.55rem; font-size: 0.75rem; }
+
+    .just-lista { padding: 0 !important; }
+    .just-cards .just-card__data {
+        display: grid;
+        grid-template-columns: 6.25rem 1fr;
+        column-gap: 0.6rem;
+        row-gap: 0.35rem;
+    }
+    .just-cards .just-card__data > div { display: contents; }
+    .just-cards .just-card__data dt { padding-top: 0.1rem; }
+    .just-cards .just-card__data dd { min-width: 0; overflow-wrap: anywhere; }
+}
+
 /* ===== Tarjetas (móvil) ===== */
+.just-card__estado {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-shrink: 0;
+}
 .just-cards {
     display: flex;
     flex-direction: column;

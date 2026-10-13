@@ -165,6 +165,11 @@ watch(
   font-weight: var(--fw-medium);
   white-space: nowrap;
 }
+@media (max-width: 767px) {
+  .sp-pestanas { display: flex; width: 100%; scrollbar-width: none; }
+  .sp-pestanas::-webkit-scrollbar { display: none; }
+  .sp-pestana { flex: 1 1 auto; justify-content: center; gap: 0.35rem; padding: 0.4rem 0.45rem; font-size: 0.78rem; }
+}
 .sp-pestana:hover { color: var(--text); }
 .sp-pestana:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--accent-ring); }
 .sp-pestana.is-activa { background: var(--accent-soft); color: var(--accent); }

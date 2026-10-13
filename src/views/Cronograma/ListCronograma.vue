@@ -374,7 +374,7 @@ onUnmounted(() => {
       <AppButton :icon="Flame" @click="programarModalRef?.open()">Programar sacramento</AppButton>
     </template>
 
-    <div class="d-flex flex-wrap gap-3 mb-3 align-items-center bg-white p-3 rounded shadow-sm border">
+    <div class="d-flex flex-wrap gap-3 mb-3 align-items-center bg-white p-3 rounded shadow-sm border crono-refs">
       <span class="text-muted small fw-bold me-2">Referencias:</span>
       <div v-for="t in tiposReunion" :key="t" class="d-flex align-items-center">
         <span class="d-inline-block rounded-circle me-2" style="width: 12px; height: 12px;"
@@ -682,9 +682,9 @@ onUnmounted(() => {
 /* --- 7. MÓVIL --- */
 @media (max-width: 767px) {
   :deep(.fc-toolbar) {
-    flex-direction: column;
+    flex-direction: row;
     gap: 0.5rem;
-    align-items: stretch;
+    align-items: center;
   }
   :deep(.fc-toolbar-title) {
     font-size: var(--fs-base) !important;
@@ -699,6 +699,8 @@ onUnmounted(() => {
     font-size: var(--fs-ui) !important;
   }
   :deep(.fc-list-event-title) { white-space: normal; }
+  .crono-refs { padding: 0.5rem 0.75rem !important; column-gap: 0.9rem !important; row-gap: 0.3rem !important; }
+  .crono-refs > span { margin-right: 0 !important; }
 }
 
 :deep(.fc-day-today) {
