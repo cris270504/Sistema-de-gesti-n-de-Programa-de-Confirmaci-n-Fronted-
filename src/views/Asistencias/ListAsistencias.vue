@@ -648,9 +648,9 @@ const formatColDate = (dateStr) => {
             </AppButton>
         </template>
 
-        <div class="row g-3 mb-4">
-            <div class="col-md-3 col-6">
-                <div class="card border-0 shadow-sm h-100 border-start border-4 border-success">
+        <div class="row g-2 g-sm-3 mb-3 mb-sm-4">
+            <div class="col-md-3 col-3">
+                <div class="card border-0 shadow-sm h-100 asis-kpi border-start border-4 border-success">
                     <div class="card-body p-3">
                         <div class="d-flex align-items-center">
                             <div class="flex-shrink-0 me-3 d-none d-sm-block">
@@ -668,8 +668,8 @@ const formatColDate = (dateStr) => {
                 </div>
             </div>
 
-            <div class="col-md-3 col-6">
-                <div class="card border-0 shadow-sm h-100 border-start border-4 border-warning">
+            <div class="col-md-3 col-3">
+                <div class="card border-0 shadow-sm h-100 asis-kpi border-start border-4 border-warning">
                     <div class="card-body p-3">
                         <div class="d-flex align-items-center">
                             <div class="flex-shrink-0 me-3 d-none d-sm-block">
@@ -687,8 +687,8 @@ const formatColDate = (dateStr) => {
                 </div>
             </div>
 
-            <div class="col-md-3 col-6">
-                <div class="card border-0 shadow-sm h-100 border-start border-4 border-danger">
+            <div class="col-md-3 col-3">
+                <div class="card border-0 shadow-sm h-100 asis-kpi border-start border-4 border-danger">
                     <div class="card-body p-3">
                         <div class="d-flex align-items-center">
                             <div class="flex-shrink-0 me-3 d-none d-sm-block">
@@ -698,12 +698,12 @@ const formatColDate = (dateStr) => {
                                 </div>
                             </div>
                             <div>
-                                <p class="text-muted mb-0 small fw-bold">Faltas (Totales)</p>
+                                <p class="text-muted mb-0 small fw-bold">Faltas<span class="d-none d-sm-inline"> (Totales)</span></p>
                                 <h4 class="mb-0 fw-bold text-gray-800 dark:text-gray-100">{{ stats.justificada + stats.injustificada }}
                                 </h4>
                                 <small class="text-xs text-muted">
-                                    <span class="text-info">{{ stats.justificada }} Just.</span> /
-                                    <span class="text-danger">{{ stats.injustificada }} Injust.</span>
+                                    <span class="text-info">{{ stats.justificada }} J<span class="d-none d-sm-inline">ust.</span></span> /
+                                    <span class="text-danger">{{ stats.injustificada }} I<span class="d-none d-sm-inline">njust.</span></span>
                                 </small>
                             </div>
                         </div>
@@ -711,8 +711,8 @@ const formatColDate = (dateStr) => {
                 </div>
             </div>
 
-            <div class="col-md-3 col-6">
-                <div class="card border-0 shadow-sm h-100 border-start border-4 border-primary">
+            <div class="col-md-3 col-3">
+                <div class="card border-0 shadow-sm h-100 asis-kpi border-start border-4 border-primary">
                     <div class="card-body p-3">
                         <div class="d-flex align-items-center">
                             <div class="flex-shrink-0 me-3 d-none d-sm-block">
@@ -722,7 +722,7 @@ const formatColDate = (dateStr) => {
                                 </div>
                             </div>
                             <div>
-                                <p class="text-muted mb-0 small fw-bold">% Participación</p>
+                                <p class="text-muted mb-0 small fw-bold"><span class="d-sm-none">% Partic.</span><span class="d-none d-sm-inline">% Participación</span></p>
                                 <h4 class="mb-0 fw-bold text-gray-800 dark:text-gray-100">{{ stats.porcentaje }}%</h4>
                             </div>
                         </div>
@@ -731,14 +731,14 @@ const formatColDate = (dateStr) => {
             </div>
         </div>
 
-        <div class="card border-0 shadow-sm mb-4 bg-white rounded-3">
+        <div class="card border-0 shadow-sm mb-4 bg-white rounded-3 asis-filtros">
             <div class="card-body py-3">
                 <div class="row g-3 align-items-center">
-                    <div class="col-md-3 col-sm-6">
+                    <div class="col-md-3 col-sm-6 asis-filtro">
                         <label class="form-label text-xs fw-bold text-muted">Mes</label>
                         <input type="month" class="form-control form-control-sm" v-model="currentMonth">
                     </div>
-                    <div v-if="authStore.can('ver todas las asistencias')" class="col-md-4 col-sm-6">
+                    <div v-if="authStore.can('ver todas las asistencias')" class="col-md-4 col-sm-6 asis-filtro">
                         <label class="form-label text-xs fw-bold text-muted">Grupo</label>
                         <select class="form-select form-select-sm" v-model="filterGrupo">
                             <option value="">Todos los grupos</option>
@@ -1043,6 +1043,24 @@ const formatColDate = (dateStr) => {
 </template>
 
 <style scoped>
+/* ===== Resumen del mes: en celular, una sola fila de 4 ===== */
+@media (max-width: 575.98px) {
+  .asis-kpi { padding: 0 !important; border-left-width: 3px !important; }
+  .asis-kpi .card-body { padding: 0.5rem 0.45rem !important; }
+  .asis-kpi p { font-size: 0.68rem; line-height: 1.2; white-space: nowrap; }
+  .asis-kpi h4 { font-size: 1.15rem; line-height: 1.2; }
+  .asis-kpi small { font-size: 0.66rem; white-space: nowrap; }
+
+  /* Filtros: etiqueta y campo en la misma línea, sin relleno de sobra */
+  .asis-filtros { padding: 0 !important; margin-bottom: 0.75rem !important; }
+  .asis-filtros .card-body { padding: 0.5rem 0.75rem !important; }
+  .asis-filtros .row { --bs-gutter-y: 0.4rem; }
+  .asis-filtro { display: flex; align-items: center; gap: 0.6rem; }
+  .asis-filtro .form-label { margin: 0; min-width: 2.75rem; }
+  .asis-filtro .form-control,
+  .asis-filtro .form-select { flex: 1; min-width: 0; }
+}
+
 /* ===== Vista móvil (una reunión a la vez) ===== */
 .asis-chips {
     display: flex;

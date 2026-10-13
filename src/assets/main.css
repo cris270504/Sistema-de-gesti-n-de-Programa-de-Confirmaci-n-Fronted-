@@ -295,6 +295,11 @@ textarea:focus {
 .card-body {
   @apply text-sm text-gray-600 dark:text-gray-300;
 }
+/* En celular, las tarjetas con .card-body (patrón Bootstrap) ya traen relleno en
+   el cuerpo: el p-4 de .card lo duplicaba y comía ~32 px de ancho y alto. */
+@media (max-width: 767.98px) {
+  .card:has(> .card-body) { padding: 0; }
+}
 
 /* ===== MODAL UNIFICADO =====
    Un solo marco para TODOS los modales del sistema, sin importar las clases que
@@ -478,8 +483,20 @@ table {
     white-space: normal !important;
   }
   .cards-sm td:empty { display: none !important; }
+  /* Si el contenedor es una .surface, las tarjetas van directo sobre el fondo:
+     sin marco blanco alrededor (antes quedaba un recuadro dentro de otro). */
+  .surface.cards-sm,
+  .surface:has(> .cards-sm),
+  .surface:has(> div > .cards-sm) {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+  .surface.cards-sm tr,
+  .surface > .cards-sm tr,
+  .surface > div > .cards-sm tr { margin: 0 0 0.6rem !important; }
   /* Oculta la primera celda cuando es solo un número de fila (#/N°). */
-  .cards-sm--hide-first td:first-child { display: none !important; }
+  .cards-sm--hide-first td:first-child:not([colspan]) { display: none !important; }
 }
 thead {
   @apply bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-200;

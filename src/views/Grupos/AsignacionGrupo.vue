@@ -148,8 +148,8 @@ const countEntregados = (requisitos) => requisitos?.filter(r => r.pivot.estado =
             <div class="row g-4">
                 <!-- Tabla Principal -->
                 <div class="col-xl-8">
-                    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
-                        <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+                    <div class="card border-0 shadow-sm rounded-4 overflow-hidden mg-lista">
+                        <div v-if="canManageConfirmandos" class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
                             <AppButton v-if="canManageConfirmandos" size="sm" class="theme-accent" @click="asignarConfirmandosRef.open(grupo)">Gestionar Inscripción</AppButton>
                         </div>
                         <div v-if="!esMovil" class="table-responsive cards-sm">
@@ -307,6 +307,10 @@ const countEntregados = (requisitos) => requisitos?.filter(r => r.pivot.estado =
 
 /* ===== Tarjetas (móvil) ===== */
 .mg-cards { display: flex; flex-direction: column; }
+/* En celular la lista va de borde a borde: sin el relleno global de .card */
+@media (max-width: 767px) {
+  .mg-lista { padding: 0 !important; }
+}
 .mg-card {
     padding: 0.85rem;
     border-top: 1px solid var(--line);

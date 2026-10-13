@@ -126,28 +126,28 @@ const confirmarRetiroJoven = async (joven) => {
         <Facebook :size="16" aria-hidden="true" />Facebook</a>
     </template>
 
-    <div class="row g-4">
+    <div class="row g-3 g-md-4">
       <!-- COLUMNA PRINCIPAL (IZQUIERDA) -->
       <div class="col-xl-8">
 
         <!-- RESUMEN NUMÉRICO (CARDS MINI) -->
-        <div class="row g-3 mb-4">
-          <div v-if="verKpi('confirmandos', 'ver todos los confirmandos')" class="col-sm-4">
-            <div class="card border-0 shadow-sm rounded-4 text-center p-3">
+        <div class="row g-2 g-sm-3 mb-3 mb-sm-4">
+          <div v-if="verKpi('confirmandos', 'ver todos los confirmandos')" class="col col-sm-4">
+            <div class="card border-0 shadow-sm rounded-4 text-center p-3 dash-kpi">
               <h2 class="fw-bold mb-0 text-info">{{ metricas.activos }}</h2>
               <p class="text-muted small mb-0">{{ parroquiaStore.personaLabelPlural }}</p>
               <RouterLink :to="{ name: 'confirmandos' }" class="stretched-link"></RouterLink>
             </div>
           </div>
-          <div v-if="verKpi('usuarios', 'ver usuarios')" class="col-sm-4">
-            <div class="card border-0 shadow-sm rounded-4 text-center p-3">
+          <div v-if="verKpi('usuarios', 'ver usuarios')" class="col col-sm-4">
+            <div class="card border-0 shadow-sm rounded-4 text-center p-3 dash-kpi">
               <h2 class="fw-bold mb-0 text-success">{{ metricas.cant_users }}</h2>
               <p class="text-muted small mb-0">Usuarios</p>
               <RouterLink :to="{ name: 'users' }" class="stretched-link"></RouterLink>
             </div>
           </div>
-          <div v-if="verKpi('grupos', 'ver todos los grupos')" class="col-sm-4">
-            <div class="card border-0 shadow-sm rounded-4 text-center p-3">
+          <div v-if="verKpi('grupos', 'ver todos los grupos')" class="col col-sm-4">
+            <div class="card border-0 shadow-sm rounded-4 text-center p-3 dash-kpi">
               <h2 class="fw-bold mb-0 text-warning">{{ metricas.cant_grupos }}</h2>
               <p class="text-muted small mb-0">Grupos</p>
               <RouterLink :to="{ name: 'grupos' }" class="stretched-link"></RouterLink>
@@ -397,6 +397,17 @@ const confirmarRetiroJoven = async (joven) => {
 </template>
 
 <style scoped>
+/* ===== KPIs: en celular, una sola fila compacta ===== */
+@media (max-width: 575.98px) {
+  .dash-kpi { padding: 0.6rem 0.35rem !important; }
+  .dash-kpi h2 { font-size: 1.4rem; line-height: 1.15; }
+  .dash-kpi p { font-size: 0.72rem; }
+}
+/* Tarjetas con cabecera (Seguimiento, Próximos): la cabecera ya trae su relleno */
+@media (max-width: 767.98px) {
+  .card:has(> .card-header) { padding: 0 !important; }
+}
+
 /* ===== Tarjetas de alertas (móvil) ===== */
 .dash-cards { display: flex; flex-direction: column; }
 .dash-card {

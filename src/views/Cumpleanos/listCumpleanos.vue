@@ -397,9 +397,9 @@ onUnmounted(() => {
 
 @media (max-width: 767px) {
     :deep(.fc-toolbar) {
-        flex-direction: column;
+        flex-direction: row;
         gap: 0.5rem;
-        align-items: stretch;
+        align-items: center;
     }
     :deep(.fc-toolbar-title) {
         font-size: var(--fs-base) !important;
