@@ -1,48 +1,47 @@
-# sistemaConfirmacion
+# ⛪ Sistema de Gestión del Programa de Confirmación — Frontend
 
-This template should help get you started developing with Vue 3 in Vite.
+Aplicación web (PWA) para coordinar el Programa de Confirmación de una parroquia: inscripción de confirmandos, grupos, asistencia a reuniones, justificaciones, requisitos sacramentales y comunicación con apoderados.
 
-## Recommended IDE Setup
+> Backend (API REST): [Sistema-de-gestion-de-Programa-de-Confirmacion---Backend](https://github.com/cris270504/Sistema-de-gestion-de-Programa-de-Confirmacion---Backend)
+<!-- > 🔗 Demo: https://TU-URL.vercel.app -->
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+<!-- Agrega 2–3 capturas: docs/screenshots/dashboard.png, asistencias.png, movil.png -->
+<!-- ![Dashboard](docs/screenshots/dashboard.png) -->
 
-## Recommended Browser Setup
+## ✨ Funcionalidades
 
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd) 
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
+- **Dashboard** con indicadores y gráficos de asistencia
+- **Confirmandos y apoderados**: registro, búsqueda e importación desde Excel
+- **Grupos**: creación y distribución automática de confirmandos
+- **Asistencias y justificaciones** por reunión
+- **Cronograma** de reuniones con calendario (día / semana / lista)
+- **Sacramentos y requisitos** por confirmando
+- **Cumpleaños** del mes
+- **Usuarios, roles y permisos** (catequistas, coordinadores, administrador)
+- **Reportes** exportables a PDF y Excel
+- Diseño **responsive / mobile-first** e instalable como PWA
 
-## Type Support for `.vue` Imports in TS
+## 🛠️ Tecnologías
 
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
+| Capa | Herramientas |
+|---|---|
+| Framework | Vue 3 (Composition API), Vite, Vue Router, Pinia, vite-plugin-pwa |
+| UI | Tailwind CSS, Reka UI, Lucide, TanStack Table, SweetAlert2 |
+| Gráficos y calendario | Chart.js, ApexCharts, FullCalendar |
+| Reportes | jsPDF + AutoTable, ExcelJS |
+| Integración | Axios (API Laravel), Supabase JS |
+| Despliegue | Vercel (Speed Insights), PWA |
 
-## Customize configuration
+## ▶️ Ejecutar en local
 
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
-
-```sh
+```bash
+git clone https://github.com/cris270504/Sistema-de-gesti-n-de-Programa-de-Confirmaci-n-Fronted-.git
+cd Sistema-de-gesti-n-de-Programa-de-Confirmaci-n-Fronted-
 npm install
-```
-
-### Compile and Hot-Reload for Development
-
-```sh
+cp .env.example .env   # configura la URL de la API
 npm run dev
 ```
 
-### Type-Check, Compile and Minify for Production
+## 👤 Autor
 
-```sh
-npm run build
-```
-
-### Lint with [ESLint](https://eslint.org/)
-
-```sh
-npm run lint
-```
+**Cristopher Carrasco** — [@cris270504](https://github.com/cris270504)
