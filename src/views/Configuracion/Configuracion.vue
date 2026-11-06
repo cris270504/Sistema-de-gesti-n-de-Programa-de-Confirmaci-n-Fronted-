@@ -13,6 +13,7 @@ import {
 import { subirLogo, quitarLogo } from '@/services/branding'
 import { showAlerta, confirmar } from '@/funciones'
 import AppPage from '@/components/AppPage.vue'
+import CategoriasReunionEditor from './CategoriasReunionEditor.vue'
 
 const parroquiaStore = useParroquiaStore()
 
@@ -490,6 +491,7 @@ const UMBRALES = [
             </div>
             <small v-if="form.tipos_reunion.length === 0" class="err">Debe quedar al menos uno.</small>
           </div>
+          <CategoriasReunionEditor />
           <div class="field">
             <label>Procedencias de grupo</label>
             <input v-model="form.procedencias" type="text" class="inp inp--md" />

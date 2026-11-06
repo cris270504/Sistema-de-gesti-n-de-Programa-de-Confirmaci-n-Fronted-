@@ -10,11 +10,15 @@ async function unwrap(promise) {
   return data
 }
 
-const COLS = 'id, nombre_tema, fecha, descripcion, tipo, created_at, updated_at'
+// `categoria` (Reunión / Jornada / Retiro…) viaja embebida: el calendario la
+// antepone al título y decide si la reunión admite cronograma por momentos.
+const COLS = 'id, nombre_tema, fecha, descripcion, tipo, categoria_id, created_at, updated_at, '
+  + 'categoria:reunion_categorias(id, nombre, permite_cronograma)'
 
 // Columnas que el cliente puede escribir. Filtra `id` y cualquier campo suelto del
-// draft (mandar `id: null` en el insert rompía el NOT NULL de la PK).
-const WRITE_COLS = ['nombre_tema', 'fecha', 'descripcion', 'tipo']
+// draft (mandar `id: null` en el insert rompía el NOT NULL de la PK). Sin
+// categoria_id, el trigger reunions_categoria asigna "Reunión".
+const WRITE_COLS = ['nombre_tema', 'fecha', 'descripcion', 'tipo', 'categoria_id']
 const soloEscribibles = (obj) =>
   Object.fromEntries(WRITE_COLS.filter(k => obj?.[k] !== undefined).map(k => [k, obj[k]]))
 

@@ -130,6 +130,20 @@ const router = createRouter({
           meta: { title: 'Cronograma', permission: ['ver cronograma'], modulo: 'cronograma' }
         },
 
+        //JORNADAS (cronograma por momentos de jornadas / retiros)
+        {
+          path: '/jornadas',
+          name: 'jornadas',
+          component: () => import('../views/Jornadas/ListJornadas.vue'),
+          meta: { title: 'Jornadas', permission: ['ver cronograma'] }
+        },
+        {
+          path: '/jornadas/:id(\\d+)',
+          name: 'jornada',
+          component: () => import('../views/Jornadas/JornadaDetalle.vue'),
+          meta: { title: 'Jornada', permission: ['ver cronograma'] }
+        },
+
         //ASISTENCIAS
         {
           path: '/asistencias/confirmandos/:id?',

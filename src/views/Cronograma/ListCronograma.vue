@@ -4,8 +4,9 @@ import { ref, onMounted, onUnmounted, computed, nextTick, watch, defineAsyncComp
 import { useAuthStore } from '@/stores/auth';
 import { storeToRefs } from 'pinia';
 import { Modal } from 'bootstrap';
-import { showAlerta } from '@/funciones';
-import { Pencil, Trash, CalendarDays, CalendarPlus, ClipboardCheck, Flame } from 'lucide-vue-next';
+import { showAlerta, confirmar } from '@/funciones';
+import { Pencil, Trash, CalendarDays, CalendarPlus, ClipboardCheck, Flame, ListOrdered } from 'lucide-vue-next';
+import { useCategoriasReunionStore } from '@/stores/categoriasReunion';
 import { attachModalFocusReturn } from '@/composables/useModalFocusReturn';
 
 // --- FullCalendar Imports ---
@@ -46,10 +47,18 @@ const detailsModalInstance = ref(null);
 const formModalInstance = ref(null);
 
 // Estado para VER detalles
-const selectedEvent = ref({ id: null, title: '', start: '', description: '', type: '' });
+const selectedEvent = ref({ id: null, title: '', start: '', description: '', type: '', categoria: null });
 
 // Estado para el FORMULARIO (Draft)
-const draft = ref({ id: null, nombre_tema: '', fecha: '', descripcion: '', tipo: '' });
+const draft = ref({ id: null, nombre_tema: '', fecha: '', descripcion: '', tipo: '', categoria_id: null });
+
+// Categorías (Reunión / Jornada / Retiro…). Las que permiten cronograma
+// ofrecen organizarlo por momentos (módulo Jornadas).
+const categoriasStore = useCategoriasReunionStore();
+// Activas + la actual de la reunión que se edita (aunque se haya desactivado).
+const categorias = computed(() =>
+  categoriasStore.items.filter(c => c.activa || c.id === draft.value.categoria_id));
+const puedeVerJornada = computed(() => authStore.can('ver cronograma'));
 const isEditing = ref(false);
 const saving = ref(false);
 
@@ -69,14 +78,16 @@ const formattedEvents = computed(() => {
   if (!reuniones || !reuniones.value) return [];
   return reuniones.value.map(r => {
     const color = colorTipo(r.tipo);
+    const categoria = r.categoria ?? null;
 
     return {
       id: r.id,
-      title: r.nombre_tema,
+      // Color por tipo de asistentes; la categoría va antepuesta ("Retiro · …").
+      title: categoria ? `${categoria.nombre} · ${r.nombre_tema}` : r.nombre_tema,
       start: r.fecha, // 'YYYY-MM-DD'
       backgroundColor: color,
       borderColor: color,
-      extendedProps: { descripcion: r.descripcion, tipo: r.tipo }
+      extendedProps: { descripcion: r.descripcion, tipo: r.tipo, nombre: r.nombre_tema, categoria }
     };
   });
 });
@@ -196,7 +207,8 @@ const handleDateClick = (info) => {
     id: null,
     nombre_tema: '',
     descripcion: '',
-    tipo: tiposReunion.value[0] || 'Confirmandos'
+    tipo: tiposReunion.value[0] || 'Confirmandos',
+    categoria_id: categoriasStore.porDefecto?.id ?? null
   };
 
   formModalInstance.value?.show();
@@ -215,10 +227,11 @@ const handleEventClick = (info) => {
   }
   selectedEvent.value = {
     id: Number(info.event.id),
-    title: info.event.title,
+    title: info.event.extendedProps.nombre ?? info.event.title,
     start: info.event.startStr, // Fecha formateada YYYY-MM-DD
     description: info.event.extendedProps.descripcion,
-    type: info.event.extendedProps.tipo
+    type: info.event.extendedProps.tipo,
+    categoria: info.event.extendedProps.categoria ?? null
   };
   detailsModalInstance.value?.show();
 };
@@ -242,10 +255,18 @@ const openEditFromDetails = () => {
     id: selectedEvent.value.id,
     nombre_tema: selectedEvent.value.title,
     descripcion: selectedEvent.value.description,
-    tipo: selectedEvent.value.type
+    tipo: selectedEvent.value.type,
+    categoria_id: selectedEvent.value.categoria?.id ?? categoriasStore.porDefecto?.id ?? null
   };
 
   formModalInstance.value?.show();
+};
+
+const irAJornada = (id) => router.push({ name: 'jornada', params: { id } });
+
+const abrirCronogramaDesdeDetalle = () => {
+  detailsModalInstance.value?.hide();
+  irAJornada(selectedEvent.value.id);
 };
 
 // 4. Guardar (Crear o Actualizar)
@@ -278,13 +299,29 @@ const handleSubmit = async () => {
 
   saving.value = true;
   try {
+    let creada = null;
     if (isEditing.value) {
       await save(draft.value.id, draft.value);
     } else {
-      await add(draft.value);
+      creada = await add(draft.value);
     }
     await fetchAll({ force: true });
     formModalInstance.value?.hide();
+
+    if (categoriasStore.permiteCronograma(draft.value.categoria_id)) {
+      categoriasStore.refrescarHayJornadas();
+      // Decisión: al crear una reunión de categoría con cronograma, preguntar.
+      if (creada?.id && authStore.can('editar cronograma')) {
+        const organizar = await confirmar({
+          titulo: '¿Desea organizar el cronograma?',
+          texto: 'Puede agregar los momentos ahora o más tarde desde el módulo Jornadas.',
+          icono: 'question',
+          confirmarTexto: 'Sí, organizar',
+          cancelarTexto: 'Más tarde',
+        });
+        if (organizar) irAJornada(creada.id);
+      }
+    }
   } catch (e) {
     console.error(e);
   } finally {
@@ -342,7 +379,7 @@ let detachFormFocusReturn = () => {};
 
 onMounted(async () => {
   if (authStore.can('ver cronograma')) {
-    await Promise.all([fetchAll(), programacionesStore.fetchAll()]);
+    await Promise.all([fetchAll(), programacionesStore.fetchAll(), categoriasStore.fetchAll()]);
   }
   nextTick(() => {
     // Inicializar ambos modales
@@ -404,6 +441,7 @@ onUnmounted(() => {
           </div>
           <div class="modal-body">
             <div class="mb-3">
+              <span v-if="selectedEvent.categoria" class="badge bg-dark mb-2 me-1">{{ selectedEvent.categoria.nombre }}</span>
               <span class="badge bg-secondary mb-2">{{ selectedEvent.type }}</span>
               <h6 class="text-muted text-capitalize">
                 <CalendarDays class="h-4 w-4 me-2 d-inline-block align-text-bottom" aria-hidden="true" />
@@ -439,6 +477,11 @@ onUnmounted(() => {
             </div>
             <div class="d-flex gap-2">
               <AppButton variant="secondary" type="button" data-bs-dismiss="modal">Cerrar</AppButton>
+              <AppButton
+                v-if="puedeVerJornada && selectedEvent.categoria?.permite_cronograma"
+                variant="soft"
+                :icon="ListOrdered"
+                @click="abrirCronogramaDesdeDetalle">Cronograma</AppButton>
               <AppButton v-if="canRegisterAttendance" :icon="ClipboardCheck" @click="handleAttendance">Asistencia</AppButton>
             </div>
           </div>
@@ -495,6 +538,14 @@ onUnmounted(() => {
                 <!-- 4+ tipos: selector -->
                 <select v-else v-model="draft.tipo" class="form-select" :disabled="saving">
                   <option v-for="t in tiposReunion" :key="t" :value="t">{{ t }}</option>
+                </select>
+              </div>
+              <div v-if="categorias.length" class="mb-3">
+                <label class="form-label" for="categoriaReunion">Categoría</label>
+                <select id="categoriaReunion" v-model="draft.categoria_id" class="form-select" :disabled="saving">
+                  <option v-for="c in categorias" :key="c.id" :value="c.id">
+                    {{ c.nombre }}{{ c.permite_cronograma ? ' (con cronograma)' : '' }}
+                  </option>
                 </select>
               </div>
               <div class="mb-3">
