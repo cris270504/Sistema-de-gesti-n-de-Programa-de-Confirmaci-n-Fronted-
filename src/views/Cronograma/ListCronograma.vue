@@ -82,8 +82,8 @@ const formattedEvents = computed(() => {
 
     return {
       id: r.id,
-      // Color por tipo de asistentes; la categoría va antepuesta ("Retiro · …").
-      title: categoria ? `${categoria.nombre} · ${r.nombre_tema}` : r.nombre_tema,
+      // Color por tipo de asistentes. Solo el nombre: la categoría se ve en el detalle.
+      title: r.nombre_tema,
       start: r.fecha, // 'YYYY-MM-DD'
       backgroundColor: color,
       borderColor: color,
