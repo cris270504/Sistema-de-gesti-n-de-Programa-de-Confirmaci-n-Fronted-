@@ -27,7 +27,9 @@ import {
   KeyRound,
   Settings,
   Building2,
+  ListOrdered,
 } from 'lucide-vue-next';
+import { useCategoriasReunionStore } from '@/stores/categoriasReunion';
 
 const route = useRoute();
 
@@ -41,6 +43,8 @@ const emit = defineEmits(['close']);
 const authStore = useAuthStore();
 const gruposStore = useGruposStore();
 const parroquiaStore = useParroquiaStore();
+// "Jornadas" solo aparece si existe ≥1 evento de una categoría con cronograma.
+const categoriasStore = useCategoriasReunionStore();
 
 const isSidebarOpen = ref(true);
 const openMenus = ref({});
@@ -59,6 +63,9 @@ const onHeaderButton = () => {
 // endpoint al que no tiene acceso. Sin esto, sus grupo_ids nunca se resuelven a
 // nombres/objetos y toda la sección "Mi grupo" del menú desaparece.
 onMounted(() => {
+  if (authStore.can('ver cronograma') && !authStore.hasRole('proveedor')) {
+    categoriasStore.refrescarHayJornadas();
+  }
   const misGrupoIds = authStore.user?.grupo_ids || [];
   misGrupoIds.forEach(id => {
     if (!gruposStore.items.some(g => g.id === id)) {
@@ -142,6 +149,9 @@ const menuSections = computed(() => {
     items: [
       { name: 'Dashboard', to: { name: 'dashboard' }, icon: Home },
       { name: 'Cronograma', to: { name: 'cronograma' }, icon: Calendar, permission: 'ver cronograma' },
+      ...(categoriasStore.hayJornadas
+        ? [{ name: 'Jornadas', to: { name: 'jornadas' }, icon: ListOrdered, permission: 'ver cronograma' }]
+        : []),
       { name: 'Cumpleaños', to: { name: 'cumpleanos' }, icon: Cake },
     ]
   });
