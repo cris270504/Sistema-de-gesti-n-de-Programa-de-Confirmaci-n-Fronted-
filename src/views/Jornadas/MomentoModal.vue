@@ -80,7 +80,7 @@ onUnmounted(() => {
           </div>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
         </div>
-        <form @submit.prevent="enviar">
+        <form class="mm-form" @submit.prevent="enviar">
           <div class="modal-body">
             <div class="mb-3">
               <label class="form-label" for="mm-nombre">Nombre <span class="text-danger">*</span></label>
@@ -132,6 +132,17 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+/* modal-dialog-scrollable espera .modal-body como hijo directo de .modal-content;
+   el <form> intermedio debe actuar de columna flexible para que el cuerpo haga
+   scroll y el pie (Cancelar / Agregar) quede siempre visible. */
+.mm-form {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+.mm-form > .modal-body { overflow-y: auto; }
 .chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
 .chip {
   min-width: 2.75rem;
