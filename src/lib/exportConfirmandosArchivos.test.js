@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { guardarArchivo, generarExcel, generarPdf, TIPOS_ARCHIVO } from './exportConfirmandosArchivos'
+import { guardarArchivo, generarExcel, generarPdf, generarWord, TIPOS_ARCHIVO } from './exportConfirmandosArchivos'
 import { columnasPorClave, construirFilas } from './exportConfirmandos'
 
 afterEach(() => {
@@ -101,4 +101,25 @@ describe('lib/exportConfirmandosArchivos — generadores', () => {
     const texto = new TextDecoder('latin1').decode(new Uint8Array(await blob.arrayBuffer()).slice(0, 8))
     expect(texto.startsWith('%PDF-')).toBe(true)
   })
+
+  it('generarWord produce un .docx (zip) con título, filtros y la tabla', async () => {
+    const blob = await generarWord({
+      titulo: 'Confirmandos – Todos',
+      columnas,
+      filas,
+      filtros: ['Grupo: A'],
+      fecha: new Date(2026, 9, 5),
+    })
+
+    expect(blob.type).toBe(TIPOS_ARCHIVO.docx.mime)
+    const buffer = await blob.arrayBuffer()
+    const bytes = new Uint8Array(buffer)
+    expect(String.fromCharCode(bytes[0], bytes[1])).toBe('PK')
+
+    const { default: JSZip } = await import('jszip')
+    const xml = await (await JSZip.loadAsync(buffer)).file('word/document.xml').async('string')
+    for (const t of ['Confirmandos – Todos', 'Generado el 05/10/2026  |  Total: 1', 'Filtros: Grupo: A', 'Apellidos', 'Paz', 'Confirmado']) {
+      expect(xml).toContain(t)
+    }
+  }, 30000)
 })

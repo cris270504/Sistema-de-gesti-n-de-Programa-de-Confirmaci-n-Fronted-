@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { Modal } from 'bootstrap';
-import { Download, Info, Check, FileSpreadsheet, FileText } from 'lucide-vue-next';
+import { Download, Info, Check, FileSpreadsheet, FileText, FileType } from 'lucide-vue-next';
 import AppButton from '@/components/AppButton.vue';
 import { showAlerta } from '@/funciones';
 import { attachModalFocusReturn } from '@/composables/useModalFocusReturn';
@@ -40,12 +40,14 @@ const resumen = computed(() => {
     const cols = `${n} ${n === 1 ? 'columna' : 'columnas'}`;
     if (formato.value === 'xlsx') return `${cols} en Excel`;
     const orientacion = calcularOrientacionPdf(columnasPorClave(columnasSel.value));
-    return `${cols} en PDF ${orientacion === 'portrait' ? 'vertical' : 'horizontal'}`;
+    const doc = formato.value === 'docx' ? 'Word' : 'PDF';
+    return `${cols} en ${doc} ${orientacion === 'portrait' ? 'vertical' : 'horizontal'}`;
 });
 
 const FORMATOS = [
     { value: 'xlsx', label: 'Excel', ext: '.xlsx', descripcion: 'Para filtrar, ordenar o editar los datos', icon: FileSpreadsheet },
     { value: 'pdf', label: 'PDF', ext: '.pdf', descripcion: 'Para imprimir o compartir; la hoja se orienta sola', icon: FileText },
+    { value: 'docx', label: 'Word', ext: '.docx', descripcion: 'Para editar el texto o darle formato propio', icon: FileType },
 ];
 
 let detachFocusReturn = () => {};
@@ -99,9 +101,12 @@ const exportar = async () => {
         try {
             // Las librerías de archivos se cargan recién aquí (no pesan en el bundle principal).
             const generadores = await import('@/lib/exportConfirmandosArchivos');
+            const datos = { titulo, columnas, filas, filtros: filtrosActivos.value, fecha };
             const blob = formato.value === 'xlsx'
                 ? await generadores.generarExcel({ titulo, columnas, filas })
-                : await generadores.generarPdf({ titulo, columnas, filas, filtros: filtrosActivos.value, fecha });
+                : formato.value === 'docx'
+                    ? await generadores.generarWord(datos)
+                    : await generadores.generarPdf(datos);
             const nombre = nombreArchivoExport({ estado: estado.value, fecha, extension: formato.value });
             const resultado = await generadores.guardarArchivo(blob, nombre, generadores.TIPOS_ARCHIVO[formato.value]);
             if (resultado === 'guardado') {
@@ -330,7 +335,7 @@ input:checked + .exp-segment {
 :root[data-bs-theme="dark"] .exp-chip.is-on { color: color-mix(in srgb, var(--accent) 55%, #ffffff); }
 
 /* Formato: dos opciones con descripción */
-.exp-formats { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+.exp-formats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; }
 .exp-format {
     --fmt: var(--success);
     display: flex;
@@ -344,6 +349,8 @@ input:checked + .exp-segment {
     transition: border-color 0.2s var(--ease), box-shadow 0.25s var(--ease), transform 0.25s var(--ease);
 }
 .exp-format.is-pdf { --fmt: var(--danger); }
+.exp-format.is-docx { --fmt: #2b579a; }
+:root[data-bs-theme="dark"] .exp-format.is-docx { --fmt: #7aa7e8; }
 .exp-format:hover { border-color: var(--line-strong); box-shadow: var(--shadow-md); transform: translateY(-1px); }
 .exp-format.is-on { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .exp-format-icon {

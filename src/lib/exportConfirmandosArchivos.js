@@ -18,6 +18,11 @@ export const TIPOS_ARCHIVO = {
     mime: 'application/pdf',
     descripcion: 'Documento PDF',
   },
+  docx: {
+    extension: 'docx',
+    mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    descripcion: 'Documento de Word',
+  },
 }
 
 // mm estimados → caracteres de ancho de columna de Excel.
@@ -97,6 +102,73 @@ export async function generarPdf({ titulo, columnas, filas, filtros = [], fecha 
   })
 
   return doc.output('blob')
+}
+
+// Word: misma estructura que el PDF (título, fecha, total, filtros y tabla),
+// pero editable. Usa la misma orientación automática según el ancho de columnas.
+export async function generarWord({ titulo, columnas, filas, filtros = [], fecha = new Date() }) {
+  const {
+    AlignmentType, BorderStyle, Document, Packer, PageOrientation, Paragraph, ShadingType,
+    Table, TableCell, TableRow, TextRun, WidthType,
+  } = await import('docx')
+
+  const orientacion = calcularOrientacionPdf(columnas)
+  const borde = { style: BorderStyle.SINGLE, size: 4, color: '9CA3AF' }
+  const bordes = { top: borde, bottom: borde, left: borde, right: borde }
+  const texto = (t, opts = {}) => new TextRun({ text: t ?? '', font: 'Calibri', size: 18, ...opts })
+  const total = columnas.reduce((s, c) => s + c.width, 0)
+
+  const celda = (valor, i, encabezado = false) => new TableCell({
+    width: { size: (columnas[i].width / total) * 100, type: WidthType.PERCENTAGE },
+    borders: bordes,
+    margins: { top: 40, bottom: 40, left: 80, right: 80 },
+    shading: encabezado ? { type: ShadingType.CLEAR, fill: 'E5E7EB', color: 'auto' } : undefined,
+    children: String(valor ?? '').split('\n').map((linea) => new Paragraph({
+      alignment: AlignmentType.LEFT,
+      children: [texto(linea, { bold: encabezado })],
+    })),
+  })
+
+  const tabla = new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    rows: [
+      new TableRow({ tableHeader: true, children: columnas.map((c, i) => celda(c.label, i, true)) }),
+      ...filas.map((fila) => new TableRow({ cantSplit: true, children: fila.map((v, i) => celda(v, i)) })),
+    ],
+  })
+
+  const hijos = [
+    new Paragraph({ spacing: { after: 80 }, children: [texto(titulo, { bold: true, size: 28 })] }),
+    new Paragraph({
+      spacing: { after: filtros.length ? 40 : 200 },
+      children: [texto(`Generado el ${fechaLegible(fecha)}  |  Total: ${filas.length}`, { color: '4B5563' })],
+    }),
+  ]
+  if (filtros.length) {
+    hijos.push(new Paragraph({
+      spacing: { after: 200 },
+      children: [texto(`Filtros: ${filtros.join('  |  ')}`, { color: '4B5563' })],
+    }))
+  }
+  hijos.push(tabla)
+
+  const margen = Math.round((PDF_MARGEN_MM / 25.4) * 1440) // mm → twips
+  const doc = new Document({
+    creator: 'SGPC',
+    title: titulo,
+    sections: [{
+      properties: {
+        page: {
+          size: {
+            orientation: orientacion === 'landscape' ? PageOrientation.LANDSCAPE : PageOrientation.PORTRAIT,
+          },
+          margin: { top: margen, bottom: margen, left: margen, right: margen },
+        },
+      },
+      children: hijos,
+    }],
+  })
+  return Packer.toBlob(doc)
 }
 
 function descargarConEnlace(blob, nombre) {
