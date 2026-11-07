@@ -943,7 +943,7 @@ const formatColDate = (dateStr) => {
                 <div v-if="!canEditAttendance(popover.personaId, popover.reunionId)"
                     class="alert alert-light border border-secondary-subtle text-center p-3 mb-3">
                     <div class="mb-2">
-                        <Lock class="text-muted" :size="32" aria-hidden="true" />
+                        <Lock class="text-muted d-block mx-auto" :size="32" aria-hidden="true" />
                     </div>
                     <h6 class="fw-bold text-secondary mb-1">Registro Cerrado</h6>
                     <p class="small text-muted mb-0 lh-sm">

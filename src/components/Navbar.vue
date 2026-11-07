@@ -38,7 +38,9 @@ const goToProfile = () => {
     class="sticky top-0 z-10 flex min-h-[64px] w-full items-center justify-between gap-3 border-b border-gray-100 dark:border-slate-700 !bg-white dark:!bg-slate-800 px-3 py-2 shadow-sm sm:px-6">
 
     <div class="flex items-center gap-2 min-w-0">
-      <AppButton variant="ghost" icon-only class="lg:hidden -ml-1 shrink-0" aria-label="Abrir menú" @click="$emit('toggle-drawer')">
+      <!-- Mismo corte en px que DefaultLayout (1024px). `lg:` usa rem y, con letra
+           del navegador > 16px, dejaba el botón visible con la barra ya fija. -->
+      <AppButton variant="ghost" icon-only class="min-[1024px]:hidden -ml-1 shrink-0" aria-label="Abrir menú" @click="$emit('toggle-drawer')">
         <Menu :size="22" />
       </AppButton>
 

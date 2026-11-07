@@ -33,8 +33,22 @@ export async function getGruposList() {
 }
 
 export async function getGrupoById(id) {
-  const row = await unwrap(supabase.from('grupos').select(SELECT).eq('id', Number(id)).single())
-  return aplanar(row)
+  const [row, compas] = await Promise.all([
+    unwrap(supabase.from('grupos').select(SELECT).eq('id', Number(id)).single()),
+    getCatequistasDelGrupo(id),
+  ])
+  const grupo = aplanar(row)
+  // El embed respeta la RLS de users: a un catequista solo le devuelve a sí
+  // mismo. La RPC devuelve a todos los catequistas del grupo (id, nombre, correo).
+  if (compas) grupo.catequistas = compas
+  return grupo
+}
+
+// Catequistas del grupo vía RPC SECURITY DEFINER (solo si quien llama es del
+// grupo o privilegiado). null si falla, para conservar el embed como respaldo.
+export async function getCatequistasDelGrupo(id) {
+  const { data, error } = await supabase.rpc('fn_grupo_catequistas', { p_grupo_id: Number(id) })
+  return error ? null : data
 }
 
 // ── Escrituras del grupo en sí: Fase 4, PostgREST directo. El sync de

@@ -13,7 +13,7 @@
         </template>
 
         <div class="content-wrapper">
-            <Navbar v-if="showChrome" @toggle-drawer="drawerOpen = !drawerOpen" />
+            <Navbar v-if="showChrome" @toggle-drawer="toggleDrawer" />
 
             <main class="main-content" :class="{ 'main-content--with-bottomnav': showBottomNav }">
                 <router-view />
@@ -59,6 +59,12 @@ const isMobileNav = useMediaQuery('(max-width: 1023px)')
 const isPhone = useMediaQuery('(max-width: 767px)')
 
 const drawerOpen = ref(false)
+
+// Con la barra fija (escritorio) no hay cajón que abrir: solo se vería el fondo gris.
+const toggleDrawer = () => {
+  if (!isMobileNav.value) return
+  drawerOpen.value = !drawerOpen.value
+}
 
 const showChrome = computed(() => route.meta.requiresLayout !== false)
 const tieneGrupo = computed(() => (authStore.user?.grupo_ids?.length || 0) > 0)
