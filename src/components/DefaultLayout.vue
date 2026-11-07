@@ -55,7 +55,11 @@ watch(
   { immediate: true }
 )
 
-const isMobileNav = useMediaQuery('(max-width: 1023px)')
+// `width < 1024px` (no `max-width: 1023px`): con zoom el ancho puede ser
+// fraccionario (p. ej. 1023,4px) y caer en el hueco entre 1023 y 1024, donde
+// no aplicaba ni el modo cajón ni el de escritorio y se veían dos botones de menú.
+// Forma clásica de "width < 1024px" (la sintaxis de rango no existe en Safari < 16.4).
+const isMobileNav = useMediaQuery('not all and (min-width: 1024px)')
 const isPhone = useMediaQuery('(max-width: 767px)')
 
 const drawerOpen = ref(false)
@@ -120,7 +124,7 @@ onUnmounted(() => { document.body.style.overflow = '' })
 }
 
 /* ===== Móvil / tablet: barra lateral como cajón ===== */
-@media (max-width: 1023px) {
+@media (width < 1024px) {
     .sidebar-host {
         position: fixed;
         top: 0;
@@ -156,7 +160,7 @@ onUnmounted(() => { document.body.style.overflow = '' })
 }
 
 /* ===== Escritorio: app-shell con sidebar fija y contenido con scroll propio ===== */
-@media (min-width: 1024px) {
+@media (width >= 1024px) {
     .layout {
         height: 100vh;
         height: 100dvh;
