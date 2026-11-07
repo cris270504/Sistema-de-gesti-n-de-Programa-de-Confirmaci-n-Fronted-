@@ -8,6 +8,7 @@ import { useAuthStore } from '../../stores/auth';
 import { useParroquiaStore } from '../../stores/parroquia';
 import { storeToRefs } from 'pinia';
 import { showAlerta } from '@/funciones';
+import { debeBloquearJustificada, mostrarAvisoJustificacion } from '@/lib/avisoJustificacion';
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router';
 import { Save, Check, Clock, FileHeart, X, ChartPie, CalendarX, CircleCheck, CircleX, Lock, TriangleAlert, MessageSquareText, Users } from 'lucide-vue-next';
 import AppPage from '@/components/AppPage.vue';
@@ -432,8 +433,17 @@ const checkStatusApoderado = (apoderado, reunionId) => {
 };
 
 // Setea el estado de un apoderado (A, T, J, F)
+// Solo coordinador o super-admin eligen "falta justificada" al registrar; el
+// catequista ve el aviso del proceso de justificaciones (la BD aplica lo mismo).
+const bloqueaJustificada = (nuevoEstado, estadoActual) => {
+    if (!debeBloquearJustificada({ nuevoEstado, estadoActual, roles: authStore.user?.roles ?? [] })) return false;
+    mostrarAvisoJustificacion();
+    return true;
+};
+
 const setApoderadoStatus = (apoderado, reunionId, nuevoEstado) => {
     const estadoActual = checkStatusApoderado(apoderado, reunionId);
+    if (bloqueaJustificada(nuevoEstado, estadoActual)) return;
     // Toggle: Si clickeo lo mismo, se desmarca (null)
     const estadoFinal = (estadoActual === nuevoEstado) ? null : nuevoEstado;
 
@@ -473,6 +483,7 @@ const updateFamilyStatusVisual = (hijoId, reunionId) => {
 
 // Setter simple para modo Confirmando/Catequista
 const setStatus = (newStatus) => {
+    if (bloqueaJustificada(newStatus, popover.value.estado)) return;
     if (popover.value.estado === newStatus) popover.value.estado = null; // Toggle
     else popover.value.estado = newStatus;
 };
@@ -492,6 +503,7 @@ const setEstadoRapido = (personaId, reunionId, nuevoEstado) => {
     }
 
     const actual = estadoDe(personaId, reunionId);
+    if (bloqueaJustificada(nuevoEstado, actual)) return;
     const estadoFinal = actual === nuevoEstado ? null : nuevoEstado; // toggle
     const notaActual = attendanceMap.value[personaId]?.[reunionId]?.nota || '';
 

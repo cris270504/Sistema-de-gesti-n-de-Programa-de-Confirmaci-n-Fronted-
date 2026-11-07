@@ -285,6 +285,37 @@ textarea:focus {
 .swal-btn--secondary:hover { background: var(--surface-sunken); }
 .swal2-popup .swal2-actions { gap: 0.5rem; }
 
+/* Aviso "solo el coordinador justifica" (src/lib/avisoJustificacion.js) */
+.aviso-justif { text-align: left; }
+.aviso-justif__msg { display: flex; align-items: flex-start; gap: 0.6rem; margin: 0; }
+.aviso-justif__ayuda {
+  flex-shrink: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border: 1.5px solid var(--accent);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--accent);
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+.aviso-justif__ayuda:hover,
+.aviso-justif__ayuda[aria-expanded="true"] { background: var(--accent); color: #fff; }
+.aviso-justif__ayuda:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.aviso-justif__proceso {
+  margin-top: 0.9rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+  color: var(--text);
+  font-size: 0.9em;
+}
+.aviso-justif__titulo { margin: 0 0 0.35rem; font-weight: 700; }
+.aviso-justif__proceso ol { margin: 0; padding-left: 1.2rem; }
+.aviso-justif__proceso li + li { margin-top: 0.3rem; }
+
 /* ===== TARJETAS ===== */
 .card {
   @apply bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl shadow-sm p-4 transition-colors duration-300;
