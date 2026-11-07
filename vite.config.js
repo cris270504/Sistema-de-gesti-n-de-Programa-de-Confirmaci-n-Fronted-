@@ -20,7 +20,10 @@ export default defineConfig(({ mode }) => {
       // el "cascarón" de la app (JS/CSS/HTML/íconos); los datos (Supabase) van
       // siempre a la red: nunca se muestran asistencias o listas viejas.
       VitePWA({
-        registerType: 'autoUpdate',
+        // 'prompt': la versión nueva espera hasta que la persona toque
+        // "Actualizar" (src/components/AvisoActualizacion.vue). Con autoUpdate
+        // la app instalada seguía mostrando la versión vieja hasta reabrirla.
+        registerType: 'prompt',
         includeAssets: ['favicon.ico', 'apple-touch-icon-180x180.png'],
         manifest: {
           name: 'Sistema de Confirmación',

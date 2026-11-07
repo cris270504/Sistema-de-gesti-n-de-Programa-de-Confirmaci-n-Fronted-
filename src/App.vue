@@ -4,6 +4,7 @@ import { SpeedInsights } from '@vercel/speed-insights/vue';
 import { onMounted, onUnmounted } from 'vue'
 import LoadingOverlay from '@/components/LoadingOverlay.vue'
 import ToastStack from '@/components/ToastStack.vue'
+import AvisoActualizacion from '@/components/AvisoActualizacion.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useParroquiaStore } from '@/stores/parroquia'
 import { useSystemStatusStore } from '@/stores/systemStatus'
@@ -62,6 +63,7 @@ onUnmounted(() => {
   <RouterView />
   <LoadingOverlay />
   <ToastStack />
+  <AvisoActualizacion />
   <SpeedInsights />
 </template>
 
