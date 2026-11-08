@@ -146,7 +146,11 @@ Deno.serve(async (req) => {
       const newEmail = body.email !== undefined ? String(body.email).trim().toLowerCase() : undefined;
       const authPatch: Record<string, unknown> = {};
       if (newEmail && newEmail !== target.email) authPatch.email = newEmail;
-      if (body.password) authPatch.password = String(body.password);
+      // `password` ya NO se acepta aquí: dejaba a un coordinador cambiar la clave
+      // del super-admin. La propia → "Mi perfil"; la de otro → reset_password.
+      if (body.password !== undefined) {
+        return json({ message: "Para cambiar contraseñas usa \"Restablecer contraseña\" o \"Mi perfil\"." }, 422);
+      }
       if (Object.keys(authPatch).length > 0 && target.auth_id) {
         const { error: authErr } = await admin.auth.admin.updateUserById(target.auth_id, authPatch);
         if (authErr) {
