@@ -33,6 +33,12 @@ const ROLES_SISTEMA = ['proveedor', 'super-admin', 'coordinador', 'catequista'];
 const esProveedor = computed(() => authStore.hasRole('proveedor'));
 const esSistema = (role) => ROLES_SISTEMA.includes(String(role?.name || '').toLowerCase().trim());
 const esProtegido = (role) => esSistema(role) || (!!role?.es_global && !esProveedor.value);
+// Editar: los roles del sistema y los globales solo los administra el proveedor
+// (fn_guardar_rol los rechaza para cualquier otro).
+const puedeEditar = (role) => esProveedor.value || (!esSistema(role) && !role?.es_global);
+const motivoNoEditable = (role) => esSistema(role)
+  ? 'Rol del sistema: solo lo administra el proveedor'
+  : 'Rol global: solo lo administra el proveedor';
 const motivoProtegido = (role) => esSistema(role)
   ? 'Rol del sistema: no puede eliminarse'
   : 'Rol global: solo lo administra el proveedor';
@@ -238,7 +244,10 @@ const handleDelete = async (role) => {
                 </td>
                 <td v-if="puedeGestionar" class="text-center">
                   <div class="d-inline-flex gap-2">
-                    <AppButton variant="soft" icon-only @click="openModal(role)" title="Editar" aria-label="Editar"><Pencil :size="16" /></AppButton>
+                    <AppButton variant="soft" icon-only :disabled="!puedeEditar(role)"
+                      :title="puedeEditar(role) ? 'Editar' : motivoNoEditable(role)"
+                      :aria-label="puedeEditar(role) ? `Editar rol ${role.name}` : motivoNoEditable(role)"
+                      @click="openModal(role)"><Pencil :size="16" /></AppButton>
                     <AppButton
                       variant="soft"
                       tone="danger"

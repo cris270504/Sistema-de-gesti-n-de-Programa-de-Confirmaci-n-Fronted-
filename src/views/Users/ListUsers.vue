@@ -55,6 +55,7 @@ const resetDisponible = (u) => puedeResetear.value
   && !tieneRol(u, 'proveedor');
 // Un coordinador no gestiona a un super-admin (regla de app_exigir_puede_gestionar):
 // no se le muestran acciones que el servidor le va a rechazar.
+const esYo = (u) => u.id === authStore.user?.id;
 const puedeGestionarA = (u) => puedeResetear.value || !tieneRol(u, 'super-admin');
 
 const modalRef = ref(null);
@@ -174,6 +175,8 @@ onMounted(() => {
               title="Restablecer contraseña"
               :aria-label="`Restablecer contraseña de ${u.name}`"
               @click="resetPassword(u)"><KeyRound :size="18" /></AppButton>
+            <!-- Sobre la propia cuenta el servidor no permite desactivar ni eliminar. -->
+            <template v-if="!esYo(u)">
             <AppButton
               v-if="u.activo === false"
               variant="soft"
@@ -198,6 +201,7 @@ onMounted(() => {
               :title="gruposDe(u) > 0 ? 'Tiene grupos asignados: reasígnalos o desactívalo' : 'Eliminar'"
               :aria-label="gruposDe(u) > 0 ? 'Tiene grupos asignados: reasígnalos o desactívalo' : `Eliminar usuario ${u.name}`"
               @click="removeUser(u.id, u.name)"><Trash :size="18" /></AppButton>
+            </template>
           </div>
         </div>
 
