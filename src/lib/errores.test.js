@@ -1,5 +1,30 @@
-import { describe, it, expect } from 'vitest'
-import { motivoFalloLogin, LOGIN_MSG, traducirError } from './errores'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+
+vi.mock('@/composables/useErrorLogger', () => ({ logFrontendError: vi.fn() }))
+
+import { motivoFalloLogin, LOGIN_MSG, traducirError, esErrorInesperado, errorLegible } from './errores'
+import { logFrontendError } from '@/composables/useErrorLogger'
+
+describe('esErrorInesperado / errorLegible', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('registra errores de esquema y de PostgREST', () => {
+    expect(esErrorInesperado({ code: '42703', message: 'column "x" does not exist' })).toBe(true)
+    expect(esErrorInesperado({ code: 'PGRST200', message: 'Could not find a relationship' })).toBe(true)
+    errorLegible({ code: '42883', message: 'function fn_x() does not exist' })
+    expect(logFrontendError).toHaveBeenCalledWith('[API 42883] function fn_x() does not exist', expect.any(String))
+  })
+
+  it('no registra validaciones, permisos, "no encontrado" ni red', () => {
+    expect(esErrorInesperado({ code: '23505', message: 'duplicate key' })).toBe(false)
+    expect(esErrorInesperado({ code: 'P0001', message: 'El nombre es obligatorio.' })).toBe(false)
+    expect(esErrorInesperado({ code: '42501', message: 'permission denied' })).toBe(false)
+    expect(esErrorInesperado({ code: 'PGRST116', message: '0 rows' })).toBe(false)
+    expect(esErrorInesperado(new TypeError('Failed to fetch'))).toBe(false)
+    errorLegible({ code: '23505', message: 'duplicate key value violates unique constraint "x"' })
+    expect(logFrontendError).not.toHaveBeenCalled()
+  })
+})
 
 describe('motivoFalloLogin', () => {
   it('sin red → sin conexión', () => {

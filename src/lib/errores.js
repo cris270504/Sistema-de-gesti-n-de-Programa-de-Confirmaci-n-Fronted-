@@ -1,3 +1,5 @@
+import { logFrontendError } from '@/composables/useErrorLogger'
+
 // Traduce un error de Supabase/PostgREST a un mensaje entendible para el usuario.
 // CLAUDE.md §3: no exponer errores crudos del servidor.
 //
@@ -113,9 +115,28 @@ export function motivoFalloLogin(error, online = typeof navigator === 'undefined
   return LOGIN_MSG.credenciales
 }
 
+// ¿El error delata un bug (y no una validación, un permiso o la red del usuario)?
+// Esos son los que vale la pena que el proveedor vea en "Errores del sistema".
+const PGRST_ESPERADOS = new Set(['PGRST116', 'PGRST301', 'PGRST303'])
+export function esErrorInesperado(error) {
+  if (!error) return false
+  const msg = String(error.message || error.msg || '')
+  const code = String(error.code || '')
+  if (/Failed to fetch|NetworkError|Load failed|Failed to send a request/i.test(msg)) return false
+  if (code === '42501') return false                        // permiso denegado: esperado
+  if (/^42/.test(code)) return true                          // columna/función/tabla inexistente
+  if (/^PGRST/.test(code)) return !PGRST_ESPERADOS.has(code) // embebidos rotos, etc.
+  if (/^(XX|58|53)/.test(code)) return true                  // error interno / recursos del servidor
+  return false
+}
+
 // Envuelve un error crudo en uno con `message` ya traducido (para `throw`).
+// Si delata un bug, queda registrado para el proveedor (sin bloquear nada).
 export function errorLegible(error) {
   const e = new Error(traducirError(error))
   e.code = error?.code
+  if (esErrorInesperado(error)) {
+    logFrontendError(`[API ${error.code}] ${error.message || ''}`.trim(), new Error().stack)
+  }
   return e
 }
