@@ -1,4 +1,9 @@
-import { defineStore } from 'pinia'
+import { defineStore, getActivePinia } from 'pinia'
+
+// Stores que NO se vacían al cerrar sesión: auth se limpia a mano, ui lleva el
+// overlay/toasts del propio logout y systemStatus es estado global de
+// mantenimiento (no datos del usuario) con su suscripción en vivo.
+const STORES_QUE_SOBREVIVEN_AL_LOGOUT = new Set(['auth', 'ui', 'systemStatus'])
 import router from '@/router'
 import { LS_TOKEN_KEY, LS_USER_KEY } from '../constants/auth'
 import { updateMyProfile } from '@/services/users'
@@ -233,6 +238,14 @@ export const useAuthStore = defineStore('auth', {
       localStorage.removeItem(LS_USER_KEY)
       this.setDebeCambiarPassword(false)
       useParroquiaStore().clear()
+      // Vaciar los datos en memoria del usuario que sale (dashboard, listas,
+      // grupos…). Sin esto, quien entra después en el mismo dispositivo veía
+      // datos cacheados de la sesión anterior: alertas de otro rol, listas
+      // completas que su rol no debería ver, etc.
+      getActivePinia()?._s.forEach((store, id) => {
+        if (STORES_QUE_SOBREVIVEN_AL_LOGOUT.has(id)) return
+        try { store.$reset() } catch { /* store sin $reset: se ignora */ }
+      })
     },
   },
 })

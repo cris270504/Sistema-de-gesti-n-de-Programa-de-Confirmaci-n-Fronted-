@@ -101,6 +101,18 @@ describe('stores/auth', () => {
     expect(router.push).toHaveBeenCalledWith({ name: 'login' })
   })
 
+  it('al cerrar sesión vacía los datos en memoria del usuario anterior', async () => {
+    const { useDashboardStore } = await import('./dashboard')
+    const dashboard = useDashboardStore()
+    dashboard.alertas = [{ id: 1, nombre: 'Alerta del catequista anterior' }]
+    dashboard.lastFetch = Date.now()
+
+    useAuthStore().logoutLocal()
+
+    expect(dashboard.alertas).toEqual([])
+    expect(dashboard.lastFetch).toBe(0)
+  })
+
   it('can() refleja los permissions del usuario hidratado', async () => {
     mockLoginOk({ id: 1, permissions: ['ver dashboard', 'ver grupos'] })
 

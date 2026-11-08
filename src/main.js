@@ -9,7 +9,21 @@ import { logFrontendError } from '@/composables/useErrorLogger'
 
 const app = createApp(App)
 
-app.use(createPinia())
+// Los stores con sintaxis "setup" no traen $reset(): se lo damos a partir de su
+// estado inicial, para poder limpiar TODOS los stores al cerrar sesión (si no,
+// los datos del usuario anterior quedan en memoria y los ve el siguiente).
+const pinia = createPinia()
+pinia.use(({ store, options }) => {
+  if (options?.state) return // store "options": ya tiene $reset nativo
+  let inicial
+  try { inicial = structuredClone(store.$state) } catch { inicial = JSON.parse(JSON.stringify(store.$state)) }
+  store.$reset = () => {
+    let copia
+    try { copia = structuredClone(inicial) } catch { copia = JSON.parse(JSON.stringify(inicial)) }
+    store.$patch((s) => Object.assign(s, copia))
+  }
+})
+app.use(pinia)
 app.use(router)
 
 // Red de seguridad: captura errores de componentes Vue que ningún try/catch local
