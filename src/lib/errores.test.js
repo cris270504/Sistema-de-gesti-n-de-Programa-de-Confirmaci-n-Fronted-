@@ -26,6 +26,23 @@ describe('motivoFalloLogin', () => {
   })
 })
 
+describe('motivoFalloLogin con respuesta de la Edge Function login', () => {
+  const httpErr = (status) => ({ name: 'FunctionsHttpError', context: { status } })
+  it('parroquia desactivada', () => {
+    expect(motivoFalloLogin(httpErr(403), true, { error: 'parroquia_inactiva' })).toBe(LOGIN_MSG.parroquiaInactiva)
+  })
+  it('bloqueo con minutos restantes', () => {
+    expect(motivoFalloLogin(httpErr(429), true, { error: 'demasiados_intentos', retry_after: 670 }))
+      .toBe('Demasiados intentos. Vuelve a intentar en 12 min.')
+  })
+  it('credenciales', () => {
+    expect(motivoFalloLogin(httpErr(401), true, { error: 'credenciales' })).toBe(LOGIN_MSG.credenciales)
+  })
+  it('error del servidor', () => {
+    expect(motivoFalloLogin(httpErr(500), true, { error: 'server_error' })).toBe(LOGIN_MSG.servicio)
+  })
+})
+
 describe('traducirError', () => {
   it('oculta errores crudos de Postgres', () => {
     expect(traducirError({ message: 'duplicate key value violates unique constraint "x"', code: '23505' }))

@@ -26,6 +26,7 @@ const POR_CONSTRAINT = {
   grupos_parroquia_nombre_periodo_uq: 'Ya existe un grupo con ese nombre en ese periodo.',
   asistencia_reunion_asistente_uq: 'Ya hay un registro de asistencia para esa persona en esa reunión.',
   parroquias_slug_unique: 'Ese identificador (slug) ya está en uso.',
+  roles_parroquia_name_guard_uq: 'Ya existe un rol con ese nombre en tu parroquia.',
   sacramento_requisito_sacramento_id_requisito_id_unique: 'Ese documento ya está asignado a ese sacramento.',
   parroquia_config_edad_chk: 'El rango de edad para grupos no es válido (1–99, mínimo ≤ máximo).',
 }
@@ -81,10 +82,22 @@ export const LOGIN_MSG = {
   sinConexion: 'Sin conexión a internet. Revisa tu red e inténtalo de nuevo.',
   servicio: 'El servicio no está disponible en este momento. Inténtalo en unos minutos.',
   demasiados: 'Demasiados intentos. Espera unos minutos antes de volver a intentar.',
+  parroquiaInactiva: 'Tu parroquia está desactivada. Contacta con el proveedor del sistema.',
 }
 
-export function motivoFalloLogin(error, online = typeof navigator === 'undefined' ? true : navigator.onLine) {
+const minutos = (seg) => Math.max(1, Math.ceil(Number(seg) / 60))
+
+// `cuerpo`: JSON de error de la Edge Function `login` ({ error, retry_after }).
+export function motivoFalloLogin(error, online = typeof navigator === 'undefined' ? true : navigator.onLine, cuerpo = null) {
   if (!online) return LOGIN_MSG.sinConexion
+  if (cuerpo?.error === 'parroquia_inactiva') return LOGIN_MSG.parroquiaInactiva
+  if (cuerpo?.error === 'demasiados_intentos') {
+    return cuerpo.retry_after
+      ? `Demasiados intentos. Vuelve a intentar en ${minutos(cuerpo.retry_after)} min.`
+      : LOGIN_MSG.demasiados
+  }
+  if (cuerpo?.error === 'credenciales' || cuerpo?.error === 'bad_request') return LOGIN_MSG.credenciales
+  if (cuerpo?.error === 'server_error') return LOGIN_MSG.servicio
   if (!error) return LOGIN_MSG.credenciales
   const nombre = error.name || ''
   const status = Number(error.status ?? error.context?.status ?? 0)

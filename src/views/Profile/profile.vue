@@ -2,12 +2,14 @@
 import AppButton from '@/components/AppButton.vue'
 import { ref, onMounted } from 'vue';
 import { useAuthStore } from '@/stores/auth';
+import { useRouter } from 'vue-router';
 import { showAlerta, showErroresDeValidacion } from '@/funciones';
 import { Save, ShieldCheck, User, KeyRound } from 'lucide-vue-next';
 import AppPage from '@/components/AppPage.vue';
 import PasswordField from '@/components/PasswordField.vue';
 
 const authStore = useAuthStore();
+const router = useRouter();
 
 // --- Estado para el formulario de Datos Personales ---
 const profileDraft = ref({ name: '', email: '', dni: '' });
@@ -54,22 +56,15 @@ async function submitPassword() {
     }
 
     savingPassword.value = true;
-    const payload = {
-        password: passwordDraft.value.password,
-        password_confirmation: passwordDraft.value.password_confirmation,
-    };
+    const eraObligatorio = authStore.debeCambiarPassword;
 
     try {
-        const ok = await authStore.updateProfile(payload);
-        if (ok) {
-            showAlerta('Contraseña actualizada con éxito', 'success');
-            passwordDraft.value = { password: '', password_confirmation: '' };
-        } else {
-            showAlerta('No se pudo actualizar la contraseña', 'error');
-        }
+        await authStore.cambiarPassword(passwordDraft.value.password);
+        showAlerta('Contraseña actualizada con éxito', 'success');
+        passwordDraft.value = { password: '', password_confirmation: '' };
+        if (eraObligatorio) router.push({ name: 'dashboard' });
     } catch (e) {
-        console.error('Error al actualizar contraseña:', e);
-        showErroresDeValidacion(e?.response?.data?.errors || e);
+        showAlerta(e?.message || 'No se pudo actualizar la contraseña', 'error');
     } finally {
         savingPassword.value = false;
     }
@@ -117,7 +112,10 @@ async function submitPassword() {
                 </header>
 
                 <form class="prof-form" @submit.prevent="submitPassword">
-                    <p class="prof-note">
+                    <p v-if="authStore.debeCambiarPassword" class="prof-obligatorio" role="alert">
+                        El administrador restableció tu contraseña. Elige una nueva para seguir usando el sistema.
+                    </p>
+                    <p v-else class="prof-note">
                         Si es tu primer ingreso, usa la contraseña temporal que te dio el administrador
                         al crear tu cuenta. Se recomienda cambiarla.
                     </p>
@@ -145,6 +143,16 @@ async function submitPassword() {
 </template>
 
 <style scoped>
+.prof-obligatorio {
+    padding: 0.75rem 0.9rem;
+    border-radius: var(--radius-md);
+    border: 1px solid #f59e0b;
+    background: color-mix(in srgb, #f59e0b 14%, transparent);
+    color: var(--text);
+    font-size: var(--fs-sm);
+    font-weight: 600;
+}
+
 .prof-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));

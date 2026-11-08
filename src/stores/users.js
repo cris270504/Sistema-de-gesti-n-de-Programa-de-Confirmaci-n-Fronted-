@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { getUsersList, createUser, updateUser, deleteUserById, getUserById, setUserEstado } from '@/services/users'
+import { getUsersList, createUser, updateUser, deleteUserById, getUserById, setUserEstado, resetUserPassword } from '@/services/users'
 import { confirmar, showAlerta, showErroresDeValidacion } from '@/funciones'
 import { useGruposStore } from './grupos';
 import { crudState, crudActions } from './crudStoreFactory'
@@ -69,9 +69,10 @@ export const useUsersStore = defineStore('users', {
         const dni = created?.dni
         const password = response?.temp_password
 
+        // Modal (no toast): el toast se cerraba solo antes de poder copiar la clave.
         showAlerta(
-          `Usuario ${name} creado correctamente.\n\n DNI: ${dni}\n Contraseña temporal: ${password}`,
-          'success'
+          `Usuario ${name} creado correctamente.\n\n DNI: ${dni}\n Contraseña temporal: ${password}\n\nCópiala y entrégasela: no se volverá a mostrar.`,
+          'info'
         );
         return created
       } catch (e) {
@@ -123,6 +124,30 @@ export const useUsersStore = defineStore('users', {
         return true
       } catch (e) {
         showAlerta(e?.message || 'No se pudo cambiar el estado', 'error')
+        return false
+      }
+    },
+
+    async resetPassword(user) {
+      const ok = await confirmar({
+        titulo: `¿Restablecer la contraseña de ${user.name}?`,
+        texto: 'Se generará una contraseña temporal. Su contraseña actual dejará de funcionar '
+          + 'y tendrá que elegir una nueva al iniciar sesión.',
+        icono: 'warning',
+        confirmarTexto: 'Sí, restablecer',
+      })
+      if (!ok) return false
+
+      try {
+        const res = await resetUserPassword(user.id)
+        showAlerta(
+          `Contraseña temporal de ${user.name}:\n\n${res?.temp_password}\n\n`
+          + 'Cópiala y entrégasela en persona o por un medio privado: no se volverá a mostrar.',
+          'info'
+        )
+        return true
+      } catch (e) {
+        showAlerta(e?.message || 'No se pudo restablecer la contraseña', 'error')
         return false
       }
     },

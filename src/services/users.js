@@ -55,6 +55,12 @@ export function deleteUserById(id) {
   return invokeAdmin('delete', { id: Number(id) })
 }
 
+// Genera una contraseña temporal (solo super-admin/proveedor; reglas en
+// fn_admin_reset_target). El usuario deberá cambiarla al iniciar sesión.
+export function resetUserPassword(id) {
+  return invokeAdmin('reset_password', { id: Number(id) })
+}
+
 export function setUserEstado(id, activo) {
   return invokeAdmin('estado', { id: Number(id), activo })
 }

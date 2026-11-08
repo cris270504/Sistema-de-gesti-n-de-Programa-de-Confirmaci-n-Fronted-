@@ -3,13 +3,13 @@ import { setActivePinia, createPinia } from 'pinia'
 import { LS_TOKEN_KEY, LS_USER_KEY } from '@/constants/auth'
 
 // Mockeamos lo que auth.js toca hacia afuera: supabase-js, el router y las
-// alertas. Todo es Supabase: resolver-login + signInWithPassword + fn_get_user.
+// alertas. Todo es Supabase: Edge Function login + setSession + fn_get_user.
 vi.mock('@/lib/supabase', () => ({
   supabase: {
     functions: { invoke: vi.fn() },
     rpc: vi.fn(),
     auth: {
-      signInWithPassword: vi.fn(),
+      setSession: vi.fn(),
       signOut: vi.fn().mockResolvedValue({ error: null }),
       onAuthStateChange: vi.fn(),
       getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
@@ -30,8 +30,11 @@ import router from '@/router'
 import { useAuthStore } from './auth'
 
 function mockLoginOk(user) {
-  supabase.functions.invoke.mockResolvedValueOnce({ data: { email: 'maria@parroquia.com' }, error: null })
-  supabase.auth.signInWithPassword.mockResolvedValueOnce({
+  supabase.functions.invoke.mockResolvedValueOnce({
+    data: { access_token: 'sb-access-token', refresh_token: 'sb-refresh' },
+    error: null,
+  })
+  supabase.auth.setSession.mockResolvedValueOnce({
     data: { session: { access_token: 'sb-access-token' } },
     error: null,
   })
@@ -45,17 +48,17 @@ describe('stores/auth', () => {
     vi.clearAllMocks()
   })
 
-  it('login exitoso: resuelve el identificador, entra a Supabase e hidrata con fn_get_user', async () => {
+  it('login exitoso: autentica en el servidor, fija la sesión e hidrata con fn_get_user', async () => {
     mockLoginOk({ id: 1, name: 'María', grupo_ids: [10] })
 
     const auth = useAuthStore()
     const ok = await auth.login({ login: '12345678', password: 'secreta' })
 
     expect(ok).toBe(true)
-    expect(supabase.functions.invoke).toHaveBeenCalledWith('resolver-login', { body: { login: '12345678' } })
-    expect(supabase.auth.signInWithPassword).toHaveBeenCalledWith({
-      email: 'maria@parroquia.com',
-      password: 'secreta',
+    expect(supabase.functions.invoke).toHaveBeenCalledWith('login', { body: { login: '12345678', password: 'secreta' } })
+    expect(supabase.auth.setSession).toHaveBeenCalledWith({
+      access_token: 'sb-access-token',
+      refresh_token: 'sb-refresh',
     })
     expect(auth.token).toBe('sb-access-token')
     expect(auth.user).toEqual({ id: 1, name: 'María', grupo_ids: [10] })
@@ -65,8 +68,10 @@ describe('stores/auth', () => {
   })
 
   it('login fallido (credenciales inválidas) limpia el estado y devuelve false', async () => {
-    supabase.functions.invoke.mockResolvedValueOnce({ data: { email: 'x@y.com' }, error: null })
-    supabase.auth.signInWithPassword.mockResolvedValueOnce({ data: { session: null }, error: { message: 'Invalid login credentials' } })
+    supabase.functions.invoke.mockResolvedValueOnce({
+      data: null,
+      error: { name: 'FunctionsHttpError', context: { status: 401, json: async () => ({ error: 'credenciales' }) } },
+    })
 
     const auth = useAuthStore()
     const ok = await auth.login({ login: 'noexiste@correo.com', password: 'mala' })
@@ -77,6 +82,7 @@ describe('stores/auth', () => {
     expect(auth.isAuthenticated).toBe(false)
     expect(localStorage.getItem(LS_TOKEN_KEY)).toBeNull()
     expect(supabase.rpc).not.toHaveBeenCalled()
+    expect(supabase.auth.setSession).not.toHaveBeenCalled()
   })
 
   it('logout cierra la sesión de Supabase, limpia el estado y redirige al login', async () => {

@@ -8,7 +8,10 @@ import { useDashboardStore } from './dashboard'
 import { useSystemStatusStore } from './systemStatus'
 import { showAlerta, showErroresDeValidacion } from '@/funciones'
 import { supabase } from '@/lib/supabase'
-import { motivoFalloLogin } from '@/lib/errores'
+import { motivoFalloLogin, traducirError } from '@/lib/errores'
+
+// Tras un reseteo de contraseña por el admin, hay que elegir una nueva.
+const LS_DEBE_CAMBIAR_KEY = 'debe_cambiar_password'
 
 function safeParse(json) {
   try { return JSON.parse(json) } catch { return null }
@@ -20,6 +23,7 @@ export const useAuthStore = defineStore('auth', {
     user: safeParse(localStorage.getItem(LS_USER_KEY)),
     loading: false,
     error: null,
+    debeCambiarPassword: localStorage.getItem(LS_DEBE_CAMBIAR_KEY) === '1',
     _ultimoChequeo: 0,
   }),
 
@@ -50,36 +54,27 @@ export const useAuthStore = defineStore('auth', {
       try {
         const identificador = credentials.login ?? credentials.email ?? credentials.dni ?? ''
 
-        const { data: resuelto, error: errResolver } = await supabase.functions.invoke(
-          'resolver-login',
-          { body: { login: identificador } },
-        )
-        // Parroquia desactivada → la Edge Function responde 403 { error: 'parroquia_inactiva' }.
-        let errCode = resuelto?.error
-        if (errResolver && !errCode) {
-          try { errCode = (await errResolver.context?.json?.())?.error } catch { /* sin cuerpo */ }
-        }
-        if (errCode === 'parroquia_inactiva') {
-          this.logoutLocal()
-          this.error = 'Tu parroquia está desactivada.'
-          showAlerta('Tu parroquia está desactivada. Contacta con el proveedor del sistema.', 'error')
-          return false
-        }
-        if (errResolver || !resuelto?.email) {
-          throw errResolver || new Error('No se pudo resolver el identificador')
-        }
-
-        const { data: sesion, error: errLogin } = await supabase.auth.signInWithPassword({
-          email: resuelto.email,
-          password: credentials.password,
+        // El login se hace en el servidor (Edge Function `login`): resuelve
+        // DNI/correo → email sin exponerlo y limita los intentos fallidos.
+        const { data: tokens, error: errFn } = await supabase.functions.invoke('login', {
+          body: { login: identificador, password: credentials.password },
         })
-        if (errLogin || !sesion?.session) {
-          const msg = motivoFalloLogin(errLogin)
+        if (errFn || !tokens?.access_token) {
+          let cuerpo = null
+          try { cuerpo = await errFn?.context?.json?.() } catch { /* sin cuerpo JSON */ }
+          const msg = motivoFalloLogin(errFn, undefined, cuerpo)
           this.error = msg
           showAlerta(msg, 'error')
           this.logoutLocal()
           return false
         }
+
+        const { data: sesion, error: errSesion } = await supabase.auth.setSession({
+          access_token: tokens.access_token,
+          refresh_token: tokens.refresh_token,
+        })
+        if (errSesion || !sesion?.session) throw errSesion || new Error('No se pudo iniciar la sesión')
+        this.setDebeCambiarPassword(sesion.user?.user_metadata?.debe_cambiar_password === true)
 
         this.token = sesion.session.access_token
         localStorage.setItem(LS_TOKEN_KEY, this.token)
@@ -136,7 +131,39 @@ export const useAuthStore = defineStore('auth', {
         }
         this.token = session.access_token
         localStorage.setItem(LS_TOKEN_KEY, session.access_token)
+        // SIGNED_IN / TOKEN_REFRESHED / USER_UPDATED traen el user_metadata vigente.
+        this.setDebeCambiarPassword(session.user?.user_metadata?.debe_cambiar_password === true)
       })
+    },
+
+    setDebeCambiarPassword(valor) {
+      this.debeCambiarPassword = !!valor
+      if (valor) localStorage.setItem(LS_DEBE_CAMBIAR_KEY, '1')
+      else localStorage.removeItem(LS_DEBE_CAMBIAR_KEY)
+    },
+
+    /**
+     * Cambia la contraseña del propio usuario directo en Supabase Auth.
+     * (Antes pasaba por admin-usuarios → update, que exige ser privilegiado:
+     * un catequista no podía cambiar su propia contraseña.)
+     * También baja la marca de "debe cambiar la contraseña" del reseteo.
+     */
+    async cambiarPassword(nueva) {
+      const { error } = await supabase.auth.updateUser({
+        password: nueva,
+        data: { debe_cambiar_password: false },
+      })
+      if (error) {
+        if (error.code === 'same_password' || /different from the old/i.test(error.message || '')) {
+          throw new Error('La nueva contraseña debe ser distinta de la actual.')
+        }
+        if (error.code === 'weak_password' || /weak|at least/i.test(error.message || '')) {
+          throw new Error('La contraseña es muy débil. Usa al menos 8 caracteres combinando letras y números.')
+        }
+        throw new Error(traducirError(error))
+      }
+      this.setDebeCambiarPassword(false)
+      return true
     },
 
 
@@ -218,6 +245,7 @@ export const useAuthStore = defineStore('auth', {
       this.user = null
       localStorage.removeItem(LS_TOKEN_KEY)
       localStorage.removeItem(LS_USER_KEY)
+      this.setDebeCambiarPassword(false)
       useParroquiaStore().clear()
     },
   },

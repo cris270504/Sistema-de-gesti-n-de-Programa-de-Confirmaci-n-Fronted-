@@ -6,13 +6,13 @@ import { storeToRefs } from 'pinia';
 import { computed, onMounted, ref } from 'vue';
 import { useAuthStore } from '../../stores/auth';
 import { useParroquiaStore } from '@/stores/parroquia';
-import { Pencil, Trash, Plus, User, Mail, Ban, CircleCheck, Search, X } from 'lucide-vue-next';
+import { Pencil, Trash, Plus, User, Mail, Ban, CircleCheck, Search, X, KeyRound } from 'lucide-vue-next';
 import UserModal from '../../components/Modals/userModal.vue';
 import AppPage from '@/components/AppPage.vue';
 
 const usersStore = useUsersStore();
 const { items: users, loading, error } = storeToRefs(usersStore);
-const { fetchAll: fetchAllUsers, remove: removeUser, setEstado } = usersStore;
+const { fetchAll: fetchAllUsers, remove: removeUser, setEstado, resetPassword } = usersStore;
 
 // Normaliza texto para búsqueda: minúsculas, sin tildes.
 const norm = (s) => (s ?? '').toString().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
@@ -44,6 +44,14 @@ const gruposDe = (u) => (u.grupos?.length ?? u.grupo_ids?.length ?? 0);
 
 const authStore = useAuthStore();
 const parroquiaStore = useParroquiaStore();
+
+// Restablecer contraseña: solo super-admin o proveedor, nunca a uno mismo ni a
+// un proveedor, y solo a usuarios activos (mismas reglas que fn_admin_reset_target).
+const puedeResetear = computed(() => authStore.hasRole('super-admin') || authStore.hasRole('proveedor'));
+const resetDisponible = (u) => puedeResetear.value
+  && u.id !== authStore.user?.id
+  && u.activo !== false
+  && !(u.roles || []).some(r => (r?.name ?? r) === 'proveedor');
 
 const modalRef = ref(null);
 
@@ -155,6 +163,13 @@ onMounted(() => {
 
           <div v-if="authStore.can('editar usuarios')" class="user-card__actions">
             <AppButton variant="soft" icon-only @click="abrirEditar(u)" title="Editar" aria-label="Editar"><Pencil :size="18" /></AppButton>
+            <AppButton
+              v-if="resetDisponible(u)"
+              variant="soft"
+              icon-only
+              title="Restablecer contraseña"
+              :aria-label="`Restablecer contraseña de ${u.name}`"
+              @click="resetPassword(u)"><KeyRound :size="18" /></AppButton>
             <AppButton
               v-if="u.activo === false"
               variant="soft"

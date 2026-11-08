@@ -317,6 +317,12 @@ router.beforeEach(async (to) => {
     return { name: 'dashboard' };
   }
 
+  // Contraseña temporal (reseteo por el admin): hasta elegir una nueva solo se
+  // puede estar en "Mi perfil".
+  if (logged && auth.debeCambiarPassword && to.name !== 'profile' && to.name !== 'mantenimiento') {
+    return { name: 'profile', query: { cambiar: '1' } };
+  }
+
   // Módulo desactivado por la parroquia en Configuración. Cosmético (los permisos
   // siguen mandando): un enlace guardado o escrito a mano cae al Dashboard.
   if (logged && to.meta?.modulo && modulosOcultos().includes(to.meta.modulo)) {
