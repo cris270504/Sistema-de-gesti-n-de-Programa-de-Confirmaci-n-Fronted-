@@ -48,10 +48,14 @@ const parroquiaStore = useParroquiaStore();
 // Restablecer contraseña: solo super-admin o proveedor, nunca a uno mismo ni a
 // un proveedor, y solo a usuarios activos (mismas reglas que fn_admin_reset_target).
 const puedeResetear = computed(() => authStore.hasRole('super-admin') || authStore.hasRole('proveedor'));
+const tieneRol = (u, rol) => (u.roles || []).some(r => (r?.name ?? r) === rol);
 const resetDisponible = (u) => puedeResetear.value
   && u.id !== authStore.user?.id
   && u.activo !== false
-  && !(u.roles || []).some(r => (r?.name ?? r) === 'proveedor');
+  && !tieneRol(u, 'proveedor');
+// Un coordinador no gestiona a un super-admin (regla de app_exigir_puede_gestionar):
+// no se le muestran acciones que el servidor le va a rechazar.
+const puedeGestionarA = (u) => puedeResetear.value || !tieneRol(u, 'super-admin');
 
 const modalRef = ref(null);
 
@@ -161,7 +165,7 @@ onMounted(() => {
             </div>
           </div>
 
-          <div v-if="authStore.can('editar usuarios')" class="user-card__actions">
+          <div v-if="authStore.can('editar usuarios') && puedeGestionarA(u)" class="user-card__actions">
             <AppButton variant="soft" icon-only @click="abrirEditar(u)" title="Editar" aria-label="Editar"><Pencil :size="18" /></AppButton>
             <AppButton
               v-if="resetDisponible(u)"
