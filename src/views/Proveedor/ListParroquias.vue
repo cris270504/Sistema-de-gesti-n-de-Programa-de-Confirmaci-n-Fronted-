@@ -1,7 +1,7 @@
 <script setup>
 import AppEmpty from '@/components/AppEmpty.vue'
 import AppButton from '@/components/AppButton.vue'
-import { ref, reactive, computed, onMounted, onUnmounted, onBeforeUnmount, nextTick, watch } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, onBeforeUnmount, nextTick, watch, defineAsyncComponent } from 'vue'
 import { Modal } from 'bootstrap'
 import {
   Plus, Check, X, Copy, Building2, KeyRound, Eye, Search, Clock, Upload, Image as ImageIcon, Wrench,
@@ -17,6 +17,10 @@ import AppPage from '@/components/AppPage.vue'
 import { useMediaQuery } from '@/composables/useMediaQuery'
 import { useSystemStatusStore } from '@/stores/systemStatus'
 import { PROGRAMA_TIPOS, PERSONA_LABELS_DEFAULT } from '@/stores/parroquia'
+
+// Panel de errores: se descarga y consulta solo al abrir la sección.
+const ErroresSistema = defineAsyncComponent(() => import('./ErroresSistema.vue'))
+const verErrores = ref(false)
 
 const esMovil = useMediaQuery('(max-width: 767px)')
 
@@ -492,6 +496,12 @@ function copiar(txt) {
       </div>
     </div>
 
+    <!-- Errores del frontend de todas las parroquias -->
+    <details class="lp-errores surface surface--pad" @toggle="verErrores = $event.target.open">
+      <summary class="lp-errores__summary">Errores del sistema</summary>
+      <ErroresSistema v-if="verErrores" :parroquias="parroquias" class="lp-errores__panel" />
+    </details>
+
     <!-- Tarjetas en celular -->
     <div v-if="esMovil" class="lp-cards">
       <AppEmpty v-if="parroquiasFiltradas.length === 0" :icon="Building2"
@@ -872,6 +882,9 @@ function copiar(txt) {
 </template>
 
 <style scoped>
+.lp-errores { margin-bottom: 1rem; }
+.lp-errores__summary { cursor: pointer; font-weight: 700; color: var(--text); }
+.lp-errores__panel { margin-top: 0.9rem; }
 .lp-bar {
   display: flex;
   flex-wrap: wrap;
