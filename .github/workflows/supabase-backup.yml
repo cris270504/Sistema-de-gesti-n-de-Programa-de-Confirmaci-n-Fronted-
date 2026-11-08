@@ -80,9 +80,6 @@ jobs:
           pg psql "$SUPABASE_DB_URL" -tAc "select 'conn ok', version();"
 
           common="--no-owner --no-privileges --no-comments \
-            --exclude-table-data=public.cache --exclude-table-data=public.cache_locks \
-            --exclude-table-data=public.jobs --exclude-table-data=public.job_batches \
-            --exclude-table-data=public.failed_jobs --exclude-table-data=public.sessions \
             --exclude-table-data=public.frontend_error_logs \
             --exclude-table-data=auth.audit_log_entries --exclude-table-data=auth.flow_state"
 
