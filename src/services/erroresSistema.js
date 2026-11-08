@@ -2,20 +2,18 @@ import { errorLegible } from '@/lib/errores'
 import { supabase } from '@/lib/supabase'
 
 // Errores del frontend registrados por fn_log_frontend_error (useErrorLogger).
-// RLS: solo privilegiados leen; el proveedor ve los de todas las parroquias.
+// La tabla no es legible por la API: se lee con fn_errores_sistema, que solo
+// el proveedor puede ejecutar (los admins de parroquia no ven stacks ni URLs).
 
 export const LIMITE_ERRORES = 500
 
 export async function listErroresSistema({ parroquiaId = null, desdeDias = 7 } = {}) {
   const desde = new Date(Date.now() - desdeDias * 86_400_000).toISOString()
-  let q = supabase
-    .from('frontend_error_logs')
-    .select('id, message, stack, url, user_agent, created_at, parroquia_id, user_id')
-    .gte('created_at', desde)
-    .order('created_at', { ascending: false })
-    .limit(LIMITE_ERRORES)
-  if (parroquiaId) q = q.eq('parroquia_id', Number(parroquiaId))
-  const { data, error } = await q
+  const { data, error } = await supabase.rpc('fn_errores_sistema', {
+    p_parroquia_id: parroquiaId ? Number(parroquiaId) : null,
+    p_desde: desde,
+    p_limite: LIMITE_ERRORES,
+  })
   if (error) throw errorLegible(error)
   return data ?? []
 }
