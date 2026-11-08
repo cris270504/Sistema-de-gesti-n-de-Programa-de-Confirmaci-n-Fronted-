@@ -1,44 +1,72 @@
-name: Supabase backup (pg_dump)
+name: Supabase backup (pg_dump cifrado)
 
 # Backup diario de los schemas `public` + `auth` (el plan Free NO trae backups
-# gestionados). El .dump queda como artifact de la corrida, retención 30 días.
+# gestionados). El .dump se CIFRA con age antes de subirlo: el repo es público
+# y los artifacts de un repo público los puede descargar cualquier usuario de
+# GitHub con sesión. Solo se sube `confirmacion-<ts>.dump.age`; el .dump en
+# claro nunca sale del runner.
 #
 # Usa la imagen `postgres:17-alpine` para tener pg_dump 17 — el cliente por
 # defecto del runner es 16 y no puede volcar un servidor 17.
 #
-# ⚠️ Para recuperación de desastres de verdad conviene copiar los .dump a un
-# storage externo (S3 / Cloudflare R2 / Drive) — un artifact de GitHub no es
+# ⚠️ Para recuperación de desastres de verdad conviene copiar los .dump.age a
+# un storage externo (S3 / Cloudflare R2 / Drive) — un artifact de GitHub no es
 # almacenamiento durable y caduca.
 #
-# Secret requerido (Settings → Secrets and variables → Actions):
+# Secrets requeridos (Settings → Secrets and variables → Actions):
 #   SUPABASE_DB_URL
-#     Los runners de GitHub son IPv4-only y la conexión DIRECTA de Supabase
-#     (db.<ref>.supabase.co) es IPv6-only → usar el **Session pooler**:
+#     Los runners de GitHub son IPv4-only y la conexión DIRECTA de Supabase es
+#     IPv6-only → usar el **Session pooler** (puerto 5432):
 #       Dashboard → Settings → Database → Connection string → "Session pooler"
-#       postgresql://postgres.<ref>:<PASSWORD>@aws-0-<region>.pooler.supabase.com:5432/postgres
-#     (este proyecto: aws-0-sa-east-1.pooler.supabase.com:5432, user postgres.srdccebxlslgomvxrfnu)
 #     NO el "Transaction pooler" (:6543) — pg_dump no funciona ahí.
+#   AGE_RECIPIENT
+#     Clave PÚBLICA de age (empieza con `age1...`). Se genera en tu PC con
+#       age-keygen -o backup-key.txt
+#     La línea "# public key: age1..." va al secret. El archivo backup-key.txt
+#     (clave PRIVADA) NUNCA va a GitHub ni al repo: guárdalo fuera (gestor de
+#     contraseñas + una copia offline). Sin él, los backups no se pueden abrir.
 #
-# Restore:  pg_restore --clean --if-exists --no-owner --no-privileges \
-#             -d "$SUPABASE_DB_URL" confirmacion-<ts>.dump
+# Restore:
+#   age -d -i backup-key.txt -o confirmacion-<ts>.dump confirmacion-<ts>.dump.age
+#   pg_restore --clean --if-exists --no-owner --no-privileges \
+#     -d "$SUPABASE_DB_URL" confirmacion-<ts>.dump
 
 on:
   schedule:
     - cron: '23 3 * * *'
   workflow_dispatch: {}
 
+permissions:
+  contents: read
+
 jobs:
   dump:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: pg_dump (PostgreSQL 17 vía Docker)
+      - name: Verificar clave de cifrado
         env:
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          AGE_RECIPIENT: ${{ secrets.AGE_RECIPIENT }}
         run: |
           set -euo pipefail
+          if [[ ! "${AGE_RECIPIENT:-}" =~ ^age1[0-9a-z]{58}$ ]]; then
+            echo "::error::Falta el secret AGE_RECIPIENT (clave pública age1...). No se hace backup sin cifrar."
+            exit 1
+          fi
+          sudo apt-get update -qq && sudo apt-get install -y -qq age
+          age --version
+
+      - name: pg_dump (PostgreSQL 17 vía Docker) + cifrado
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          AGE_RECIPIENT: ${{ secrets.AGE_RECIPIENT }}
+        run: |
+          set -euo pipefail
+          umask 077
           ts=$(date -u +%Y%m%dT%H%M%SZ)
           out="confirmacion-$ts.dump"
+          # Pase lo que pase, el dump en claro no queda en el runner.
+          trap 'rm -f "$out"' EXIT
 
           pg() {
             docker run --rm \
@@ -66,12 +94,16 @@ jobs:
             pg pg_dump "$SUPABASE_DB_URL" $common -n public -Fc -f "/out/$out"
             echo "dump: solo public"
           fi
-          ls -lh "$out"
 
-      - name: Subir artifact
+          # 3) Cifrar y descartar el original.
+          age -r "$AGE_RECIPIENT" -o "$out.age" "$out"
+          rm -f "$out"
+          ls -lh "$out.age"
+
+      - name: Subir artifact (solo el .age)
         uses: actions/upload-artifact@v4
         with:
           name: supabase-backup-${{ github.run_id }}
-          path: confirmacion-*.dump
+          path: confirmacion-*.dump.age
           retention-days: 30
           if-no-files-found: error

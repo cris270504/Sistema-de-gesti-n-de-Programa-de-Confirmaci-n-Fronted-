@@ -39,3 +39,8 @@ video-tutorial/
 
 # Credenciales locales de prueba: nunca subir al repositorio
 ARCHIVO_DE_SEED_O_.env.example
+
+# Clave privada de age para descifrar backups: NUNCA al repo
+backup-key.txt
+*.age
+*.dump
