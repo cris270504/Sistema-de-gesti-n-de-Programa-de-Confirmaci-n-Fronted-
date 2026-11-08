@@ -408,8 +408,8 @@ async function cambiarEstado(p) {
     await actualizarParroquia(p.id, { activa: activar })
     p.activa = activar
     showAlerta(activar ? 'Parroquia activada' : 'Parroquia desactivada', 'success')
-  } catch {
-    showAlerta('No se pudo cambiar el estado', 'error')
+  } catch (e) {
+    showAlerta(e?.message || 'No se pudo cambiar el estado', 'error')
   }
 }
 

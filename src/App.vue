@@ -5,6 +5,7 @@ import { onMounted, onUnmounted } from 'vue'
 import LoadingOverlay from '@/components/LoadingOverlay.vue'
 import ToastStack from '@/components/ToastStack.vue'
 import AvisoActualizacion from '@/components/AvisoActualizacion.vue'
+import AvisoSinConexion from '@/components/AvisoSinConexion.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useParroquiaStore } from '@/stores/parroquia'
 import { useSystemStatusStore } from '@/stores/systemStatus'
@@ -64,6 +65,7 @@ onUnmounted(() => {
   <LoadingOverlay />
   <ToastStack />
   <AvisoActualizacion />
+  <AvisoSinConexion />
   <SpeedInsights />
 </template>
 

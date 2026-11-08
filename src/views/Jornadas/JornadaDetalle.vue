@@ -39,6 +39,7 @@ const categoriasStore = useCategoriasReunionStore()
 const loading = ref(true)
 const busy = ref(false)
 const noEncontrada = ref(false)
+const errorCarga = ref('')
 const reunion = ref(null)
 const momentos = ref([])
 const personas = ref([])
@@ -68,8 +69,15 @@ async function cargar() {
     reunion.value = datos.reunion
     momentos.value = datos.momentos
     noEncontrada.value = false
-  } catch {
-    noEncontrada.value = true
+    errorCarga.value = ''
+  } catch (e) {
+    // PGRST116 = .single() sin filas → de verdad no existe (o no es de tu parroquia).
+    // Cualquier otro fallo (red, permisos) no debe decir "se eliminó".
+    if (e?.code === 'PGRST116') {
+      noEncontrada.value = true
+    } else {
+      errorCarga.value = e?.message || 'No se pudo cargar la jornada.'
+    }
   }
 }
 
@@ -310,6 +318,10 @@ onUnmounted(() => sortables.forEach((s) => s.destroy()))
 
     <AppEmpty v-if="noEncontrada" :icon="Inbox" message="No encontramos esta jornada. Puede que se haya eliminado.">
       <AppButton :to="{ name: 'jornadas' }">Ver jornadas</AppButton>
+    </AppEmpty>
+
+    <AppEmpty v-else-if="errorCarga && !reunion" :icon="Inbox" :message="errorCarga">
+      <AppButton @click="cargar">Reintentar</AppButton>
     </AppEmpty>
 
     <template v-else-if="reunion">

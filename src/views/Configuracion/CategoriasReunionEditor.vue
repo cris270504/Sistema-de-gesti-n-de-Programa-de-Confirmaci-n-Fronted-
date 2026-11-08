@@ -66,9 +66,13 @@ async function eliminar(cat) {
   try {
     await deleteCategoria(cat.id)
     await refrescar()
-  } catch {
-    // FK: hay reuniones con esta categoría.
-    showAlerta('Hay reuniones con esta categoría. Desactívala en lugar de eliminarla.', 'warning')
+  } catch (e) {
+    // 23503 (FK): hay reuniones con esta categoría. Otro error → su motivo real.
+    if (e?.code === '23503') {
+      showAlerta('Hay reuniones con esta categoría. Desactívala en lugar de eliminarla.', 'warning')
+    } else {
+      showAlerta(e?.message || 'No se pudo eliminar la categoría.', 'error')
+    }
   } finally {
     guardando.value = null
   }

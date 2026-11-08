@@ -13,6 +13,7 @@ import {
 } from 'lucide-vue-next';
 import { useAuthStore } from '@/stores/auth';
 import { useParroquiaStore } from '@/stores/parroquia';
+import { showAlerta } from '@/funciones';
 import { Modal } from 'bootstrap';
 import { attachModalFocusReturn } from '@/composables/useModalFocusReturn';
 import { useImportExcel } from '@/composables/useImportExcel';
@@ -225,8 +226,10 @@ const openApoderadosModal = async (confirmando) => {
     try {
         const full = await confirmandosStore.fetchById(confirmando.id, { silent: true });
         selectedApoderados.value = full?.apoderados || [];
-    } catch {
+    } catch (e) {
+        // Sin aviso, una lista vacía se lee como "no tiene apoderados".
         selectedApoderados.value = [];
+        showAlerta(e?.message || 'No se pudieron cargar los apoderados. Inténtalo de nuevo.', 'warning');
     } finally {
         loadingApoderados.value = false;
     }

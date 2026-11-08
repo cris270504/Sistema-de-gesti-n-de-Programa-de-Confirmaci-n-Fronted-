@@ -38,6 +38,7 @@ const POR_TEXTO = [
   [/mime type .* is not supported|invalid_mime_type/i, 'Ese tipo de archivo no está permitido.'],
   [/The resource already exists|Duplicate/i, 'Ese archivo ya existe.'],
   [/JWT expired|token is expired/i, 'Tu sesión expiró. Vuelve a iniciar sesión.'],
+  [/Failed to fetch|NetworkError|Load failed|Failed to send a request/i, 'Sin conexión con el servidor. Revisa tu internet e inténtalo de nuevo.'],
 ]
 
 // Marcas de un mensaje crudo de Postgres (no redactado por nosotros).
@@ -53,17 +54,50 @@ export function traducirError(error) {
     if (msg.includes(nombre)) return POR_CONSTRAINT[nombre]
   }
 
+  // Error crudo de Postgres con código conocido → mensaje por código (antes de
+  // POR_TEXTO: "duplicate key" no debe caer en el "Duplicate" de Storage).
+  if (CRUDO.test(msg) && POR_CODIGO[code]) return POR_CODIGO[code]
+
+  // Errores de Storage / Auth / red (vienen en inglés). Van antes del chequeo de
+  // "mensaje nuestro": ese solo mira que haya letras y dejaba pasar inglés crudo.
+  for (const [re, txt] of POR_TEXTO) {
+    if (re.test(msg)) return txt
+  }
+
   // Mensaje nuestro (español, sin jerga de Postgres) → mostrarlo.
   if (msg && !CRUDO.test(msg) && /[a-záéíóúñ]/i.test(msg) && msg.length <= 300) {
     return msg
   }
 
-  // Errores de Storage / Auth (vienen en inglés).
-  for (const [re, txt] of POR_TEXTO) {
-    if (re.test(msg)) return txt
-  }
-
   return POR_CODIGO[code] || 'No se pudo completar la operación. Inténtalo de nuevo.'
+}
+
+// Mensaje para un login fallido. Distingue lo que el usuario puede resolver
+// (red, esperar por exceso de intentos, servicio caído) de credenciales malas.
+// Credenciales/identificador inexistente comparten mensaje a propósito (no
+// revelar si un DNI/correo está registrado).
+export const LOGIN_MSG = {
+  credenciales: 'Correo/DNI o contraseña incorrectos.',
+  sinConexion: 'Sin conexión a internet. Revisa tu red e inténtalo de nuevo.',
+  servicio: 'El servicio no está disponible en este momento. Inténtalo en unos minutos.',
+  demasiados: 'Demasiados intentos. Espera unos minutos antes de volver a intentar.',
+}
+
+export function motivoFalloLogin(error, online = typeof navigator === 'undefined' ? true : navigator.onLine) {
+  if (!online) return LOGIN_MSG.sinConexion
+  if (!error) return LOGIN_MSG.credenciales
+  const nombre = error.name || ''
+  const status = Number(error.status ?? error.context?.status ?? 0)
+  const msg = String(error.message || '')
+
+  if (status === 429 || /rate limit|too many/i.test(msg)) return LOGIN_MSG.demasiados
+  if (status >= 500) return LOGIN_MSG.servicio
+  if (nombre === 'FunctionsFetchError' || nombre === 'AuthRetryableFetchError'
+      || /failed to fetch|networkerror|load failed/i.test(msg)) {
+    return LOGIN_MSG.sinConexion
+  }
+  if (nombre === 'FunctionsRelayError') return LOGIN_MSG.servicio
+  return LOGIN_MSG.credenciales
 }
 
 // Envuelve un error crudo en uno con `message` ya traducido (para `throw`).

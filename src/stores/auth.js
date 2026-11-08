@@ -8,6 +8,7 @@ import { useDashboardStore } from './dashboard'
 import { useSystemStatusStore } from './systemStatus'
 import { showAlerta, showErroresDeValidacion } from '@/funciones'
 import { supabase } from '@/lib/supabase'
+import { motivoFalloLogin } from '@/lib/errores'
 
 function safeParse(json) {
   try { return JSON.parse(json) } catch { return null }
@@ -65,7 +66,7 @@ export const useAuthStore = defineStore('auth', {
           return false
         }
         if (errResolver || !resuelto?.email) {
-          throw new Error('No se pudo resolver el identificador')
+          throw errResolver || new Error('No se pudo resolver el identificador')
         }
 
         const { data: sesion, error: errLogin } = await supabase.auth.signInWithPassword({
@@ -73,8 +74,9 @@ export const useAuthStore = defineStore('auth', {
           password: credentials.password,
         })
         if (errLogin || !sesion?.session) {
-          this.error = 'Credenciales inválidas'
-          showAlerta('Credenciales inválidas', 'error')
+          const msg = motivoFalloLogin(errLogin)
+          this.error = msg
+          showAlerta(msg, 'error')
           this.logoutLocal()
           return false
         }
@@ -111,8 +113,9 @@ export const useAuthStore = defineStore('auth', {
 
         return true
       } catch (e) {
-        showAlerta('Credenciales inválidas', 'error')
-        this.error = e?.response?.data?.message || e?.message || 'Credenciales inválidas'
+        const msg = motivoFalloLogin(e)
+        showAlerta(msg, 'error')
+        this.error = msg
         this.logoutLocal()
         return false
       } finally {
