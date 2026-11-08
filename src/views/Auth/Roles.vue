@@ -26,9 +26,16 @@ const { fetchAll, add, save, remove } = rolesStore;
 // El admin de parroquia (o el proveedor) gestiona los roles.
 const puedeGestionar = computed(() => authStore.canAny(['crear roles', 'editar roles', 'administrar plataforma']));
 
-// Roles que no se pueden eliminar desde la UI para evitar dejar el sistema sin administración.
-const ROLES_PROTEGIDOS = ['admin', 'administrador', 'coordinador'];
-const esProtegido = (nombre) => ROLES_PROTEGIDOS.includes(String(nombre || '').toLowerCase().trim());
+// Mismo criterio que fn_eliminar_rol / fn_guardar_rol en la BD: los 4 roles del
+// sistema no se borran, y los roles globales (parroquia_id NULL) solo los
+// administra el proveedor.
+const ROLES_SISTEMA = ['proveedor', 'super-admin', 'coordinador', 'catequista'];
+const esProveedor = computed(() => authStore.hasRole('proveedor'));
+const esSistema = (role) => ROLES_SISTEMA.includes(String(role?.name || '').toLowerCase().trim());
+const esProtegido = (role) => esSistema(role) || (!!role?.es_global && !esProveedor.value);
+const motivoProtegido = (role) => esSistema(role)
+  ? 'Rol del sistema: no puede eliminarse'
+  : 'Rol global: solo lo administra el proveedor';
 
 // --- Normalización de formas de datos de la API ---
 const permName = (p) => (typeof p === 'string' ? p : p?.name ?? '');
@@ -166,8 +173,8 @@ const handleSubmit = async () => {
 };
 
 const handleDelete = async (role) => {
-  if (esProtegido(role.name)) {
-    return showAlerta('Este rol está protegido y no puede eliminarse.', 'warning');
+  if (esProtegido(role)) {
+    return showAlerta(`${motivoProtegido(role)}.`, 'warning');
   }
   await remove(role.id, role.name);
 };
@@ -236,9 +243,9 @@ const handleDelete = async (role) => {
                       variant="soft"
                       tone="danger"
                       icon-only
-                      :disabled="esProtegido(role.name)"
-                      :title="esProtegido(role.name) ? 'Rol protegido' : 'Eliminar'"
-                      :aria-label="esProtegido(role.name) ? 'Rol protegido' : `Eliminar rol ${role.name}`"
+                      :disabled="esProtegido(role)"
+                      :title="esProtegido(role) ? motivoProtegido(role) : 'Eliminar'"
+                      :aria-label="esProtegido(role) ? motivoProtegido(role) : `Eliminar rol ${role.name}`"
                       @click="handleDelete(role)"><Trash :size="16" /></AppButton>
                   </div>
                 </td>
