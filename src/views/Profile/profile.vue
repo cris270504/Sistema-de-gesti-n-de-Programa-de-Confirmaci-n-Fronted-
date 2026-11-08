@@ -1,15 +1,17 @@
 <script setup>
 import AppButton from '@/components/AppButton.vue'
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { useRouter } from 'vue-router';
-import { showAlerta, showErroresDeValidacion } from '@/funciones';
+import { showAlerta } from '@/funciones';
 import { Save, ShieldCheck, User, KeyRound } from 'lucide-vue-next';
 import AppPage from '@/components/AppPage.vue';
 import PasswordField from '@/components/PasswordField.vue';
 
 const authStore = useAuthStore();
 const router = useRouter();
+// Quien entra solo con DNI (sin correo) puede seguir sin él.
+const emailObligatorio = computed(() => !!authStore.user?.email);
 
 // --- Estado para el formulario de Datos Personales ---
 const profileDraft = ref({ name: '', email: '', dni: '' });
@@ -34,12 +36,10 @@ async function submitProfile() {
     const payload = { name: profileDraft.value.name, email: profileDraft.value.email };
 
     try {
-        const ok = await authStore.updateProfile(payload);
-        if (ok) showAlerta('Perfil actualizado con éxito', 'success');
-        else showAlerta('No se pudo actualizar el perfil', 'error');
+        await authStore.updateProfile(payload);
+        showAlerta('Perfil actualizado con éxito', 'success');
     } catch (e) {
-        console.error('Error al actualizar perfil:', e);
-        showErroresDeValidacion(e?.response?.data?.errors || e);
+        showAlerta(e?.message || 'No se pudo actualizar el perfil', 'error');
     } finally {
         savingProfile.value = false;
     }
@@ -94,8 +94,8 @@ async function submitPassword() {
                     </label>
 
                     <label class="prof-field">
-                        <span>Email <em>*</em></span>
-                        <input v-model="profileDraft.email" type="email" required :disabled="savingProfile">
+                        <span>Email <em v-if="emailObligatorio">*</em></span>
+                        <input v-model="profileDraft.email" type="email" :required="emailObligatorio" :disabled="savingProfile">
                         <small>Usado para identificar tu cuenta y para la recuperación de contraseña.</small>
                     </label>
 

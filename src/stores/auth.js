@@ -1,12 +1,12 @@
 import { defineStore } from 'pinia'
 import router from '@/router'
 import { LS_TOKEN_KEY, LS_USER_KEY } from '../constants/auth'
-import { updateUser } from '@/services/users'
+import { updateMyProfile } from '@/services/users'
 import { useParroquiaStore } from './parroquia'
 import { useUiStore } from './ui'
 import { useDashboardStore } from './dashboard'
 import { useSystemStatusStore } from './systemStatus'
-import { showAlerta, showErroresDeValidacion } from '@/funciones'
+import { showAlerta } from '@/funciones'
 import { supabase } from '@/lib/supabase'
 import { motivoFalloLogin, traducirError } from '@/lib/errores'
 
@@ -202,33 +202,19 @@ export const useAuthStore = defineStore('auth', {
       })
     },
 
-    async updateProfile(payload) {
-      if (!this.user || !this.user.id) {
-        showAlerta('No estás autenticado', 'error');
-        return false;
-      }
-
-      const userId = this.user.id;
-
-      try {
-        const response = await updateUser(userId, payload);
-        const updatedUser = response?.user;
-
-        if (!updatedUser) {
-          throw new Error('La API no devolvió un usuario actualizado.');
-        }
-        this.user = { ...this.user, ...updatedUser };
-        localStorage.setItem(LS_USER_KEY, JSON.stringify(this.user));
-        return true;
-
-      } catch (e) {
-        console.error("Error al actualizar perfil:", e);
-        showErroresDeValidacion(e?.response?.data?.errors || e);
-        if (!e?.response?.data?.errors) {
-          showAlerta(e?.response?.data?.message || e?.message || 'No se pudo actualizar', 'error');
-        }
-        throw e;
-      }
+    /**
+     * "Mi perfil": nombre y correo propios. Va por admin-usuarios → update_self,
+     * que cualquier rol puede usar (antes usaba update, solo para admins, y un
+     * catequista recibía "No autorizado"). Lanza Error con mensaje legible.
+     */
+    async updateProfile({ name, email }) {
+      if (!this.user?.id) throw new Error('Tu sesión expiró. Vuelve a iniciar sesión.')
+      const response = await updateMyProfile({ name, email })
+      const updatedUser = response?.user
+      if (!updatedUser) throw new Error('No se pudo actualizar el perfil.')
+      this.user = { ...this.user, ...updatedUser }
+      localStorage.setItem(LS_USER_KEY, JSON.stringify(this.user))
+      return true
     },
 
     async logout() {

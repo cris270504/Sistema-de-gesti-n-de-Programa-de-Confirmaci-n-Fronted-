@@ -10,7 +10,7 @@
 // autorización fina (privilegiado, parroquia, no-tocar-tu-cuenta, rol proveedor)
 // vive en esas funciones.
 //
-// Body: { action: 'create'|'update'|'estado'|'delete'|'reset_password', ...campos }
+// Body: { action: 'create'|'update'|'update_self'|'estado'|'delete'|'reset_password', ...campos }
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { buildCors, origenBloqueado } from "../_shared/cors.ts";
@@ -210,6 +210,40 @@ Deno.serve(async (req) => {
         });
       }
       return json({ message: activo ? "Usuario activado." : "Usuario desactivado.", user: res });
+    }
+
+    // ──────────────────────────────────────────────────────── UPDATE SELF
+    // "Mi perfil": cualquier usuario activo edita SU nombre y correo
+    // (fn_actualizar_mi_perfil valida). Si cambia el correo, primero Auth y
+    // después la BD; si la BD falla, se revierte el correo en Auth.
+    if (action === "update_self") {
+      const nombre = String(body.name ?? "").trim();
+      const email = String(body.email ?? "").trim().toLowerCase();
+      const emailAuthActual = (userData.user.email ?? "").toLowerCase();
+      const cambiaEmail = email !== "" && email !== emailAuthActual;
+
+      if (cambiaEmail) {
+        const { error: authErr } = await admin.auth.admin.updateUserById(actorAuthId, { email, email_confirm: true });
+        if (authErr) {
+          const m = authErr.message ?? "";
+          const dup = m.includes("already been registered") || m.includes("already exists");
+          return json({ message: dup ? "Ese correo ya lo usa otra cuenta." : "No se pudo cambiar el correo." }, dup ? 422 : 400);
+        }
+      }
+
+      const { data: res, error: rpcErr } = await admin.rpc("fn_actualizar_mi_perfil", {
+        p_actor_auth: actorAuthId,
+        p_name: nombre,
+        p_email: email,
+      });
+      if (rpcErr) {
+        if (cambiaEmail) {
+          await admin.auth.admin.updateUserById(actorAuthId, { email: emailAuthActual, email_confirm: true });
+        }
+        const { message, status } = mapDbError(rpcErr);
+        return json({ message }, status);
+      }
+      return json({ message: "Perfil actualizado.", user: (res as { user: unknown }).user });
     }
 
     // ─────────────────────────────────────────────────────── RESET PASSWORD
