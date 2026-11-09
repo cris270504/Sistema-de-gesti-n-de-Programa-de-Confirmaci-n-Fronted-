@@ -28,6 +28,7 @@ const entrandoHuella = ref(false)
 const ofreciendoHuella = ref(false)
 const activandoHuella = ref(false)
 const tituloOferta = ref(null)
+const pistaHuella = ref(false)
 
 onMounted(async () => {
     huellaDisponible.value = await dispositivoCompatible()
@@ -75,9 +76,13 @@ const submit = async () => {
 
 async function entrarConHuella() {
     entrandoHuella.value = true
+    pistaHuella.value = false
     const ok = await auth.loginConHuella()
     if (!ok) {
         entrandoHuella.value = false
+        // Sin mensaje de error = la persona cerró el diálogo del sistema. Lo más
+        // común: "No hay llaves de acceso" porque aún no activó la huella aquí.
+        if (!auth.error) pistaHuella.value = true
         return
     }
     await irAlPanel()
@@ -178,7 +183,11 @@ async function ahoraNo() {
                         :disabled="saving" @click="entrarConHuella">
                         {{ entrandoHuella ? 'Esperando al dispositivo…' : 'Entrar con huella' }}
                     </AppButton>
-                    <p class="huella-alt__ayuda">Usa la huella, el rostro o el PIN registrados en este dispositivo.</p>
+                    <p v-if="pistaHuella" class="huella-alt__pista" role="status">
+                        ¿Aún no activaste la huella en este dispositivo? Entra con tu DNI y contraseña
+                        y te ofreceremos activarla (también desde «Mi perfil»).
+                    </p>
+                    <p v-else class="huella-alt__ayuda">Usa la huella, el rostro o el PIN registrados en este dispositivo.</p>
                 </div>
             </template>
         </div>
@@ -223,6 +232,18 @@ form :deep(button[type="submit"]),
     text-align: center;
     font-size: var(--fs-xs);
     color: var(--text-muted);
+}
+
+.huella-alt__pista {
+    margin: 0;
+    padding: 0.65rem 0.8rem;
+    border-radius: var(--radius-md);
+    border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+    background: var(--accent-soft);
+    color: var(--text);
+    font-size: var(--fs-sm);
+    line-height: 1.45;
+    text-align: center;
 }
 
 .huella-oferta {
