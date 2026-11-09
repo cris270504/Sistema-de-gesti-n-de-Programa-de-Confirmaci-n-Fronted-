@@ -42,6 +42,24 @@ cp .env.example .env   # configura la URL de la API
 npm run dev
 ```
 
+## 🔐 Inicio con huella (passkeys)
+
+Método opcional además de DNI/correo + contraseña. Usa la huella, el rostro o el
+PIN del dispositivo (WebAuthn, vía Supabase Auth). Está apagado por defecto.
+
+1. **Supabase → Authentication → Passkeys**: activar *Enable Passkey authentication*.
+   - *Relying Party ID*: el dominio de producción, sin `https://` (p. ej. `miapp.vercel.app`).
+   - *Relying Party Origins*: la URL completa de producción (p. ej. `https://miapp.vercel.app`).
+2. **Vercel → Environment Variables**: `VITE_PASSKEYS=true` y volver a desplegar.
+
+Notas:
+- Un passkey queda atado al dominio: los registrados en producción no sirven en
+  `localhost` ni en otro dominio. Cambiar el *Relying Party ID* invalida todos.
+- Si el botón aparece pero Supabase no está configurado, el usuario ve
+  "El inicio con huella todavía no está habilitado".
+- Cada usuario la activa al entrar con contraseña (se ofrece una vez por
+  dispositivo) o en **Mi perfil → Inicio con huella**, donde también puede quitarla.
+
 ## 👤 Autor
 
 **Cristopher Carrasco** — [@cris270504](https://github.com/cris270504)

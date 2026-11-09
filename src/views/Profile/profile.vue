@@ -1,12 +1,16 @@
 <script setup>
 import AppButton from '@/components/AppButton.vue'
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, defineAsyncComponent } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { useRouter } from 'vue-router';
 import { showAlerta } from '@/funciones';
 import { Save, ShieldCheck, User, KeyRound } from 'lucide-vue-next';
 import AppPage from '@/components/AppPage.vue';
 import PasswordField from '@/components/PasswordField.vue';
+import { PASSKEYS_HABILITADOS } from '@/lib/passkeys';
+
+// Sección de huella: se descarga solo si la función está habilitada.
+const HuellaPerfil = defineAsyncComponent(() => import('./HuellaPerfil.vue'));
 
 const authStore = useAuthStore();
 const router = useRouter();
@@ -138,6 +142,8 @@ async function submitPassword() {
                 </form>
             </section>
 
+
+            <HuellaPerfil v-if="PASSKEYS_HABILITADOS && !authStore.debeCambiarPassword" />
         </div>
     </AppPage>
 </template>

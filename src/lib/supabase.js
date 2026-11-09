@@ -18,6 +18,9 @@ export const supabase = createClient(url ?? 'http://localhost', anonKey ?? 'miss
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: false,
+    // Inicio con huella (passkeys). Solo habilita los métodos de passkey; la UI
+    // los muestra únicamente con VITE_PASSKEYS=true (ver src/lib/passkeys.js).
+    experimental: { passkey: true },
   },
 })
 

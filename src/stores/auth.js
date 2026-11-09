@@ -14,6 +14,7 @@ import { useSystemStatusStore } from './systemStatus'
 import { showAlerta } from '@/funciones'
 import { supabase } from '@/lib/supabase'
 import { motivoFalloLogin, traducirError } from '@/lib/errores'
+import { mensajePasskey } from '@/lib/passkeys'
 
 // Tras un reseteo de contraseña por el admin, hay que elegir una nueva.
 const LS_DEBE_CAMBIAR_KEY = 'debe_cambiar_password'
@@ -47,11 +48,10 @@ export const useAuthStore = defineStore('auth', {
   actions: {
     /**
      * Autenticación 100% Supabase:
-     * 1) `resolver-login` traduce el identificador tecleado (correo O DNI) al
-     *    correo canónico de auth.users.
-     * 2) signInWithPassword contra Supabase (supabase-js persiste la sesión y
-     *    refresca el token solo).
-     * 3) se hidrata roles/permisos/parroquia/config con la RPC `fn_get_user`.
+     * 1) La Edge Function `login` resuelve DNI/correo y autentica en el servidor
+     *    (el email nunca llega al navegador; limita intentos fallidos).
+     * 2) setSession con los tokens recibidos (supabase-js persiste y refresca).
+     * 3) _hidratarSesion: roles/permisos/parroquia/config con `fn_get_user`.
      */
     async login(credentials) {
       this.loading = true
@@ -79,42 +79,73 @@ export const useAuthStore = defineStore('auth', {
           refresh_token: tokens.refresh_token,
         })
         if (errSesion || !sesion?.session) throw errSesion || new Error('No se pudo iniciar la sesión')
-        this.setDebeCambiarPassword(sesion.user?.user_metadata?.debe_cambiar_password === true)
-
-        this.token = sesion.session.access_token
-        localStorage.setItem(LS_TOKEN_KEY, this.token)
-
-        // Hidratar el usuario de la app (roles, permisos, parroquia, config).
-        const { data, error: errUser } = await supabase.rpc('fn_get_user')
-        if (errUser || !data) {
-          // Parroquia desactivada u otro rechazo del backend: cerramos la sesión
-          // de Supabase que sí se creó y mostramos el motivo real.
-          const msg = errUser?.message || 'No se pudo cargar el perfil'
-          await supabase.auth.signOut().catch(() => {})
-          this.logoutLocal()
-          showAlerta(/desactivad|inactiv/i.test(msg) ? msg : 'No se pudo iniciar sesión', 'error')
-          this.error = msg
-          return false
-        }
-        this.user = data
-        localStorage.setItem(LS_USER_KEY, JSON.stringify(data))
-
-        useParroquiaStore().hydrateFromLogin({
-          parroquia: data?.parroquia,
-          configuracion: data?.configuracion,
-        })
-
-        if (data?.metricas) useDashboardStore().seedMetricas(data.metricas)
-
-        // Con await: si no, la primera navegación post-login puede correr con
-        // el valor default (false) y dejar pasar a alguien bloqueado un
-        // instante antes de que llegue el evento de Realtime.
-        await useSystemStatusStore().fetchStatus()
-
-        return true
+        return await this._hidratarSesion(sesion)
       } catch (e) {
         const msg = motivoFalloLogin(e)
         showAlerta(msg, 'error')
+        this.error = msg
+        this.logoutLocal()
+        return false
+      } finally {
+        this.loading = false
+      }
+    },
+
+    /**
+     * Tras obtener una sesión de Supabase (contraseña o huella): fija el token y
+     * carga roles/permisos/parroquia con fn_get_user. Si el backend rechaza
+     * (parroquia desactivada, usuario inactivo) cierra la sesión creada.
+     */
+    async _hidratarSesion(sesion) {
+      this.setDebeCambiarPassword(sesion.user?.user_metadata?.debe_cambiar_password === true)
+
+      this.token = sesion.session.access_token
+      localStorage.setItem(LS_TOKEN_KEY, this.token)
+
+      // Hidratar el usuario de la app (roles, permisos, parroquia, config).
+      const { data, error: errUser } = await supabase.rpc('fn_get_user')
+      if (errUser || !data) {
+        // Parroquia desactivada u otro rechazo del backend: cerramos la sesión
+        // de Supabase que sí se creó y mostramos el motivo real.
+        const msg = errUser?.message || 'No se pudo cargar el perfil'
+        await supabase.auth.signOut().catch(() => {})
+        this.logoutLocal()
+        showAlerta(/desactivad|inactiv/i.test(msg) ? msg : 'No se pudo iniciar sesión', 'error')
+        this.error = msg
+        return false
+      }
+      this.user = data
+      localStorage.setItem(LS_USER_KEY, JSON.stringify(data))
+
+      useParroquiaStore().hydrateFromLogin({
+        parroquia: data?.parroquia,
+        configuracion: data?.configuracion,
+      })
+
+      if (data?.metricas) useDashboardStore().seedMetricas(data.metricas)
+
+      // Con await: si no, la primera navegación post-login puede correr con
+      // el valor default (false) y dejar pasar a alguien bloqueado un
+      // instante antes de que llegue el evento de Realtime.
+      await useSystemStatusStore().fetchStatus()
+
+      return true
+    },
+
+    /**
+     * Inicio con huella / rostro (passkey). No pide DNI: el dispositivo elige la
+     * cuenta. Si la persona cancela el diálogo del sistema, no se muestra error.
+     */
+    async loginConHuella() {
+      this.loading = true
+      this.error = null
+      try {
+        const { data, error } = await supabase.auth.signInWithPasskey()
+        if (error || !data?.session) throw error || new Error('Sin sesión')
+        return await this._hidratarSesion(data)
+      } catch (e) {
+        const msg = mensajePasskey(e)
+        if (msg) showAlerta(msg, 'error')
         this.error = msg
         this.logoutLocal()
         return false

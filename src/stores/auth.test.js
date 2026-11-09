@@ -10,6 +10,7 @@ vi.mock('@/lib/supabase', () => ({
     rpc: vi.fn(),
     auth: {
       setSession: vi.fn(),
+      signInWithPasskey: vi.fn(),
       signOut: vi.fn().mockResolvedValue({ error: null }),
       onAuthStateChange: vi.fn(),
       getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
@@ -83,6 +84,37 @@ describe('stores/auth', () => {
     expect(localStorage.getItem(LS_TOKEN_KEY)).toBeNull()
     expect(supabase.rpc).not.toHaveBeenCalled()
     expect(supabase.auth.setSession).not.toHaveBeenCalled()
+  })
+
+  it('login con huella: usa la sesión del passkey e hidrata con fn_get_user', async () => {
+    supabase.auth.signInWithPasskey.mockResolvedValueOnce({
+      data: { session: { access_token: 'tok-huella' }, user: { user_metadata: {} } },
+      error: null,
+    })
+    supabase.rpc.mockResolvedValueOnce({ data: { id: 7, name: 'Ana' }, error: null })
+
+    const auth = useAuthStore()
+    const ok = await auth.loginConHuella()
+
+    expect(ok).toBe(true)
+    expect(supabase.functions.invoke).not.toHaveBeenCalled()
+    expect(auth.token).toBe('tok-huella')
+    expect(auth.user).toEqual({ id: 7, name: 'Ana' })
+  })
+
+  it('login con huella cancelado por la persona: false y sin alerta', async () => {
+    const { showAlerta } = await import('@/funciones')
+    supabase.auth.signInWithPasskey.mockResolvedValueOnce({
+      data: { session: null },
+      error: Object.assign(new Error('The operation either timed out or was not allowed.'), { name: 'NotAllowedError' }),
+    })
+
+    const auth = useAuthStore()
+    const ok = await auth.loginConHuella()
+
+    expect(ok).toBe(false)
+    expect(showAlerta).not.toHaveBeenCalled()
+    expect(auth.isAuthenticated).toBe(false)
   })
 
   it('logout cierra la sesión de Supabase, limpia el estado y redirige al login', async () => {
