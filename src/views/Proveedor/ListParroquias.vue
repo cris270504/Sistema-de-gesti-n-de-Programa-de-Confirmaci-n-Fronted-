@@ -4,8 +4,8 @@ import AppButton from '@/components/AppButton.vue'
 import { ref, reactive, computed, onMounted, onUnmounted, onBeforeUnmount, nextTick, watch, defineAsyncComponent } from 'vue'
 import { Modal } from 'bootstrap'
 import {
-  Plus, Check, X, Copy, Building2, KeyRound, Eye, Search, Clock, Upload, Image as ImageIcon, Wrench,
-  BookOpen, LayoutTemplate, Globe, Trash2,
+  Plus, Check, X, Copy, Building2, KeyRound, Search, Clock, Upload, Image as ImageIcon, Wrench,
+  BookOpen, LayoutTemplate, Globe, Trash2, Users, GraduationCap, Settings2, Bug, Info,
 } from 'lucide-vue-next'
 import { showAlerta, confirmar, slugify } from '@/funciones'
 import {
@@ -220,12 +220,30 @@ const resumen = computed(() => ({
   inactivas: parroquias.value.filter(p => !p.activa).length,
 }))
 
+const totales = computed(() => parroquias.value.reduce((acc, p) => ({
+  usuarios: acc.usuarios + (Number(p.users_count) || 0),
+  grupos: acc.grupos + (Number(p.grupos_count) || 0),
+  confirmandos: acc.confirmandos + (Number(p.confirmandos_count) || 0),
+}), { usuarios: 0, grupos: 0, confirmandos: 0 }))
+
+const FILTROS_ESTADO = [
+  { value: 'todas', label: 'Todas' },
+  { value: 'activas', label: 'Activas' },
+  { value: 'inactivas', label: 'Inactivas' },
+]
+const filtroEstado = ref('todas')
+
+// "Parroquia Sagrado Corazón de Jesús" → "SC" (sin la palabra Parroquia ni conectores).
+const iniciales = (nombre = '') => nombre
+  .replace(/^parroquia\s+/i, '')
+  .split(/\s+/).filter(w => w.length > 2)
+  .slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?'
+
 const parroquiasFiltradas = computed(() => {
   const t = q.value.trim().toLowerCase()
-  const base = t
-    ? parroquias.value.filter(p =>
-        p.nombre.toLowerCase().includes(t) || (p.slug || '').toLowerCase().includes(t))
-    : parroquias.value.slice()
+  const base = parroquias.value.filter(p =>
+    (filtroEstado.value === 'todas' || (filtroEstado.value === 'activas') === !!p.activa)
+    && (!t || p.nombre.toLowerCase().includes(t) || (p.slug || '').toLowerCase().includes(t)))
   // Activas primero; el backend ya ordena por nombre dentro de cada grupo.
   return base.sort((a, b) => Number(b.activa) - Number(a.activa))
 })
@@ -453,261 +471,312 @@ function copiar(txt) {
 </script>
 
 <template>
-  <AppPage title="Parroquias" subtitle="Panel del proveedor de la plataforma" :loading="loading">
+  <AppPage title="Parroquias" subtitle="Consola de la plataforma: parroquias, acceso y mantenimiento" :loading="loading">
     <template #actions>
       <AppButton :icon="Plus" @click="abrirAlta">Nueva parroquia</AppButton>
     </template>
 
-    <div class="lp-bar">
-      <div class="lp-count">
-        <span class="lp-dot lp-dot--on"></span> {{ resumen.activas }} activas
-        <span class="lp-sep">·</span>
-        <span class="lp-dot lp-dot--off"></span> {{ resumen.inactivas }} inactivas
-      </div>
-      <div class="lp-search">
-        <Search :size="15" />
-        <input v-model="q" type="search" placeholder="Buscar por nombre o slug…" />
-      </div>
-    </div>
-
-    <!-- Modo mantenimiento: bloquea a todo logueado que no sea proveedor -->
-    <div class="lp-mant" :class="{ 'lp-mant--on': systemStatus.mantenimiento }">
-      <div class="lp-mant__row">
-        <div class="lp-mant__info">
-          <Wrench :size="18" class="flex-shrink-0" />
-          <div class="lp-mant__titulo">
-            Modo mantenimiento: {{ systemStatus.mantenimiento ? 'ACTIVADO' : 'desactivado' }}
-          </div>
-        </div>
-        <div class="lp-mant__acciones">
-          <input v-if="!systemStatus.mantenimiento" v-model="mensajeMantenimiento" type="text"
-            class="lp-mant__input" placeholder="Mensaje opcional (ej: volvemos a las 3pm)" />
-          <AppButton :variant="systemStatus.mantenimiento ? 'primary' : 'danger'" :loading="systemStatus.saving"
-            @click="toggleMantenimiento">
-            {{ systemStatus.mantenimiento ? 'Desactivar' : 'Activar' }}
-          </AppButton>
-        </div>
-      </div>
-
-      <!-- Activo: mostrar a quién afecta (solo lectura, hay que desactivar para cambiarlo) -->
-      <div v-if="systemStatus.mantenimiento" class="lp-mant__alcance-activo">
-        Alcance:
-        <b v-if="systemStatus.alcance === 'todas'">todas las parroquias</b>
-        <b v-else>
-          {{ parroquias.filter(p => systemStatus.parroquiaIds.includes(p.id)).map(p => p.nombre).join(', ') || '—' }}
-        </b>
-      </div>
-
-      <!-- Por activar: elegir a quién afecta -->
-      <div v-else class="lp-mant__alcance-picker">
-        <div class="lp-seg" role="radiogroup" aria-label="Alcance del mantenimiento">
-          <button type="button" class="lp-seg__opt" :class="{ 'lp-seg__opt--on': alcanceMantenimiento === 'todas' }"
-            role="radio" :aria-checked="alcanceMantenimiento === 'todas'" @click="alcanceMantenimiento = 'todas'">
-            Todas las parroquias
-          </button>
-          <button type="button" class="lp-seg__opt" :class="{ 'lp-seg__opt--on': alcanceMantenimiento === 'parroquias' }"
-            role="radio" :aria-checked="alcanceMantenimiento === 'parroquias'" @click="alcanceMantenimiento = 'parroquias'">
-            Parroquias específicas
-          </button>
-        </div>
-        <div v-if="alcanceMantenimiento === 'parroquias'" class="lp-mant__chips">
-          <button v-for="p in parroquiasParaMantenimiento" :key="p.id" type="button" class="lp-chip"
-            :class="{ 'lp-chip--on': parroquiasSeleccionadas.includes(p.id) }"
-            :aria-pressed="parroquiasSeleccionadas.includes(p.id)"
-            @click="toggleParroquiaSeleccionada(p.id)">
-            <Check v-if="parroquiasSeleccionadas.includes(p.id)" :size="12" />
-            {{ p.nombre }}
-          </button>
-          <span v-if="parroquiasParaMantenimiento.length === 0" class="text-muted small">
-            No hay parroquias activas.
+    <!-- Resumen de la plataforma -->
+    <section class="lp-kpis" aria-label="Resumen de la plataforma">
+      <article class="lp-kpi">
+        <span class="lp-kpi__ico" aria-hidden="true"><Building2 :size="18" /></span>
+        <div class="lp-kpi__body">
+          <span class="lp-kpi__label">Parroquias</span>
+          <span class="lp-kpi__valor">{{ parroquias.length }}</span>
+          <span class="lp-kpi__meta">
+            <span class="lp-dot lp-dot--on" aria-hidden="true"></span> {{ resumen.activas }} activas
+            <span class="lp-dot lp-dot--off lp-kpi__sep" aria-hidden="true"></span> {{ resumen.inactivas }} inactivas
           </span>
         </div>
-      </div>
+      </article>
+      <article class="lp-kpi">
+        <span class="lp-kpi__ico" aria-hidden="true"><Users :size="18" /></span>
+        <div class="lp-kpi__body">
+          <span class="lp-kpi__label">Usuarios</span>
+          <span class="lp-kpi__valor">{{ totales.usuarios }}</span>
+          <span class="lp-kpi__meta">en todas las parroquias</span>
+        </div>
+      </article>
+      <article class="lp-kpi">
+        <span class="lp-kpi__ico" aria-hidden="true"><GraduationCap :size="18" /></span>
+        <div class="lp-kpi__body">
+          <span class="lp-kpi__label">Jóvenes</span>
+          <span class="lp-kpi__valor">{{ totales.confirmandos }}</span>
+          <span class="lp-kpi__meta">en {{ totales.grupos }} grupos</span>
+        </div>
+      </article>
+      <article class="lp-kpi" :class="{ 'lp-kpi--alerta': systemStatus.mantenimiento }">
+        <span class="lp-kpi__ico" aria-hidden="true"><Wrench :size="18" /></span>
+        <div class="lp-kpi__body">
+          <span class="lp-kpi__label">Mantenimiento</span>
+          <span class="lp-kpi__valor lp-kpi__valor--txt">{{ systemStatus.mantenimiento ? 'Activado' : 'Apagado' }}</span>
+          <span class="lp-kpi__meta">
+            {{ systemStatus.mantenimiento
+              ? (systemStatus.alcance === 'todas' ? 'Bloquea todas las parroquias' : 'Bloquea parroquias elegidas')
+              : 'Todos pueden entrar' }}
+          </span>
+        </div>
+      </article>
+    </section>
+
+    <div class="lp-layout">
+      <!-- Parroquias -->
+      <section class="lp-main surface" aria-labelledby="lp-lista-titulo">
+        <header class="lp-toolbar">
+          <h2 id="lp-lista-titulo" class="lp-toolbar__titulo">
+            Listado <span class="lp-toolbar__n">{{ parroquiasFiltradas.length }}</span>
+          </h2>
+          <div class="lp-seg lp-seg--neutro" role="radiogroup" aria-label="Filtrar por estado">
+            <button v-for="f in FILTROS_ESTADO" :key="f.value" type="button" role="radio"
+              class="lp-seg__opt" :class="{ 'lp-seg__opt--on': filtroEstado === f.value }"
+              :aria-checked="filtroEstado === f.value" @click="filtroEstado = f.value">{{ f.label }}</button>
+          </div>
+          <label class="lp-search">
+            <span class="lp-sr">Buscar parroquia</span>
+            <Search :size="15" aria-hidden="true" />
+            <input v-model="q" type="search" placeholder="Buscar por nombre o slug…" />
+          </label>
+        </header>
+
+        <AppEmpty v-if="parroquiasFiltradas.length === 0" :icon="Building2"
+          :message="q || filtroEstado !== 'todas' ? 'Ninguna parroquia coincide con el filtro.' : 'Aún no hay parroquias.'">
+          <AppButton v-if="!q && filtroEstado === 'todas'" :icon="Plus" @click="abrirAlta">Nueva parroquia</AppButton>
+        </AppEmpty>
+
+        <!-- Celular: tarjetas -->
+        <div v-else-if="esMovil" class="lp-cards">
+          <article v-for="p in parroquiasFiltradas" :key="p.id" class="lp-card" :class="{ 'lp-card--off': !p.activa }">
+            <button type="button" class="lp-card__abrir" :aria-label="`Ver y configurar ${p.nombre}`"
+              @click="abrirDetalle(p)">
+              <span class="lp-par__avatar" aria-hidden="true">{{ iniciales(p.nombre) }}</span>
+              <span class="lp-par__txt">
+                <span class="lp-par__nombre">{{ p.nombre }}</span>
+                <span class="lp-par__slug">{{ p.slug }}</span>
+              </span>
+            </button>
+            <div class="lp-card__stats">
+              <span><b>{{ p.users_count }}</b> usuarios</span>
+              <span><b>{{ p.grupos_count }}</b> grupos</span>
+              <span><b>{{ p.confirmandos_count }}</b> jóvenes</span>
+            </div>
+            <div class="lp-card__pie">
+              <span v-if="p.es_plantilla" class="lp-tag"><LayoutTemplate :size="12" aria-hidden="true" /> Plantilla</span>
+              <button type="button" class="lp-estado" :class="p.activa ? 'lp-estado--on' : 'lp-estado--off'"
+                @click="cambiarEstado(p)">
+                <Check v-if="p.activa" :size="12" aria-hidden="true" /><X v-else :size="12" aria-hidden="true" />
+                {{ p.activa ? 'Activa' : 'Inactiva' }}
+              </button>
+            </div>
+          </article>
+        </div>
+
+        <!-- Escritorio: tabla -->
+        <div v-else class="table-wrap lp-tabla">
+          <table class="mb-0">
+            <thead>
+              <tr>
+                <th class="pl-4">Parroquia</th>
+                <th class="!text-right">Usuarios</th>
+                <th class="!text-right">Grupos</th>
+                <th class="!text-right">Jóvenes</th>
+                <th>Creada</th>
+                <th>Estado</th>
+                <th class="pr-4"><span class="lp-sr">Acciones</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="p in parroquiasFiltradas" :key="p.id" class="lp-fila" :class="{ 'lp-row--off': !p.activa }"
+                @click="abrirDetalle(p)">
+                <td class="pl-4">
+                  <div class="lp-par">
+                    <span class="lp-par__avatar" aria-hidden="true">{{ iniciales(p.nombre) }}</span>
+                    <span class="lp-par__txt">
+                      <span class="lp-par__nombre">
+                        {{ p.nombre }}
+                        <span v-if="p.es_plantilla" class="lp-tag"><LayoutTemplate :size="12" aria-hidden="true" /> Plantilla</span>
+                      </span>
+                      <span class="lp-par__slug">{{ p.slug }}</span>
+                    </span>
+                  </div>
+                </td>
+                <td class="!text-right lp-num">{{ p.users_count }}</td>
+                <td class="!text-right lp-num">{{ p.grupos_count }}</td>
+                <td class="!text-right lp-num">{{ p.confirmandos_count }}</td>
+                <td class="lp-fecha">{{ fmtFecha(p.created_at) }}</td>
+                <td>
+                  <button type="button" class="lp-estado" :class="p.activa ? 'lp-estado--on' : 'lp-estado--off'"
+                    :title="p.activa ? 'Clic para desactivar' : 'Clic para activar'" @click.stop="cambiarEstado(p)">
+                    <Check v-if="p.activa" :size="12" aria-hidden="true" /><X v-else :size="12" aria-hidden="true" />
+                    {{ p.activa ? 'Activa' : 'Inactiva' }}
+                  </button>
+                </td>
+                <td class="pr-4 !text-right">
+                  <AppButton variant="ghost" size="sm" :icon="Settings2" :aria-label="`Configurar ${p.nombre}`"
+                    @click.stop="abrirDetalle(p)">Configurar</AppButton>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Mantenimiento: bloquea a todo logueado que no sea proveedor -->
+      <aside class="lp-mant" :class="{ 'lp-mant--on': systemStatus.mantenimiento }" aria-labelledby="lp-mant-titulo">
+        <header class="lp-mant__head">
+          <Wrench :size="17" aria-hidden="true" />
+          <h2 id="lp-mant-titulo" class="lp-mant__titulo">Modo mantenimiento</h2>
+          <span class="lp-mant__pill">{{ systemStatus.mantenimiento ? 'Activado' : 'Apagado' }}</span>
+        </header>
+
+        <template v-if="systemStatus.mantenimiento">
+          <p class="lp-mant__txt">
+            Bloquea a:
+            <b v-if="systemStatus.alcance === 'todas'">todas las parroquias</b>
+            <b v-else>{{ parroquias.filter(p => systemStatus.parroquiaIds.includes(p.id)).map(p => p.nombre).join(', ') || '—' }}</b>
+          </p>
+          <p v-if="systemStatus.mensaje" class="lp-mant__txt">Mensaje: «{{ systemStatus.mensaje }}»</p>
+        </template>
+
+        <template v-else>
+          <p class="lp-mant__txt">Muestra una pantalla de mantenimiento a todos menos a ti, hasta que lo apagues.</p>
+          <div class="lp-seg lp-seg--full" role="radiogroup" aria-label="Alcance del mantenimiento">
+            <button type="button" class="lp-seg__opt" :class="{ 'lp-seg__opt--on': alcanceMantenimiento === 'todas' }"
+              role="radio" :aria-checked="alcanceMantenimiento === 'todas'" @click="alcanceMantenimiento = 'todas'">
+              Todas
+            </button>
+            <button type="button" class="lp-seg__opt" :class="{ 'lp-seg__opt--on': alcanceMantenimiento === 'parroquias' }"
+              role="radio" :aria-checked="alcanceMantenimiento === 'parroquias'" @click="alcanceMantenimiento = 'parroquias'">
+              Algunas
+            </button>
+          </div>
+          <div v-if="alcanceMantenimiento === 'parroquias'" class="lp-mant__chips">
+            <button v-for="p in parroquiasParaMantenimiento" :key="p.id" type="button" class="lp-chip"
+              :class="{ 'lp-chip--on': parroquiasSeleccionadas.includes(p.id) }"
+              :aria-pressed="parroquiasSeleccionadas.includes(p.id)"
+              @click="toggleParroquiaSeleccionada(p.id)">
+              <Check v-if="parroquiasSeleccionadas.includes(p.id)" :size="12" aria-hidden="true" />
+              {{ p.nombre }}
+            </button>
+            <span v-if="parroquiasParaMantenimiento.length === 0" class="lp-mant__txt">No hay parroquias activas.</span>
+          </div>
+          <label class="lp-mant__label" for="lp-mant-msg">Mensaje <span>(opcional)</span></label>
+          <input id="lp-mant-msg" v-model="mensajeMantenimiento" type="text" maxlength="200"
+            class="lp-mant__input" placeholder="Ej: volvemos a las 3 p. m." />
+        </template>
+
+        <AppButton block :variant="systemStatus.mantenimiento ? 'primary' : 'danger'" :loading="systemStatus.saving"
+          @click="toggleMantenimiento">
+          {{ systemStatus.mantenimiento ? 'Apagar mantenimiento' : 'Activar mantenimiento' }}
+        </AppButton>
+      </aside>
     </div>
 
     <!-- Errores del frontend de todas las parroquias -->
     <details class="lp-errores surface surface--pad" @toggle="verErrores = $event.target.open">
-      <summary class="lp-errores__summary">Errores del sistema</summary>
+      <summary class="lp-errores__summary">
+        <Bug :size="16" aria-hidden="true" /> Errores del sistema
+        <span class="lp-errores__hint">Fallos de la app en todas las parroquias</span>
+      </summary>
       <ErroresSistema v-if="verErrores" :parroquias="parroquias" class="lp-errores__panel" />
     </details>
-
-    <!-- Tarjetas en celular -->
-    <div v-if="esMovil" class="lp-cards">
-      <AppEmpty v-if="parroquiasFiltradas.length === 0" :icon="Building2"
-        :message="q ? 'Ninguna parroquia coincide con la búsqueda.' : 'Aún no hay parroquias.'">
-        <AppButton v-if="!q" :icon="Plus" @click="abrirAlta">Nueva parroquia</AppButton>
-      </AppEmpty>
-      <article v-for="p in parroquiasFiltradas" :key="p.id" class="lp-card" :class="{ 'lp-card--off': !p.activa }">
-        <div class="lp-card__head">
-          <span class="lp-card__nombre">
-            <Building2 :size="15" class="text-slate-400" /> {{ p.nombre }}
-          </span>
-          <AppButton
-            variant="soft"
-            tone="secondary"
-            icon-only
-            title="Ver detalle / configurar"
-            @click="abrirDetalle(p)"
-            aria-label="Ver detalle / configurar"><Eye :size="16" /></AppButton>
-        </div>
-        <div class="lp-card__slug">{{ p.slug }}</div>
-        <div class="lp-card__stats">
-          <span><b>{{ p.users_count }}</b> usuarios</span>
-          <span><b>{{ p.grupos_count }}</b> grupos</span>
-          <span><b>{{ p.confirmandos_count }}</b> confirmandos</span>
-        </div>
-        <button
-          class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors"
-          :class="p.activa ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'"
-          @click="cambiarEstado(p)">
-          <Check v-if="p.activa" :size="12" /><X v-else :size="12" />
-          {{ p.activa ? 'Activa' : 'Inactiva' }}
-        </button>
-      </article>
-    </div>
-
-    <div v-else class="surface table-wrap">
-      <table class="mb-0">
-        <thead>
-          <tr>
-            <th class="pl-4">Parroquia</th>
-            <th>Slug</th>
-            <th class="!text-center">Usuarios</th>
-            <th class="!text-center">Grupos</th>
-            <th class="!text-center">Confirmandos</th>
-            <th class="!text-center">Estado</th>
-            <th class="!text-right pr-4">Detalle</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-if="parroquiasFiltradas.length === 0">
-            <td colspan="7">
-              <AppEmpty :icon="Building2"
-                :message="q ? 'Ninguna parroquia coincide con la búsqueda.' : 'Aún no hay parroquias.'">
-                <AppButton v-if="!q" :icon="Plus" @click="abrirAlta">Nueva parroquia</AppButton>
-              </AppEmpty>
-            </td>
-          </tr>
-          <tr v-for="p in parroquiasFiltradas" :key="p.id" :class="{ 'lp-row--off': !p.activa }">
-            <td class="pl-4 font-medium text-slate-800 dark:text-slate-100">
-              <span class="inline-flex items-center gap-2">
-                <Building2 :size="15" class="text-slate-400" /> {{ p.nombre }}
-              </span>
-            </td>
-            <td class="text-slate-500 font-monospace">{{ p.slug }}</td>
-            <td class="!text-center">{{ p.users_count }}</td>
-            <td class="!text-center">{{ p.grupos_count }}</td>
-            <td class="!text-center">{{ p.confirmandos_count }}</td>
-            <td class="!text-center">
-              <button
-                class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors"
-                :class="p.activa ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-900/60' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'"
-                :title="p.activa ? 'Clic para desactivar' : 'Clic para activar'"
-                @click="cambiarEstado(p)">
-                <Check v-if="p.activa" :size="12" /><X v-else :size="12" />
-                {{ p.activa ? 'Activa' : 'Inactiva' }}
-              </button>
-            </td>
-            <td class="!text-right pr-4">
-              <AppButton
-                variant="soft"
-                tone="secondary"
-                icon-only
-                class="ml-auto"
-                title="Ver detalle / configurar"
-                @click="abrirDetalle(p)"
-                aria-label="Ver detalle / configurar"><Eye :size="16" /></AppButton>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
   </AppPage>
 
   <!-- Modales (fuera del slot condicionado por :loading de AppPage) -->
   <div>
     <!-- Modal: alta de parroquia -->
-    <div class="modal fade" ref="formModalRef" tabindex="-1" aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal fade" ref="formModalRef" tabindex="-1" aria-hidden="true" aria-labelledby="lp-alta-titulo">
+      <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-xl">
         <div class="modal-content">
           <div class="modal-header">
             <span class="modal-header__icon" aria-hidden="true"><Building2 :size="18" /></span>
             <div class="modal-header__text">
-              <h5 class="modal-title">Nueva parroquia</h5>
+              <h5 id="lp-alta-titulo" class="modal-title">Nueva parroquia</h5>
+              <p class="modal-subtitle">Crea la parroquia, su ruta sacramental y su primer administrador</p>
             </div>
             <button type="button" class="btn-close" data-bs-dismiss="modal" :disabled="saving" aria-label="Cerrar"></button>
           </div>
-          <form @submit.prevent="crear">
-            <div class="modal-body">
-              <div class="grid gap-3 sm:grid-cols-2">
-                <label class="text-sm">Nombre de la parroquia <span class="text-rose-500">*</span>
-                  <input v-model="form.nombre" required maxlength="150" class="mt-1" />
-                  <small v-if="errores.nombre" class="text-rose-500">{{ errores.nombre[0] }}</small>
-                </label>
-                <label class="text-sm">
-                  <span class="flex items-center justify-between">
-                    Slug (URL)
-                    <button type="button" class="lp-link"
-                      @click="slugManual = !slugManual; !slugManual && (form.slug = slugify(form.nombre))">
-                      {{ slugManual ? 'Autogenerar' : 'Personalizar' }}
-                    </button>
-                  </span>
-                  <input v-model="form.slug" maxlength="80" :readonly="!slugManual"
-                    class="mt-1 font-monospace" :class="{ 'lp-readonly': !slugManual }" />
-                  <small class="text-slate-400">Se usa internamente: <code>{{ slugPreview || '—' }}</code></small>
-                  <small v-if="errores.slug" class="text-rose-500 block">{{ errores.slug[0] }}</small>
-                </label>
-                <label class="text-sm sm:col-span-2 sm:w-1/2">Zona horaria
-                  <select v-model="form.zona_horaria" class="mt-1">
-                    <option v-for="z in ZONAS" :key="z" :value="z">{{ z }}</option>
-                  </select>
-                </label>
-                <div class="text-sm sm:col-span-2">
-                  <span class="block mb-1">Sacramentos que gestionará</span>
+          <form class="lp-form" @submit.prevent="crear">
+            <div class="modal-body lp-cols">
+              <section class="lp-col" aria-labelledby="lp-alta-parroquia">
+                <h6 id="lp-alta-parroquia" class="lp-col__titulo"><Building2 :size="15" aria-hidden="true" /> La parroquia</h6>
+                <div class="lp-grid2">
+                  <label class="lp-campo lp-span2"><span>Nombre de la parroquia <span class="lp-req">*</span></span>
+                    <input v-model="form.nombre" required maxlength="150" />
+                    <small v-if="errores.nombre" class="lp-err">{{ errores.nombre[0] }}</small>
+                  </label>
+                  <label class="lp-campo">
+                    <span class="lp-campo__fila">
+                      Slug (URL)
+                      <button type="button" class="lp-link"
+                        @click="slugManual = !slugManual; !slugManual && (form.slug = slugify(form.nombre))">
+                        {{ slugManual ? 'Autogenerar' : 'Personalizar' }}
+                      </button>
+                    </span>
+                    <input v-model="form.slug" maxlength="80" :readonly="!slugManual"
+                      class="font-monospace" :class="{ 'lp-readonly': !slugManual }" />
+                    <small v-if="errores.slug" class="lp-err">{{ errores.slug[0] }}</small>
+                  </label>
+                  <label class="lp-campo">Zona horaria
+                    <select v-model="form.zona_horaria">
+                      <option v-for="z in ZONAS" :key="z" :value="z">{{ z }}</option>
+                    </select>
+                  </label>
+                </div>
+                <fieldset class="lp-campo lp-fieldset">
+                  <legend>Sacramentos que gestionará</legend>
                   <div class="lp-sacs">
                     <label v-for="[clave, label] in SACRAMENTOS_META" :key="clave" class="lp-sac"
                       :class="{ 'lp-sac--on': form.sacramentos.includes(clave) }">
                       <input type="checkbox" :value="clave" v-model="form.sacramentos" />
-                      <Check v-if="form.sacramentos.includes(clave)" :size="13" /> {{ label }}
+                      <Check v-if="form.sacramentos.includes(clave)" :size="13" aria-hidden="true" /> {{ label }}
                     </label>
                   </div>
-                  <small class="text-slate-400">Se copian de la parroquia plantilla, con sus documentos.</small>
-                </div>
+                  <small class="lp-ayuda">Se copian de la parroquia plantilla, con sus documentos.</small>
+                </fieldset>
+              </section>
 
-                <div class="text-sm sm:col-span-2">
-                  <span class="block mb-1">Logo <span class="text-slate-400">(opcional)</span></span>
-                  <div class="flex items-center gap-3">
-                    <div class="lp-logobox">
-                      <img v-if="nuevoLogoPreview" :src="nuevoLogoPreview" alt="" />
-                      <ImageIcon v-else :size="18" class="text-slate-300" />
+              <section class="lp-col" aria-labelledby="lp-alta-admin">
+                <h6 id="lp-alta-admin" class="lp-col__titulo"><KeyRound :size="15" aria-hidden="true" /> Primer administrador</h6>
+                <div class="lp-grid2">
+                  <label class="lp-campo lp-span2"><span>Nombre completo <span class="lp-req">*</span></span>
+                    <input v-model="form.admin_nombre" required maxlength="100" autocomplete="off" />
+                  </label>
+                  <label class="lp-campo"><span>Correo <span class="lp-req">*</span></span>
+                    <input v-model="form.admin_email" type="email" required autocomplete="off" />
+                    <small v-if="errores.admin_email" class="lp-err">{{ errores.admin_email[0] }}</small>
+                  </label>
+                  <label class="lp-campo"><span>DNI <span class="lp-opc">(opcional)</span></span>
+                    <input v-model="form.admin_dni" maxlength="20" inputmode="numeric" autocomplete="off" />
+                    <small v-if="errores.admin_dni" class="lp-err">{{ errores.admin_dni[0] }}</small>
+                  </label>
+                </div>
+                <p class="lp-nota"><Info :size="14" aria-hidden="true" /> Al crearla verás una contraseña temporal
+                  para entregarle. Solo se muestra una vez.</p>
+
+                <div class="lp-campo">
+                  <span>Logo <span class="lp-opc">(opcional)</span></span>
+                  <div class="lp-logo-fila">
+                    <div class="lp-logobox lp-logobox--lg">
+                      <img v-if="nuevoLogoPreview" :src="nuevoLogoPreview" alt="Vista previa del logo" />
+                      <ImageIcon v-else :size="20" class="text-slate-300" aria-hidden="true" />
                     </div>
-                    <input ref="nuevoLogoInput" type="file" accept="image/png,image/jpeg,image/webp"
-                      class="lp-file" @change="onNuevoLogo" />
-                    <AppButton variant="secondary" size="sm" :icon="Upload" type="button" @click="$refs.nuevoLogoInput.click()">Elegir imagen</AppButton>
-                    <button v-if="nuevoLogo" type="button" class="lp-link" @click="quitarNuevoLogo">Quitar</button>
+                    <div class="lp-logo-fila__acc">
+                      <input ref="nuevoLogoInput" type="file" accept="image/png,image/jpeg,image/webp"
+                        class="lp-file" @change="onNuevoLogo" />
+                      <div class="flex flex-wrap items-center gap-2">
+                        <AppButton variant="secondary" size="sm" :icon="Upload" type="button"
+                          @click="$refs.nuevoLogoInput.click()">Elegir imagen</AppButton>
+                        <button v-if="nuevoLogo" type="button" class="lp-link" @click="quitarNuevoLogo">Quitar</button>
+                      </div>
+                      <small class="lp-ayuda">PNG, JPG o WebP. El admin podrá reemplazarlo.</small>
+                    </div>
                   </div>
-                  <small class="text-slate-400">PNG, JPG o WebP. Se optimiza al subir. El admin podrá reemplazarlo.</small>
                 </div>
-              </div>
-
-              <p class="mt-4 mb-2 text-xs font-semibold text-slate-400">Primer administrador</p>
-              <div class="grid gap-3 sm:grid-cols-2">
-                <label class="text-sm">Nombre <span class="text-rose-500">*</span>
-                  <input v-model="form.admin_nombre" required maxlength="100" class="mt-1" />
-                </label>
-                <label class="text-sm">Email <span class="text-rose-500">*</span>
-                  <input v-model="form.admin_email" type="email" required class="mt-1" />
-                  <small v-if="errores.admin_email" class="text-rose-500">{{ errores.admin_email[0] }}</small>
-                </label>
-                <label class="text-sm sm:col-span-2 sm:w-1/2">DNI <span class="text-slate-400">(opcional)</span>
-                  <input v-model="form.admin_dni" maxlength="20" class="mt-1" />
-                  <small v-if="errores.admin_dni" class="text-rose-500">{{ errores.admin_dni[0] }}</small>
-                </label>
-              </div>
+              </section>
             </div>
             <div class="modal-footer">
               <AppButton variant="secondary" type="button" data-bs-dismiss="modal" :disabled="saving">Cancelar</AppButton>
-              <AppButton type="submit" :disabled="saving">{{ saving ? 'Creando…' : 'Crear parroquia' }}</AppButton>
+              <AppButton type="submit" :loading="saving">{{ saving ? 'Creando…' : 'Crear parroquia' }}</AppButton>
             </div>
           </form>
         </div>
@@ -715,65 +784,40 @@ function copiar(txt) {
     </div>
 
     <!-- Modal: detalle / edición -->
-    <div class="modal fade" ref="detalleModalRef" tabindex="-1" aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal fade" ref="detalleModalRef" tabindex="-1" aria-hidden="true" aria-labelledby="lp-det-titulo">
+      <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-xl">
         <div class="modal-content">
           <div class="modal-header lp-modal-head">
-            <span class="modal-header__icon" aria-hidden="true"><Building2 :size="18" /></span>
+            <span class="lp-par__avatar lp-par__avatar--lg" aria-hidden="true">{{ iniciales(edit.nombreGuardado || edit.nombre) }}</span>
             <div class="modal-header__text">
-              <h5 class="modal-title truncate">{{ edit.nombre }}</h5>
+              <h5 id="lp-det-titulo" class="modal-title truncate">{{ edit.nombre }}</h5>
               <div class="lp-modal-head__slug">
-                <span class="lp-modal-head__slugtxt"><Globe :size="11" class="inline flex-shrink-0" /> {{ edit.slug }}</span>
+                <span class="lp-modal-head__slugtxt"><Globe :size="11" class="inline flex-shrink-0" aria-hidden="true" /> {{ edit.slug }}</span>
                 <span class="lp-modal-head__estado">
-                  <span class="lp-dot" :class="edit.activa ? 'lp-dot--on' : 'lp-dot--off'"></span>
+                  <span class="lp-dot" :class="edit.activa ? 'lp-dot--on' : 'lp-dot--off'" aria-hidden="true"></span>
                   {{ edit.activa ? 'Activa' : 'Inactiva' }}
                 </span>
+                <span class="lp-modal-head__estado"><Clock :size="11" aria-hidden="true" /> Creada {{ fmtFecha(edit.created_at) }}</span>
+                <span v-if="edit.es_plantilla" class="lp-tag"><LayoutTemplate :size="12" aria-hidden="true" /> Plantilla</span>
               </div>
             </div>
             <button type="button" class="btn-close" data-bs-dismiss="modal" :disabled="savingEdit" aria-label="Cerrar"></button>
           </div>
-          <form @submit.prevent="guardarDetalle">
-            <div class="modal-body">
-              <div class="lp-stats">
-                <div><b>{{ edit.users_count }}</b><span>Usuarios</span></div>
-                <div><b>{{ edit.grupos_count }}</b><span>Grupos</span></div>
-                <div><b>{{ edit.confirmandos_count }}</b><span>Confirmandos</span></div>
-                <div><b class="text-sm"><Clock :size="13" class="inline" /> {{ fmtFecha(edit.created_at) }}</b><span>Creada</span></div>
-              </div>
-
-              <section class="lp-section">
-                <header class="lp-section__head">
-                  <Building2 :size="15" class="lp-section__ico" /> Datos generales
-                </header>
-                <div class="grid gap-3 sm:grid-cols-3">
-                  <label class="text-sm">Nombre
-                    <input v-model="edit.nombre" required maxlength="150" class="mt-1" />
-                    <small v-if="editErrores.nombre" class="text-rose-500">{{ editErrores.nombre[0] }}</small>
-                  </label>
-                  <label class="text-sm">
-                    <span class="flex items-center justify-between">
-                      Slug (URL)
-                      <button type="button" class="lp-link"
-                        @click="editSlugManual = !editSlugManual; !editSlugManual && (edit.slug = slugify(edit.nombre))">
-                        {{ editSlugManual ? 'Autogenerar' : 'Personalizar' }}
-                      </button>
-                    </span>
-                    <input v-model="edit.slug" maxlength="80" :readonly="!editSlugManual"
-                      class="mt-1 font-monospace" :class="{ 'lp-readonly': !editSlugManual }" />
-                    <small v-if="editErrores.slug" class="text-rose-500">{{ editErrores.slug[0] }}</small>
-                  </label>
-                  <label class="text-sm">Zona horaria
-                    <select v-model="edit.zona_horaria" class="mt-1">
-                      <option v-for="z in ZONAS" :key="z" :value="z">{{ z }}</option>
-                    </select>
-                  </label>
+          <form class="lp-form" @submit.prevent="guardarDetalle">
+            <div class="modal-body lp-det">
+              <!-- Columna lateral: identidad y estado -->
+              <aside class="lp-det__side">
+                <div class="lp-stats">
+                  <div><b>{{ edit.users_count }}</b><span>Usuarios</span></div>
+                  <div><b>{{ edit.grupos_count }}</b><span>Grupos</span></div>
+                  <div><b>{{ edit.confirmandos_count }}</b><span>Jóvenes</span></div>
                 </div>
 
                 <label class="lp-toggle-row" :class="{ 'lp-toggle-row--off': !edit.activa }">
                   <span>
                     <span class="lp-toggle-row__titulo">Parroquia activa</span>
                     <span class="lp-toggle-row__desc">
-                      {{ edit.activa ? 'Sus usuarios pueden iniciar sesión con normalidad.' : 'Sus usuarios no podrán iniciar sesión.' }}
+                      {{ edit.activa ? 'Sus usuarios entran con normalidad.' : 'Sus usuarios no podrán iniciar sesión.' }}
                     </span>
                   </span>
                   <span class="lp-switch">
@@ -781,93 +825,106 @@ function copiar(txt) {
                     <span class="lp-switch__track"><span class="lp-switch__thumb"></span></span>
                   </span>
                 </label>
-              </section>
 
-              <div class="lp-sections-grid">
-                <section class="lp-section lp-section--span2">
-                  <header class="lp-section__head">
-                    <ImageIcon :size="15" class="lp-section__ico" /> Logo base
-                  </header>
-                  <div class="flex items-center gap-3">
+                <section class="lp-bloque" aria-labelledby="lp-det-logo">
+                  <h6 id="lp-det-logo" class="lp-bloque__titulo"><ImageIcon :size="15" aria-hidden="true" /> Logo base</h6>
+                  <div class="lp-logo-fila">
                     <div class="lp-logobox lp-logobox--lg">
-                      <img v-if="editLogoPreview" :src="editLogoPreview" alt="" />
-                      <ImageIcon v-else :size="20" class="text-slate-300" />
+                      <img v-if="editLogoPreview" :src="editLogoPreview" alt="Logo de la parroquia" />
+                      <ImageIcon v-else :size="20" class="text-slate-300" aria-hidden="true" />
                     </div>
-                    <div class="min-w-0">
+                    <div class="lp-logo-fila__acc">
                       <input ref="editLogoInput" type="file" accept="image/png,image/jpeg,image/webp"
                         class="lp-file" @change="onEditLogo" />
                       <div class="flex flex-wrap items-center gap-2">
-                        <AppButton
-                          variant="secondary"
-                          size="sm"
-                          :icon="Upload"
-                          type="button"
-                          :disabled="editLogoSubiendo"
+                        <AppButton variant="secondary" size="sm" :icon="Upload" type="button" :disabled="editLogoSubiendo"
                           @click="$refs.editLogoInput.click()">{{ editLogoSubiendo ? 'Subiendo…' : (editBranding.logo_url_proveedor ? 'Cambiar' : 'Subir logo') }}</AppButton>
                         <button v-if="editBranding.logo_url_proveedor" type="button" class="lp-link"
                           :disabled="editLogoSubiendo" @click="quitarEditLogo">Quitar</button>
                       </div>
-                      <small class="text-slate-400 block mt-1">
-                        <template v-if="editBranding.logo_url">El admin ya subió su propio logo; este solo se ve si lo quita.</template>
-                        <template v-else>Se muestra hasta que el admin de la parroquia suba el suyo.</template>
-                      </small>
                     </div>
                   </div>
-                </section>
-
-                <section class="lp-section">
-                  <header class="lp-section__head">
-                    <BookOpen :size="15" class="lp-section__ico" /> Tipo de programa
-                  </header>
-                  <label class="text-sm">Programa
-                    <select v-model="editPrograma.tipo" class="mt-1">
-                      <option v-for="[valor, etiqueta] in PROGRAMA_TIPOS" :key="valor" :value="valor">{{ etiqueta }}</option>
-                    </select>
-                  </label>
-                  <label v-if="editPrograma.tipo === 'otro'" class="text-sm block mt-2">Nombre del programa
-                    <input v-model="editPrograma.nombre_otro" maxlength="60" class="mt-1" placeholder="Ej: Primera Reconciliación" />
-                  </label>
-                  <small class="text-slate-400 block mt-2">Define el navbar: "Programa de …".</small>
-
-                  <div class="grid gap-3 sm:grid-cols-2 mt-3 pt-3 border-t">
-                    <label class="text-sm">Persona (singular) <span class="text-slate-400">(opcional)</span>
-                      <input v-model="editPrograma.persona_singular" maxlength="40" class="mt-1" :placeholder="editPersonaDefault[0]" />
-                    </label>
-                    <label class="text-sm">Persona (plural) <span class="text-slate-400">(opcional)</span>
-                      <input v-model="editPrograma.persona_plural" maxlength="40" class="mt-1" :placeholder="editPersonaDefault[1]" />
-                    </label>
-                  </div>
-                  <small class="text-slate-400 block mt-1">
-                    Vacío usa "{{ editPersonaDefault[0] }}" / "{{ editPersonaDefault[1] }}". Así se llama a
-                    la persona en el menú, el dashboard y los listados de esta parroquia.
+                  <small class="lp-ayuda">
+                    <template v-if="editBranding.logo_url">El admin ya subió su propio logo; este solo se ve si lo quita.</template>
+                    <template v-else>Se muestra hasta que el admin de la parroquia suba el suyo.</template>
                   </small>
                 </section>
 
-                <section class="lp-section">
-                  <header class="lp-section__head">
-                    <LayoutTemplate :size="15" class="lp-section__ico" /> Plantilla
-                  </header>
-                  <div v-if="edit.es_plantilla" class="inline-flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-300">
-                    <Check :size="15" /> Es la parroquia plantilla: las nuevas copian su ruta sacramental.
+                <section class="lp-bloque" aria-labelledby="lp-det-plantilla">
+                  <h6 id="lp-det-plantilla" class="lp-bloque__titulo"><LayoutTemplate :size="15" aria-hidden="true" /> Plantilla</h6>
+                  <p v-if="edit.es_plantilla" class="lp-ayuda lp-ayuda--ok">
+                    <Check :size="14" aria-hidden="true" /> Las parroquias nuevas copian su ruta sacramental.
+                  </p>
+                  <template v-else>
+                    <p class="lp-ayuda">Las parroquias nuevas copian la ruta sacramental de la plantilla.</p>
+                    <AppButton variant="secondary" size="sm" type="button" :loading="marcandoPlantilla"
+                      @click="marcarComoPlantilla">Usar como plantilla</AppButton>
+                  </template>
+                </section>
+              </aside>
+
+              <!-- Columna principal: datos editables -->
+              <div class="lp-det__main">
+                <section class="lp-bloque" aria-labelledby="lp-det-datos">
+                  <h6 id="lp-det-datos" class="lp-bloque__titulo"><Building2 :size="15" aria-hidden="true" /> Datos generales</h6>
+                  <div class="lp-grid2">
+                    <label class="lp-campo lp-span2">Nombre
+                      <input v-model="edit.nombre" required maxlength="150" />
+                      <small v-if="editErrores.nombre" class="lp-err">{{ editErrores.nombre[0] }}</small>
+                    </label>
+                    <label class="lp-campo">
+                      <span class="lp-campo__fila">
+                        Slug (URL)
+                        <button type="button" class="lp-link"
+                          @click="editSlugManual = !editSlugManual; !editSlugManual && (edit.slug = slugify(edit.nombre))">
+                          {{ editSlugManual ? 'Autogenerar' : 'Personalizar' }}
+                        </button>
+                      </span>
+                      <input v-model="edit.slug" maxlength="80" :readonly="!editSlugManual"
+                        class="font-monospace" :class="{ 'lp-readonly': !editSlugManual }" />
+                      <small v-if="editErrores.slug" class="lp-err">{{ editErrores.slug[0] }}</small>
+                    </label>
+                    <label class="lp-campo">Zona horaria
+                      <select v-model="edit.zona_horaria">
+                        <option v-for="z in ZONAS" :key="z" :value="z">{{ z }}</option>
+                      </select>
+                    </label>
                   </div>
-                  <AppButton
-                    v-else
-                    variant="secondary"
-                    size="sm"
-                    type="button"
-                    :disabled="marcandoPlantilla"
-                    @click="marcarComoPlantilla">{{ marcandoPlantilla ? 'Guardando…' : 'Usar como plantilla' }}</AppButton>
                 </section>
 
-                <section class="lp-section lp-peligro" aria-labelledby="lp-peligro-titulo">
-                  <header id="lp-peligro-titulo" class="lp-section__head lp-peligro__head">
-                    <Trash2 :size="15" class="lp-section__ico" aria-hidden="true" /> Eliminar parroquia
-                  </header>
+                <section class="lp-bloque" aria-labelledby="lp-det-programa">
+                  <h6 id="lp-det-programa" class="lp-bloque__titulo"><BookOpen :size="15" aria-hidden="true" /> Programa</h6>
+                  <div class="lp-grid2">
+                    <label class="lp-campo" :class="{ 'lp-span2': editPrograma.tipo !== 'otro' }">Tipo de programa
+                      <select v-model="editPrograma.tipo">
+                        <option v-for="[valor, etiqueta] in PROGRAMA_TIPOS" :key="valor" :value="valor">{{ etiqueta }}</option>
+                      </select>
+                    </label>
+                    <label v-if="editPrograma.tipo === 'otro'" class="lp-campo">Nombre del programa
+                      <input v-model="editPrograma.nombre_otro" maxlength="60" placeholder="Ej: Primera Reconciliación" />
+                    </label>
+                    <label class="lp-campo"><span>Persona (singular) <span class="lp-opc">(opcional)</span></span>
+                      <input v-model="editPrograma.persona_singular" maxlength="40" :placeholder="editPersonaDefault[0]" />
+                    </label>
+                    <label class="lp-campo"><span>Persona (plural) <span class="lp-opc">(opcional)</span></span>
+                      <input v-model="editPrograma.persona_plural" maxlength="40" :placeholder="editPersonaDefault[1]" />
+                    </label>
+                  </div>
+                  <small class="lp-ayuda">
+                    El tipo define la barra superior («Programa de …»). Vacío usa «{{ editPersonaDefault[0] }}» /
+                    «{{ editPersonaDefault[1] }}» en el menú, el panel y los listados.
+                  </small>
+                </section>
+
+                <section class="lp-bloque lp-peligro" aria-labelledby="lp-peligro-titulo">
+                  <h6 id="lp-peligro-titulo" class="lp-bloque__titulo lp-peligro__head">
+                    <Trash2 :size="15" aria-hidden="true" /> Eliminar parroquia
+                  </h6>
                   <p v-if="edit.es_plantilla" class="lp-peligro__txt">
                     Es la plantilla de las parroquias nuevas. Marca otra como plantilla para poder eliminarla.
                   </p>
                   <p v-else-if="activaGuardada" class="lp-peligro__txt">
-                    Para eliminarla, primero desactívala (interruptor «Activa» de arriba) y guarda los cambios.
+                    Para eliminarla, primero desactívala (interruptor «Parroquia activa») y guarda los cambios.
                   </p>
                   <template v-else>
                     <p class="lp-peligro__txt">
@@ -893,7 +950,7 @@ function copiar(txt) {
             </div>
             <div class="modal-footer">
               <AppButton variant="secondary" type="button" data-bs-dismiss="modal" :disabled="savingEdit">Cancelar</AppButton>
-              <AppButton type="submit" :disabled="savingEdit">{{ savingEdit ? 'Guardando…' : 'Guardar cambios' }}</AppButton>
+              <AppButton type="submit" :loading="savingEdit">{{ savingEdit ? 'Guardando…' : 'Guardar cambios' }}</AppButton>
             </div>
           </form>
         </div>
@@ -942,8 +999,6 @@ function copiar(txt) {
 </template>
 
 <style scoped>
-.lp-peligro { border-color: color-mix(in srgb, var(--danger) 35%, var(--line)); }
-.lp-peligro__head { color: var(--danger); }
 .lp-peligro__txt { margin: 0 0 0.6rem; font-size: var(--fs-sm); line-height: 1.5; color: var(--text-muted); }
 .lp-peligro__txt strong { color: var(--text); }
 .lp-peligro__label { display: block; font-size: var(--fs-sm); color: var(--text); margin-bottom: 0.35rem; }
@@ -952,59 +1007,7 @@ function copiar(txt) {
 .lp-peligro__fila :deep(button) { min-height: 44px; }
 
 .lp-errores { margin-bottom: 1rem; }
-.lp-errores__summary { cursor: pointer; font-weight: 700; color: var(--text); }
 .lp-errores__panel { margin-top: 0.9rem; }
-.lp-bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
-}
-.lp-mant {
-  display: flex;
-  flex-direction: column;
-  gap: 0.65rem;
-  padding: 0.85rem 1rem;
-  margin-bottom: 1rem;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--line);
-  background: var(--surface-sunken);
-  color: var(--text-muted);
-}
-.lp-mant--on {
-  border-color: #fde68a;
-  background: #fffbeb;
-  color: #92400e;
-}
-.lp-mant__row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-}
-.lp-mant__info { display: flex; align-items: center; gap: 0.6rem; }
-.lp-mant__titulo { font-weight: 700; font-size: var(--fs-ui); }
-.lp-mant__acciones { display: flex; align-items: center; gap: 0.5rem; flex: 1 1 auto; justify-content: flex-end; }
-.lp-mant__input {
-  font-size: var(--fs-sm);
-  padding: 0.5rem 0.75rem;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--line-strong);
-  flex: 1 1 auto;
-  min-width: 280px;
-  max-width: 420px;
-}
-.lp-mant__alcance-activo { font-size: var(--fs-sm); }
-.lp-mant__alcance-picker {
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-  padding-top: 0.6rem;
-  border-top: 1px dashed var(--line);
-}
 
 /* Segmented control: dos opciones mutuamente excluyentes, más claro que dos
    radios sueltos y más fácil de tocar en celular. */
@@ -1061,20 +1064,6 @@ function copiar(txt) {
   color: #92400e;
   font-weight: 600;
 }
-@media (max-width: 767px) {
-  .lp-mant__row { flex-direction: column; align-items: stretch; }
-  .lp-mant__acciones { flex-direction: column; align-items: stretch; }
-  .lp-mant__input { min-width: 0; max-width: none; }
-}
-.lp-count {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: var(--fs-ui);
-  font-weight: 600;
-  color: var(--text-muted);
-}
-.lp-sep { color: var(--text); margin: 0 0.15rem; }
 .lp-dot {
   width: 8px;
   height: 8px;
@@ -1084,58 +1073,12 @@ function copiar(txt) {
 .lp-dot--on { background: #10b981; }
 .lp-dot--off { background: #94a3b8; }
 
-.lp-search {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-}
-.lp-search svg {
-  position: absolute;
-  left: 0.6rem;
-  color: var(--text-muted);
-  pointer-events: none;
-}
-.lp-search input {
-  width: 260px;
-  max-width: 60vw;
-  padding-left: 2rem;
-}
 
 .lp-row--off td { color: var(--text-muted); }
 .lp-row--off td:first-child { opacity: 0.75; }
 
 /* ===== Tarjetas (celular) ===== */
-.lp-cards {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-.lp-card {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  padding: 0.85rem;
-}
 .lp-card--off { opacity: 0.7; }
-.lp-card__head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-.lp-card__nombre {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-weight: 600;
-  color: var(--text);
-}
-.lp-card__slug {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: var(--fs-xs);
-  color: var(--text-muted);
-  margin: 0.25rem 0 0.6rem;
-}
 .lp-card__stats {
   display: flex;
   flex-wrap: wrap;
@@ -1146,11 +1089,6 @@ function copiar(txt) {
 }
 .lp-card__stats b { color: var(--text); }
 
-@media (max-width: 767px) {
-  .lp-bar { flex-direction: column; align-items: stretch; }
-  .lp-search { width: 100%; }
-  .lp-search input { width: 100%; max-width: none; }
-}
 
 .lp-link {
   font-size: var(--fs-xs);
@@ -1275,39 +1213,11 @@ function copiar(txt) {
 
 /* Secciones del formulario de detalle: reemplaza los divisores + label
    suelto por bloques con cabecera propia, más fáciles de escanear. */
-.lp-section {
-  padding: 0.85rem 1rem;
-  margin-top: 0.75rem;
-  border: 1px solid #eef1f5;
-  border-radius: var(--radius-lg);
-  background: #fbfcfe;
-}
-.lp-section__head {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  margin-bottom: 0.65rem;
-  font-size: var(--fs-xs);
-  font-weight: 700;
-  color: var(--text-muted);
-}
-.lp-section__ico { color: var(--accent); flex-shrink: 0; }
 
 /* Las 3 secciones secundarias no necesitan ser full-width: en 2 columnas se
    lee igual de bien y el modal deja de ser un scroll larguísimo. Logo base
    ocupa las 2 columnas (tiene más contenido); Tipo de programa y Plantilla
    van una al lado de la otra. */
-.lp-sections-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 0.75rem;
-  margin-top: 0.75rem;
-}
-.lp-sections-grid .lp-section { margin-top: 0; }
-@media (min-width: 576px) {
-  .lp-sections-grid { grid-template-columns: 1fr 1fr; }
-  .lp-section--span2 { grid-column: 1 / -1; }
-}
 
 /* Fila "Parroquia activa": toggle switch en vez de un checkbox suelto y mal
    alineado junto a los demás campos. */
@@ -1350,24 +1260,6 @@ function copiar(txt) {
 .lp-switch input:focus-visible ~ .lp-switch__track { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* ===== MODO OSCURO ===== */
-:root[data-bs-theme="dark"] .lp-mant {
-  border-color: var(--line);
-  background: var(--surface-sunken);
-  color: var(--text-muted);
-}
-:root[data-bs-theme="dark"] .lp-mant--on {
-  border-color: #7c5e17;
-  background: #4a3412;
-  color: #fbbf24;
-}
-:root[data-bs-theme="dark"] .lp-mant__input {
-  background: var(--surface-sunken);
-  border-color: var(--line-strong);
-  color: var(--text);
-}
-:root[data-bs-theme="dark"] .lp-mant__alcance-picker {
-  border-top-color: var(--line);
-}
 :root[data-bs-theme="dark"] .lp-seg {
   background: rgba(148, 163, 184, 0.15);
 }
@@ -1388,9 +1280,6 @@ function copiar(txt) {
   border-color: #d97706;
   color: #fbbf24;
 }
-:root[data-bs-theme="dark"] .lp-card {
-  border-color: var(--line);
-}
 :root[data-bs-theme="dark"] .lp-card__slug,
 :root[data-bs-theme="dark"] .lp-card__stats { color: var(--text-muted); }
 :root[data-bs-theme="dark"] .lp-card__stats b { color: var(--text); }
@@ -1410,12 +1299,360 @@ function copiar(txt) {
 }
 :root[data-bs-theme="dark"] .lp-stats b { color: var(--text); }
 :root[data-bs-theme="dark"] .lp-modal-head__slug { color: var(--text-muted); }
-:root[data-bs-theme="dark"] .lp-section {
-  border-color: var(--line);
-  background: var(--surface-sunken);
-}
-:root[data-bs-theme="dark"] .lp-section__head { color: var(--text); }
 :root[data-bs-theme="dark"] .lp-toggle-row { background: #14432a; }
 :root[data-bs-theme="dark"] .lp-toggle-row--off { background: #4a3412; }
 :root[data-bs-theme="dark"] .lp-switch__track { background: var(--line-strong); }
+
+/* ══ Consola del proveedor (rediseño) ══════════════════════════════════════ */
+.lp-sr {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* KPIs */
+.lp-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+.lp-kpi {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  min-width: 0;
+}
+.lp-kpi__ico {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: var(--accent-soft);
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.lp-kpi__body { display: flex; flex-direction: column; min-width: 0; }
+.lp-kpi__label { font-size: var(--fs-xs); font-weight: 600; color: var(--text-muted); }
+.lp-kpi__valor {
+  font-size: 1.6rem;
+  font-weight: 800;
+  line-height: 1.15;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+.lp-kpi__valor--txt { font-size: 1.15rem; line-height: 1.6; }
+.lp-kpi__meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+.lp-kpi__sep { margin-left: 0.4rem; }
+.lp-kpi--alerta { border-color: #f59e0b; background: #fffbeb; }
+.lp-kpi--alerta .lp-kpi__ico { background: #fef3c7; color: #b45309; }
+.lp-kpi--alerta .lp-kpi__valor { color: #92400e; }
+
+/* Distribución: listado + panel de mantenimiento */
+.lp-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 1rem;
+  align-items: start;
+  margin-bottom: 1rem;
+}
+.lp-main { padding: 0; overflow: hidden; }
+
+.lp-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--line);
+}
+.lp-toolbar__titulo {
+  margin: 0 auto 0 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: var(--fs-base);
+  font-weight: 700;
+  color: var(--text);
+}
+.lp-toolbar__n {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--text-muted);
+  background: var(--surface-sunken);
+  border-radius: var(--radius-pill);
+  padding: 0.1rem 0.5rem;
+  font-variant-numeric: tabular-nums;
+}
+.lp-search {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0 0.7rem;
+  min-height: 40px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text-muted);
+  flex: 0 1 260px;
+}
+.lp-search:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.lp-search input { border: 0 !important; box-shadow: none !important; padding: 0 !important; background: transparent; min-width: 0; flex: 1; }
+
+.lp-seg--neutro .lp-seg__opt--on { color: var(--text); }
+.lp-seg__opt { min-height: 34px; }
+.lp-seg--full { display: grid; grid-template-columns: 1fr 1fr; align-self: stretch; }
+
+/* Tabla */
+.lp-tabla { border: 0; border-radius: 0; box-shadow: none; }
+.lp-tabla th { font-size: var(--fs-xs); text-transform: none; }
+.lp-fila { cursor: pointer; transition: background-color 0.15s ease; }
+.lp-fila:hover td { background: var(--surface-sunken); }
+.lp-num { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--text); }
+.lp-fecha { color: var(--text-muted); white-space: nowrap; font-size: var(--fs-sm); }
+
+.lp-par { display: flex; align-items: center; gap: 0.7rem; min-width: 0; }
+.lp-par__avatar {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: var(--fs-xs);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+.lp-par__avatar--lg { width: 44px; height: 44px; font-size: var(--fs-sm); }
+.lp-par__txt { display: flex; flex-direction: column; min-width: 0; text-align: left; }
+.lp-par__nombre {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.lp-par__slug { font-family: ui-monospace, monospace; font-size: var(--fs-xs); color: var(--text-muted); }
+
+.lp-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.05rem 0.45rem;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.lp-estado {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-height: 30px;
+  padding: 0.2rem 0.65rem;
+  border: 0;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+.lp-estado:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.lp-estado--on { background: #d1fae5; color: #047857; }
+.lp-estado--on:hover { background: #a7f3d0; }
+.lp-estado--off { background: #e2e8f0; color: #475569; }
+.lp-estado--off:hover { background: #cbd5e1; }
+
+/* Tarjetas (celular) */
+.lp-cards { display: flex; flex-direction: column; gap: 0.6rem; padding: 0.75rem; }
+.lp-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+.lp-card__abrir {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  border-radius: var(--radius-md);
+}
+.lp-card__abrir:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.lp-card__pie { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+
+/* Mantenimiento (panel lateral) */
+.lp-mant {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  color: var(--text);
+  position: sticky;
+  top: 0;
+}
+.lp-mant--on { border-color: #f59e0b; background: #fffbeb; }
+.lp-mant__head { display: flex; align-items: center; gap: 0.5rem; color: var(--text-muted); }
+.lp-mant--on .lp-mant__head { color: #b45309; }
+.lp-mant__titulo { margin: 0 auto 0 0; font-size: var(--fs-ui); font-weight: 700; color: var(--text); }
+.lp-mant__pill {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.1rem 0.5rem;
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+  color: var(--text-muted);
+}
+.lp-mant--on .lp-mant__pill { background: #fde68a; color: #92400e; }
+.lp-mant__txt { margin: 0; font-size: var(--fs-sm); line-height: 1.5; color: var(--text-muted); }
+.lp-mant__txt b { color: var(--text); }
+.lp-mant__label { margin: 0; font-size: var(--fs-sm); font-weight: 600; color: var(--text); }
+.lp-mant__label span { font-weight: 400; color: var(--text-muted); }
+.lp-mant__input { width: 100%; margin-top: -0.4rem; }
+.lp-mant :deep(.app-btn) { min-height: 44px; }
+
+.lp-errores__summary { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.lp-errores__hint { font-weight: 400; font-size: var(--fs-xs); color: var(--text-muted); }
+
+@media (max-width: 1199.98px) {
+  .lp-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 991.98px) {
+  .lp-layout { grid-template-columns: 1fr; }
+  .lp-mant { position: static; }
+}
+@media (max-width: 575.98px) {
+  .lp-kpis { gap: 0.5rem; }
+  .lp-kpi { padding: 0.75rem; gap: 0.6rem; }
+  .lp-kpi__ico { display: none; }
+  .lp-kpi__valor { font-size: 1.35rem; }
+  .lp-search { flex: 1 1 100%; }
+}
+
+/* ══ Modales ═══════════════════════════════════════════════════════════════ */
+.lp-form { display: flex; flex-direction: column; min-height: 0; }
+
+.lp-cols {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+.lp-col { display: flex; flex-direction: column; gap: 0.9rem; min-width: 0; }
+.lp-col + .lp-col { padding-left: 1.25rem; border-left: 1px solid var(--line); }
+.lp-col__titulo, .lp-bloque__titulo {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--text);
+}
+.lp-col__titulo svg, .lp-bloque__titulo svg { color: var(--accent); flex-shrink: 0; }
+
+.lp-grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
+.lp-span2 { grid-column: 1 / -1; }
+.lp-campo { display: flex; flex-direction: column; gap: 0.3rem; margin: 0; font-size: var(--fs-sm); color: var(--text); min-width: 0; }
+.lp-campo__fila { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.lp-fieldset { border: 0; padding: 0; }
+.lp-fieldset legend { float: none; width: auto; margin: 0 0 0.3rem; padding: 0; font-size: var(--fs-sm); }
+.lp-req { color: var(--danger); }
+.lp-opc { color: var(--text-muted); }
+.lp-err { color: var(--danger); font-size: var(--fs-xs); }
+.lp-ayuda { display: flex; align-items: flex-start; gap: 0.35rem; margin: 0; font-size: var(--fs-xs); line-height: 1.45; color: var(--text-muted); }
+.lp-ayuda--ok { color: #047857; font-weight: 600; }
+.lp-nota {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--radius-md);
+  background: var(--accent-soft);
+  color: var(--text);
+  font-size: var(--fs-xs);
+  line-height: 1.45;
+}
+.lp-nota svg { color: var(--accent); flex-shrink: 0; margin-top: 0.1rem; }
+.lp-logo-fila { display: flex; align-items: center; gap: 0.75rem; }
+.lp-logo-fila__acc { display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
+
+/* Detalle: lateral (identidad/estado) + principal (formulario) */
+.lp-det {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+.lp-det__side, .lp-det__main { display: flex; flex-direction: column; gap: 0.9rem; min-width: 0; }
+.lp-det .lp-stats { grid-template-columns: repeat(3, 1fr); }
+.lp-det .lp-toggle-row { margin-top: 0; }
+.lp-bloque {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+.lp-det__side .lp-bloque { background: var(--surface-sunken); }
+.lp-peligro { border-color: color-mix(in srgb, var(--danger) 35%, var(--line)); }
+.lp-peligro__head svg { color: var(--danger); }
+.lp-peligro__txt { margin: 0; }
+
+@media (max-width: 991.98px) {
+  .lp-det { grid-template-columns: 1fr; }
+  .lp-det__side { order: 2; }
+}
+@media (max-width: 767.98px) {
+  .lp-cols { grid-template-columns: 1fr; }
+  .lp-col + .lp-col { padding-left: 0; border-left: 0; padding-top: 1rem; border-top: 1px solid var(--line); }
+}
+@media (max-width: 479.98px) {
+  .lp-grid2 { grid-template-columns: 1fr; }
+}
+
+:root[data-bs-theme="dark"] .lp-kpi--alerta,
+:root[data-bs-theme="dark"] .lp-mant--on { background: #3b2a0a; border-color: #b45309; }
+:root[data-bs-theme="dark"] .lp-kpi--alerta .lp-kpi__valor { color: #fcd34d; }
+:root[data-bs-theme="dark"] .lp-kpi--alerta .lp-kpi__ico,
+:root[data-bs-theme="dark"] .lp-mant--on .lp-mant__pill { background: #78350f; color: #fde68a; }
+:root[data-bs-theme="dark"] .lp-estado--on { background: #064e3b; color: #6ee7b7; }
+:root[data-bs-theme="dark"] .lp-estado--on:hover { background: #065f46; }
+:root[data-bs-theme="dark"] .lp-estado--off { background: #334155; color: #cbd5e1; }
+:root[data-bs-theme="dark"] .lp-estado--off:hover { background: #475569; }
+:root[data-bs-theme="dark"] .lp-ayuda--ok { color: #6ee7b7; }
+:root[data-bs-theme="dark"] .lp-tag { color: color-mix(in srgb, var(--accent) 55%, #fff); }
 </style>

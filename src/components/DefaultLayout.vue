@@ -1,6 +1,7 @@
 <template>
     <div class="layout">
-        <template v-if="showChrome">
+        <!-- El proveedor solo opera la consola de parroquias: sin barra lateral. -->
+        <template v-if="showChrome && !esProveedor">
             <!-- Backdrop del cajón (solo móvil/tablet) -->
             <Transition name="fade">
                 <div v-if="drawerOpen" class="drawer-backdrop" @click="drawerOpen = false" />
@@ -13,7 +14,7 @@
         </template>
 
         <div class="content-wrapper">
-            <Navbar v-if="showChrome" @toggle-drawer="toggleDrawer" />
+            <Navbar v-if="showChrome" :sin-menu="esProveedor" @toggle-drawer="toggleDrawer" />
 
             <main class="main-content" :class="{ 'main-content--with-bottomnav': showBottomNav }">
                 <router-view />
@@ -71,6 +72,7 @@ const toggleDrawer = () => {
 }
 
 const showChrome = computed(() => route.meta.requiresLayout !== false)
+const esProveedor = computed(() => authStore.hasRole('proveedor'))
 const tieneGrupo = computed(() => (authStore.user?.grupo_ids?.length || 0) > 0)
 const showBottomNav = computed(() => showChrome.value && isPhone.value && tieneGrupo.value)
 
