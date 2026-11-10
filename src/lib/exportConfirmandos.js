@@ -63,6 +63,48 @@ const textoApoderado = (a) => {
 const unirConEstado = (lista = []) =>
   lista.map((x) => `${x.nombre}: ${capitalizar(x.pivot?.estado)}`).join(', ')
 
+// ── Sacramentos que le faltan ───────────────────────────────────────────────
+// Confirmación es la meta del programa: todo joven en preparación la tiene
+// pendiente, así que no cuenta como "le falta". Solo se considera lo marcado
+// como 'pendiente' (sin registro no es "le falta": no se sabe).
+export const CLAVE_META = 'confirmacion'
+const ORDEN_CLAVE = { bautismo: 1, comunion: 2, confirmacion: 3 }
+
+export function sacramentosFiltrables(sacramentos = []) {
+  return sacramentos
+    .filter((s) => s.clave !== CLAVE_META)
+    .sort((a, b) => (ORDEN_CLAVE[a.clave] ?? 90) - (ORDEN_CLAVE[b.clave] ?? 90) || a.id - b.id)
+}
+
+export function sacramentosPendientes(c) {
+  return sacramentosFiltrables(
+    // Sin id = el sacramento no es visible (RLS: de otra parroquia): se ignora.
+    (c.sacramentos ?? []).filter((s) => s.id != null && s.pivot?.estado === 'pendiente'),
+  )
+}
+
+// faltante: 'todos' (sin filtro) | 'alguno' | id de sacramento.
+export function filtrarPorFaltante(confirmandos, faltante = 'todos') {
+  if (faltante === 'todos') return confirmandos
+  return confirmandos.filter((c) => {
+    const pendientes = sacramentosPendientes(c)
+    return faltante === 'alguno'
+      ? pendientes.length > 0
+      : pendientes.some((s) => Number(s.id) === Number(faltante))
+  })
+}
+
+// Texto para título/filtros: null si no hay filtro.
+export function etiquetaFaltante(faltante, sacramentos = []) {
+  if (faltante === 'todos') return null
+  if (faltante === 'alguno') return 'Les falta algún sacramento'
+  const s = sacramentos.find((x) => Number(x.id) === Number(faltante))
+  return `Les falta ${s ? s.nombre : 'un sacramento'}`
+}
+
+const slug = (t) => t.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
+  .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+
 // `width` = ancho estimado en mm (para decidir la orientación del PDF y el
 // ancho de columna en Excel). `get(confirmando, { hoy })` → texto de la celda.
 export const COLUMNAS = [
@@ -88,6 +130,7 @@ export const COLUMNAS = [
   { key: 'grupo', label: 'Grupo', group: 'grupo', width: 24, get: (c) => c.grupo?.nombre ?? 'Sin grupo' },
   { key: 'procedencia', label: 'Procedencia', group: 'grupo', width: 20, get: (c) => capitalizar(c.grupo?.procedencia) },
   { key: 'sacramentos', label: 'Sacramentos', group: 'sacramentos', width: 55, get: (c) => unirConEstado(c.sacramentos) },
+  { key: 'pendientes', label: 'Le falta', group: 'sacramentos', width: 40, get: (c) => sacramentosPendientes(c).map((s) => s.nombre).join(', ') },
   { key: 'apoderados', label: 'Apoderados', group: 'apoderados', width: 70, get: (c) => (c.apoderados ?? []).map(textoApoderado).join('; ') },
   { key: 'requisitos', label: 'Requisitos', group: 'requisitos', width: 55, get: (c) => unirConEstado(c.requisitos) },
   { key: 'fecha_retiro', label: 'Fecha de retiro', group: 'retiro', width: 22, get: (c) => formatearFecha(c.fecha_retiro) },
@@ -119,13 +162,15 @@ export function fechaLegible(fecha = new Date()) {
   return `${dosDigitos(fecha.getDate())}/${dosDigitos(fecha.getMonth() + 1)}/${fecha.getFullYear()}`
 }
 
-export function nombreArchivoExport({ estado, fecha = new Date(), extension }) {
-  return `confirmandos_${String(estado).replace(/_/g, '-')}_${fechaIso(fecha)}.${extension}`
+export function nombreArchivoExport({ estado, fecha = new Date(), extension, faltante = null }) {
+  const extra = faltante ? `_${slug(faltante)}` : ''
+  return `confirmandos_${String(estado).replace(/_/g, '-')}${extra}_${fechaIso(fecha)}.${extension}`
 }
 
-export function tituloExport(estado) {
+export function tituloExport(estado, faltante = null) {
   const e = ESTADOS_EXPORT.find((x) => x.value === estado)
-  return `Confirmandos – ${e ? e.plural : capitalizar(estado)}`
+  const base = `Confirmandos – ${e ? e.plural : capitalizar(estado)}`
+  return faltante ? `${base} · ${faltante}` : base
 }
 
 // Resumen legible de los filtros de la tabla que el export respeta.

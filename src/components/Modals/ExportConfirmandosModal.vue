@@ -1,15 +1,16 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { Modal } from 'bootstrap';
 import { Download, Info, Check, FileSpreadsheet, FileText, FileType } from 'lucide-vue-next';
 import AppButton from '@/components/AppButton.vue';
 import { showAlerta } from '@/funciones';
 import { attachModalFocusReturn } from '@/composables/useModalFocusReturn';
 import { getConfirmandosExport } from '@/services/confirmandos';
+import { useSacramentosStore } from '@/stores/sacramentos';
 import {
     COLUMNAS, GRUPOS_COLUMNAS, ESTADOS_EXPORT,
     columnasPorClave, construirFilas, describirFiltros, nombreArchivoExport, tituloExport,
-    calcularOrientacionPdf,
+    calcularOrientacionPdf, sacramentosFiltrables, filtrarPorFaltante, etiquetaFaltante,
 } from '@/lib/exportConfirmandos';
 
 // Columnas marcadas por defecto: lo básico para una lista de contacto.
@@ -25,6 +26,20 @@ const exportando = ref(false);
 // Filtros activos de la tabla (búsqueda, grupo, procedencia) al abrir el modal.
 const filtrosTabla = ref({ search: '', grupo: 'todos', procedencia: 'todos' });
 const gruposTabla = ref([]);
+
+// Filtro "les falta un sacramento": 'todos' | 'alguno' | id de sacramento.
+const sacramentosStore = useSacramentosStore();
+const faltante = ref('todos');
+const opcionesFaltante = computed(() => [
+    { value: 'todos', label: 'No filtrar' },
+    { value: 'alguno', label: 'Alguno' },
+    ...sacramentosFiltrables(sacramentosStore.items).map((s) => ({ value: String(s.id), label: s.nombre })),
+]);
+const textoFaltante = computed(() => etiquetaFaltante(faltante.value, sacramentosStore.items));
+// Al filtrar por lo que falta, se suma la columna «Le falta» (se puede quitar).
+watch(faltante, (v) => {
+    if (v !== 'todos' && !columnasSel.value.includes('pendientes')) columnasSel.value = [...columnasSel.value, 'pendientes'];
+});
 
 const filtrosActivos = computed(() => describirFiltros(filtrosTabla.value, gruposTabla.value));
 const columnasPorGrupo = computed(() =>
@@ -66,6 +81,9 @@ const abrir = ({ filtros = {}, grupos = [] } = {}) => {
     filtrosTabla.value = { search, grupo, procedencia };
     gruposTabla.value = grupos;
     estado.value = estadoTabla;
+    faltante.value = 'todos';
+    columnasSel.value = columnasSel.value.filter((k) => k !== 'pendientes');
+    sacramentosStore.fetchAll().catch(() => {});
     modalInstance.value?.show();
 };
 const cerrar = () => modalInstance.value?.hide();
@@ -88,26 +106,30 @@ const exportar = async () => {
             return;
         }
 
+        confirmandos = filtrarPorFaltante(confirmandos, faltante.value);
         if (confirmandos.length === 0) {
-            showAlerta('No hay confirmandos que coincidan con el estado y los filtros elegidos.', 'info');
+            showAlerta(faltante.value === 'todos'
+                ? 'No hay confirmandos que coincidan con el estado y los filtros elegidos.'
+                : 'Ningún confirmando con ese estado y filtros tiene ese sacramento pendiente.', 'info');
             return;
         }
 
         const columnas = columnasPorClave(columnasSel.value);
         const filas = construirFilas(confirmandos, columnas);
-        const titulo = tituloExport(estado.value);
+        const titulo = tituloExport(estado.value, textoFaltante.value);
         const fecha = new Date();
 
         try {
             // Las librerías de archivos se cargan recién aquí (no pesan en el bundle principal).
             const generadores = await import('@/lib/exportConfirmandosArchivos');
-            const datos = { titulo, columnas, filas, filtros: filtrosActivos.value, fecha };
+            const filtros = textoFaltante.value ? [...filtrosActivos.value, textoFaltante.value] : filtrosActivos.value;
+            const datos = { titulo, columnas, filas, filtros, fecha };
             const blob = formato.value === 'xlsx'
                 ? await generadores.generarExcel({ titulo, columnas, filas })
                 : formato.value === 'docx'
                     ? await generadores.generarWord(datos)
                     : await generadores.generarPdf(datos);
-            const nombre = nombreArchivoExport({ estado: estado.value, fecha, extension: formato.value });
+            const nombre = nombreArchivoExport({ estado: estado.value, fecha, extension: formato.value, faltante: textoFaltante.value });
             const resultado = await generadores.guardarArchivo(blob, nombre, generadores.TIPOS_ARCHIVO[formato.value]);
             if (resultado === 'guardado') {
                 cerrar();
@@ -156,6 +178,23 @@ const exportar = async () => {
                                     <label class="exp-segment" :for="`exp-estado-${e.value}`">{{ e.label }}</label>
                                 </template>
                             </div>
+                        </fieldset>
+
+                        <fieldset class="exp-section" :disabled="exportando" aria-describedby="exp-faltante-ayuda">
+                            <legend class="exp-legend">¿Les falta un sacramento?</legend>
+                            <div class="exp-chips" role="radiogroup" aria-label="Sacramento pendiente">
+                                <label v-for="o in opcionesFaltante" :key="o.value" class="exp-chip exp-chip--radio"
+                                    :class="{ 'is-on': faltante === o.value }">
+                                    <input type="radio" class="exp-visually-hidden" name="exportFaltante"
+                                        :value="o.value" v-model="faltante">
+                                    <Check :size="13" :stroke-width="3" class="exp-chip-check" aria-hidden="true" />
+                                    {{ o.label }}
+                                </label>
+                            </div>
+                            <p id="exp-faltante-ayuda" class="exp-help">
+                                Solo cuenta los sacramentos marcados como pendientes. Confirmación no se incluye:
+                                es la meta del programa.
+                            </p>
                         </fieldset>
 
                         <fieldset class="exp-section" :disabled="exportando">
@@ -335,7 +374,7 @@ input:checked + .exp-segment {
 :root[data-bs-theme="dark"] .exp-chip.is-on { color: color-mix(in srgb, var(--accent) 55%, #ffffff); }
 
 /* Formato: dos opciones con descripción */
-.exp-formats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; }
+.exp-formats { display: grid; grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr)); gap: 0.75rem; }
 .exp-format {
     --fmt: var(--success);
     display: flex;
@@ -376,6 +415,9 @@ input:checked + .exp-segment {
     transition: border 0.2s var(--ease);
 }
 .exp-format.is-on .exp-radio { border: 5px solid var(--accent); }
+
+.exp-chip--radio { min-height: 36px; }
+.exp-help { margin: 0.5rem 0 0; font-size: var(--fs-xs); line-height: 1.45; color: var(--text-muted); }
 
 .modal-footer__note.is-error { color: var(--danger); font-variant-numeric: tabular-nums; }
 

@@ -37,7 +37,7 @@ function selectListaConFiltro({ innerGrupo = false, extra = '' } = {}) {
     'id, nombres, apellidos, fecha_nacimiento, genero, celular, estado, grupo_id,' +
     ' fecha_retiro, motivo_retiro,' +
     ` ${grupoEmbed},` +
-    ' confirmando_sacramento(estado, sacramento:sacramentos(id, nombre))' +
+    ' confirmando_sacramento(estado, sacramento:sacramentos(id, nombre, clave))' +
     extra
   )
 }
