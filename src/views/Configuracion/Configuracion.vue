@@ -653,13 +653,9 @@ const UMBRALES = [
 
 <style scoped>
 
-/* En laptop, 2 columnas que aprovechan el ancho (multicolumna: reparte las
-   tarjetas por altura, sin huecos muertos). En celular, una sola columna. */
-.cfg__form {
-  max-width: 1120px;
-  margin-inline: auto;
-}
-
+/* Multicolumna: reparte las tarjetas por altura, sin huecos muertos. Una
+   columna en celular, 2 en laptop y 3 en pantallas anchas (sin tope de ancho:
+   antes quedaba un margen vacío a los lados en monitores grandes). */
 @media (min-width: 1000px) {
   .cfg__form {
     column-count: 2;
@@ -669,6 +665,10 @@ const UMBRALES = [
   .cfg__bar {
     column-span: all;
   }
+}
+
+@media (min-width: 1600px) {
+  .cfg__form { column-count: 3; }
 }
 
 .card {

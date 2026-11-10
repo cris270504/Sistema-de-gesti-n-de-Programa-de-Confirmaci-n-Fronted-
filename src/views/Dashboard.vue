@@ -178,7 +178,7 @@ const confirmarRetiroJoven = async (joven) => {
           <div v-if="loadingDashboard" class="p-3">
             <AppSkeleton skeleton="table" />
           </div>
-          <div v-else-if="!esMovil" class="table-responsive cards-sm">
+          <div v-else-if="!esMovil" class="table-responsive cards-sm dash-seg-scroll">
             <table class="table table-hover align-middle mb-0">
               <thead class="bg-light text-muted small">
                 <tr>
@@ -305,6 +305,39 @@ const confirmarRetiroJoven = async (joven) => {
           </div>
         </div>
 
+      </div>
+
+      <!-- COLUMNA LATERAL (DERECHA) -->
+      <div class="col-xl-4">
+        <!-- MÉTRICAS DE PROGRESO (solo coordinador / super-admin) -->
+        <div class="card border-0 shadow-sm rounded-4 p-4 mb-4" v-if="esGestor && verPanel('retencion')">
+          <h6 class="fw-bold text-muted small mb-3">Estado de Retención</h6>
+          <div class="mb-4">
+            <div class="d-flex justify-content-between mb-1">
+              <span class="small fw-bold">Índice de Retención</span>
+              <span class="small fw-bold text-success">{{ metricas.tasaRetencion }}%</span>
+            </div>
+            <div class="progress rounded-pill" style="height: 8px;">
+              <div class="progress-bar bg-success" :style="{ width: metricas.tasaRetencion + '%' }"></div>
+            </div>
+          </div>
+          <div class="mb-1">
+            <div class="d-flex justify-content-between mb-1">
+              <span class="small fw-bold">Tasa de Deserción</span>
+              <span class="small fw-bold text-danger">{{ metricas.tasaDesercion }}%</span>
+            </div>
+            <div class="progress rounded-pill" style="height: 8px;">
+              <div class="progress-bar bg-danger" :style="{ width: metricas.tasaDesercion + '%' }"></div>
+            </div>
+          </div>
+          <hr class="text-muted opacity-25">
+          <div class="d-flex justify-content-between text-muted" style="font-size: 0.75rem;">
+            <span><strong>{{ metricas.activos }}</strong> Activos</span>
+            <span><strong>{{ metricas.retirados }}</strong> Retirados</span>
+          </div>
+        </div>
+
+        <!-- PRÓXIMOS ENCUENTROS (en escritorio acompaña a la tabla, sin dejar la columna vacía) -->
         <div v-if="verPanel('proximos_encuentros')" class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
           <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
             <h6 class="mb-0 fw-bold d-flex align-items-center">
@@ -348,38 +381,6 @@ const confirmarRetiroJoven = async (joven) => {
             </div>
           </div>
         </div>
-      </div>
-
-      <!-- COLUMNA LATERAL (DERECHA) -->
-      <div class="col-xl-4">
-        <!-- MÉTRICAS DE PROGRESO (solo coordinador / super-admin) -->
-        <div class="card border-0 shadow-sm rounded-4 p-4 mb-4" v-if="esGestor && verPanel('retencion')">
-          <h6 class="fw-bold text-muted small mb-3">Estado de Retención</h6>
-          <div class="mb-4">
-            <div class="d-flex justify-content-between mb-1">
-              <span class="small fw-bold">Índice de Retención</span>
-              <span class="small fw-bold text-success">{{ metricas.tasaRetencion }}%</span>
-            </div>
-            <div class="progress rounded-pill" style="height: 8px;">
-              <div class="progress-bar bg-success" :style="{ width: metricas.tasaRetencion + '%' }"></div>
-            </div>
-          </div>
-          <div class="mb-1">
-            <div class="d-flex justify-content-between mb-1">
-              <span class="small fw-bold">Tasa de Deserción</span>
-              <span class="small fw-bold text-danger">{{ metricas.tasaDesercion }}%</span>
-            </div>
-            <div class="progress rounded-pill" style="height: 8px;">
-              <div class="progress-bar bg-danger" :style="{ width: metricas.tasaDesercion + '%' }"></div>
-            </div>
-          </div>
-          <hr class="text-muted opacity-25">
-          <div class="d-flex justify-content-between text-muted" style="font-size: 0.75rem;">
-            <span><strong>{{ metricas.activos }}</strong> Activos</span>
-            <span><strong>{{ metricas.retirados }}</strong> Retirados</span>
-          </div>
-        </div>
-
         <!-- AVISOS RÁPIDOS -->
         <div class="p-4 rounded-4 bg-primary text-white shadow-sm mb-4">
           <div class="d-flex align-items-center mb-2">
@@ -481,4 +482,10 @@ const confirmarRetiroJoven = async (joven) => {
   text-decoration: none;
 }
 .dash-social:hover { color: var(--accent); }
+
+/* ===== Escritorio: la tabla de seguimiento no estira la página ===== */
+@media (min-width: 1200px) {
+  .dash-seg-scroll { max-height: min(70vh, 720px); overflow-y: auto; }
+  .dash-seg-scroll thead th { position: sticky; top: 0; z-index: 1; background: var(--surface-sunken); }
+}
 </style>

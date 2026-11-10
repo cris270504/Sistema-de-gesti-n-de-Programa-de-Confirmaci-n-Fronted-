@@ -76,7 +76,7 @@ async function submitPassword() {
 </script>
 
 <template>
-    <AppPage title="Mi perfil" subtitle="Tus datos y contraseña" :wide="false">
+    <AppPage title="Mi perfil" subtitle="Tus datos y contraseña">
         <div class="prof-grid">
 
             <section class="surface surface--pad">
