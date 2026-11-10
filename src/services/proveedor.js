@@ -96,3 +96,25 @@ export const actualizarParroquia = async (id, payload) => {
   if (error) throw errorLegible(error)
   return { message: 'Parroquia actualizada.', parroquia: data }
 }
+
+// Elimina una parroquia DESACTIVADA con todo su contenido (irreversible).
+// Edge Function `eliminar-parroquia`: la BD revalida proveedor, estado,
+// plantilla y que `confirmacion` sea el nombre exacto de la parroquia.
+export const eliminarParroquia = async (id, confirmacion) => {
+  const { data, error } = await supabase.functions.invoke('eliminar-parroquia', {
+    body: { id: Number(id), confirmacion },
+  })
+  if (error) {
+    let message = error.message
+    try {
+      const body = await error.context?.json?.()
+      if (body?.message) message = body.message
+    } catch { /* sin cuerpo JSON */ }
+    throw new Error(message)
+  }
+  return data // { message, resumen, avisos }
+}
+
+// Mismo criterio que la BD: sin espacios a los lados y sin distinguir mayúsculas.
+export const coincideNombreParroquia = (escrito, nombre) =>
+  (escrito ?? '').trim().toLowerCase() === (nombre ?? '').trim().toLowerCase()

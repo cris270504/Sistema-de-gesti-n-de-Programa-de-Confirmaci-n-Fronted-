@@ -5,12 +5,12 @@ import { ref, reactive, computed, onMounted, onUnmounted, onBeforeUnmount, nextT
 import { Modal } from 'bootstrap'
 import {
   Plus, Check, X, Copy, Building2, KeyRound, Eye, Search, Clock, Upload, Image as ImageIcon, Wrench,
-  BookOpen, LayoutTemplate, Globe,
+  BookOpen, LayoutTemplate, Globe, Trash2,
 } from 'lucide-vue-next'
 import { showAlerta, confirmar, slugify } from '@/funciones'
 import {
   listParroquias, crearParroquia, actualizarParroquia, getBrandingParroquia, setPlantillaParroquia,
-  actualizarProgramaParroquia,
+  actualizarProgramaParroquia, eliminarParroquia, coincideNombreParroquia,
 } from '@/services/proveedor'
 import { subirLogo, quitarLogo } from '@/services/branding'
 import AppPage from '@/components/AppPage.vue'
@@ -318,7 +318,10 @@ async function abrirDetalle(p) {
     id: p.id, nombre: p.nombre, slug: p.slug, zona_horaria: p.zona_horaria || 'America/Lima',
     activa: p.activa, es_plantilla: !!p.es_plantilla, created_at: p.created_at,
     users_count: p.users_count, grupos_count: p.grupos_count, confirmandos_count: p.confirmandos_count,
+    nombreGuardado: p.nombre,
   })
+  activaGuardada.value = p.activa
+  confirmEliminar.value = ''
   editBranding.logo_url = ''
   editBranding.logo_url_proveedor = ''
   editPrograma.tipo = 'confirmacion'
@@ -371,6 +374,32 @@ async function guardarDetalle() {
     if (!Object.keys(editErrores.value).length) showAlerta(e?.message || 'No se pudo guardar', 'error')
   } finally {
     savingEdit.value = false
+  }
+}
+
+// ── Eliminar parroquia (zona de peligro) ───────────────────────────────────
+// Solo con la parroquia ya desactivada (estado guardado, no el interruptor del
+// formulario) y escribiendo su nombre. La BD vuelve a validar todo.
+const activaGuardada = ref(true)
+const confirmEliminar = ref('')
+const eliminando = ref(false)
+const puedeEliminar = computed(() =>
+  !activaGuardada.value && !edit.es_plantilla && coincideNombreParroquia(confirmEliminar.value, edit.nombreGuardado))
+
+async function eliminarDetalle() {
+  if (!puedeEliminar.value || eliminando.value) return
+  eliminando.value = true
+  try {
+    const res = await eliminarParroquia(edit.id, confirmEliminar.value)
+    parroquias.value = parroquias.value.filter(p => p.id !== edit.id)
+    detalleModal?.hide()
+    const avisos = res?.avisos ?? []
+    showAlerta(avisos.length ? `${res.message} ${avisos.join(' ')}` : res?.message || 'Parroquia eliminada',
+      avisos.length ? 'warning' : 'success')
+  } catch (e) {
+    showAlerta(e?.message || 'No se pudo eliminar la parroquia', 'error')
+  } finally {
+    eliminando.value = false
   }
 }
 
@@ -829,6 +858,37 @@ function copiar(txt) {
                     :disabled="marcandoPlantilla"
                     @click="marcarComoPlantilla">{{ marcandoPlantilla ? 'Guardando…' : 'Usar como plantilla' }}</AppButton>
                 </section>
+
+                <section class="lp-section lp-peligro" aria-labelledby="lp-peligro-titulo">
+                  <header id="lp-peligro-titulo" class="lp-section__head lp-peligro__head">
+                    <Trash2 :size="15" class="lp-section__ico" aria-hidden="true" /> Eliminar parroquia
+                  </header>
+                  <p v-if="edit.es_plantilla" class="lp-peligro__txt">
+                    Es la plantilla de las parroquias nuevas. Marca otra como plantilla para poder eliminarla.
+                  </p>
+                  <p v-else-if="activaGuardada" class="lp-peligro__txt">
+                    Para eliminarla, primero desactívala (interruptor «Activa» de arriba) y guarda los cambios.
+                  </p>
+                  <template v-else>
+                    <p class="lp-peligro__txt">
+                      Se borrará para siempre: {{ edit.users_count ?? 0 }} usuario(s) y sus cuentas de acceso,
+                      {{ edit.confirmandos_count ?? 0 }} joven(es) con sus apoderados y asistencias,
+                      {{ edit.grupos_count ?? 0 }} grupo(s), reuniones, sacramentos y documentos.
+                      <strong>No se puede deshacer.</strong>
+                    </p>
+                    <label class="lp-peligro__label" for="lp-peligro-input">
+                      Escribe <strong>{{ edit.nombreGuardado }}</strong> para confirmar
+                    </label>
+                    <div class="lp-peligro__fila">
+                      <input id="lp-peligro-input" v-model="confirmEliminar" type="text" autocomplete="off"
+                        spellcheck="false" :disabled="eliminando" />
+                      <AppButton variant="danger" type="button" :icon="Trash2" :loading="eliminando"
+                        :disabled="!puedeEliminar" @click="eliminarDetalle">
+                        {{ eliminando ? 'Eliminando…' : 'Eliminar' }}
+                      </AppButton>
+                    </div>
+                  </template>
+                </section>
               </div>
             </div>
             <div class="modal-footer">
@@ -882,6 +942,15 @@ function copiar(txt) {
 </template>
 
 <style scoped>
+.lp-peligro { border-color: color-mix(in srgb, var(--danger) 35%, var(--line)); }
+.lp-peligro__head { color: var(--danger); }
+.lp-peligro__txt { margin: 0 0 0.6rem; font-size: var(--fs-sm); line-height: 1.5; color: var(--text-muted); }
+.lp-peligro__txt strong { color: var(--text); }
+.lp-peligro__label { display: block; font-size: var(--fs-sm); color: var(--text); margin-bottom: 0.35rem; }
+.lp-peligro__fila { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.lp-peligro__fila input { flex: 1 1 12rem; min-width: 0; }
+.lp-peligro__fila :deep(button) { min-height: 44px; }
+
 .lp-errores { margin-bottom: 1rem; }
 .lp-errores__summary { cursor: pointer; font-weight: 700; color: var(--text); }
 .lp-errores__panel { margin-top: 0.9rem; }
