@@ -118,3 +118,84 @@ export const eliminarParroquia = async (id, confirmacion) => {
 // Mismo criterio que la BD: sin espacios a los lados y sin distinguir mayúsculas.
 export const coincideNombreParroquia = (escrito, nombre) =>
   (escrito ?? '').trim().toLowerCase() === (nombre ?? '').trim().toLowerCase()
+
+// Administradores y coordinadores de una parroquia (para restablecerles la
+// contraseña desde la consola). v_usuarios: el proveedor ve todas las parroquias.
+const ROLES_GESTION = ['super-admin', 'coordinador']
+export const listGestoresParroquia = async (parroquiaId) => {
+  const { data, error } = await supabase
+    .from('v_usuarios')
+    .select('id, name, email, dni, activo, roles')
+    .eq('parroquia_id', Number(parroquiaId))
+    .order('name')
+  if (error) throw errorLegible(error)
+  return filtrarGestores(data ?? [])
+}
+
+// Super-admin primero; luego coordinadores. Cada uno con su rol principal.
+export const filtrarGestores = (usuarios) => usuarios
+  .map((u) => {
+    const nombres = (u.roles ?? []).map((r) => r?.name)
+    const rol = ROLES_GESTION.find((r) => nombres.includes(r))
+    return rol ? { ...u, rol } : null
+  })
+  .filter(Boolean)
+  .sort((a, b) => ROLES_GESTION.indexOf(a.rol) - ROLES_GESTION.indexOf(b.rol)
+    || (a.name ?? '').localeCompare(b.name ?? '', 'es'))
+
+// Historial de acciones del proveedor (solo él lo lee, por RLS).
+export const listAuditoria = async ({ limite = 30 } = {}) => {
+  const { data, error } = await supabase
+    .from('proveedor_auditoria')
+    .select('id, created_at, actor_nombre, accion, parroquia_id, parroquia_nombre, detalle')
+    .order('created_at', { ascending: false })
+    .limit(limite)
+  if (error) throw errorLegible(error)
+  return data ?? []
+}
+
+const ACCIONES = {
+  crear: 'Creó la parroquia',
+  editar: 'Editó los datos de',
+  renombrar: 'Renombró',
+  activar: 'Activó',
+  desactivar: 'Desactivó',
+  plantilla: 'Usó como plantilla a',
+  eliminar: 'Eliminó la parroquia',
+  mantenimiento_on: 'Activó el mantenimiento',
+  mantenimiento_off: 'Apagó el mantenimiento',
+  restablecer_contrasena: 'Restableció una contraseña en',
+}
+
+// Texto corto de una fila del historial: { accion, objetivo, extra }.
+export function describirAuditoria(f) {
+  const d = f?.detalle ?? {}
+  const accion = ACCIONES[f?.accion] ?? f?.accion ?? ''
+  let objetivo = f?.parroquia_nombre ?? ''
+  let extra = ''
+  if (f?.accion === 'renombrar') { objetivo = d.antes ?? objetivo; extra = `ahora «${d.despues ?? ''}»` }
+  if (f?.accion === 'restablecer_contrasena' && d.usuario) extra = `de ${d.usuario}`
+  if (f?.accion === 'eliminar' && d.confirmandos != null) extra = `${d.usuarios ?? 0} usuarios, ${d.confirmandos} jóvenes`
+  if (f?.accion === 'mantenimiento_on') {
+    objetivo = ''
+    extra = d.alcance === 'parroquias' ? 'en parroquias elegidas' : 'en todas las parroquias'
+  }
+  if (f?.accion === 'mantenimiento_off') objetivo = ''
+  return { accion, objetivo, extra }
+}
+
+// Errores de las últimas 24 h agrupados por parroquia (para el aviso del panel).
+export function resumirErroresRecientes(filas, parroquias = []) {
+  const porParroquia = new Map()
+  for (const f of filas ?? []) {
+    const k = f.parroquia_id ?? null
+    porParroquia.set(k, (porParroquia.get(k) ?? 0) + 1)
+  }
+  const nombre = (id) => (id == null ? 'Sin parroquia' : parroquias.find((p) => p.id === id)?.nombre ?? `Parroquia ${id}`)
+  return {
+    total: (filas ?? []).length,
+    parroquias: [...porParroquia.entries()]
+      .map(([id, n]) => ({ id, nombre: nombre(id), n }))
+      .sort((a, b) => b.n - a.n),
+  }
+}

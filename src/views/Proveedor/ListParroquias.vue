@@ -5,13 +5,16 @@ import { ref, reactive, computed, onMounted, onUnmounted, onBeforeUnmount, nextT
 import { Modal } from 'bootstrap'
 import {
   Plus, Check, X, Copy, Building2, KeyRound, Search, Clock, Upload, Image as ImageIcon, Wrench,
-  BookOpen, LayoutTemplate, Globe, Trash2, Users, GraduationCap, Settings2, Bug, Info,
+  BookOpen, LayoutTemplate, Globe, Trash2, Users, GraduationCap, Settings2, Bug, Info, History, AlertTriangle, RotateCcw,
 } from 'lucide-vue-next'
 import { showAlerta, confirmar, slugify } from '@/funciones'
 import {
   listParroquias, crearParroquia, actualizarParroquia, getBrandingParroquia, setPlantillaParroquia,
   actualizarProgramaParroquia, eliminarParroquia, coincideNombreParroquia,
+  listGestoresParroquia, listAuditoria, describirAuditoria, resumirErroresRecientes,
 } from '@/services/proveedor'
+import { resetUserPassword } from '@/services/users'
+import { listErroresSistema } from '@/services/erroresSistema'
 import { subirLogo, quitarLogo } from '@/services/branding'
 import AppPage from '@/components/AppPage.vue'
 import { useMediaQuery } from '@/composables/useMediaQuery'
@@ -57,6 +60,7 @@ const toggleMantenimiento = async () => {
     try {
       await systemStatus.desactivar()
       showAlerta('Mantenimiento desactivado.', 'success')
+      cargarAuditoria()
     } catch (e) {
       showAlerta(e?.message || 'No se pudo desactivar el mantenimiento', 'error')
     }
@@ -86,6 +90,7 @@ const toggleMantenimiento = async () => {
       parroquia_ids: parroquiasSeleccionadas.value,
     })
     showAlerta('Mantenimiento activado.', 'success')
+    cargarAuditoria()
   } catch (e) {
     showAlerta(e?.message || 'No se pudo activar el mantenimiento', 'error')
   }
@@ -260,9 +265,54 @@ async function cargar() {
   } finally {
     loading.value = false
   }
+  cargarAuditoria()
 }
 
-onMounted(cargar)
+// ── Historial de acciones del proveedor ──────────────────────────────────
+const auditoria = ref([])
+const auditoriaError = ref(false)
+async function cargarAuditoria() {
+  try {
+    auditoria.value = await listAuditoria({ limite: 30 })
+    auditoriaError.value = false
+  } catch {
+    auditoriaError.value = true
+  }
+}
+const auditoriaVista = computed(() => auditoria.value.map(f => ({ ...f, ...describirAuditoria(f) })))
+
+function hace(iso) {
+  if (!iso) return ''
+  const min = Math.round((Date.now() - new Date(iso).getTime()) / 60000)
+  if (min < 1) return 'ahora'
+  if (min < 60) return `hace ${min} min`
+  const h = Math.round(min / 60)
+  if (h < 24) return `hace ${h} h`
+  const d = Math.round(h / 24)
+  if (d < 7) return `hace ${d} d`
+  return fmtFecha(iso)
+}
+
+// ── Errores de las últimas 24 h (aviso) ──────────────────────────────────
+const erroresRecientes = ref({ total: 0, parroquias: [] })
+const erroresRef = ref(null)
+async function cargarErroresRecientes() {
+  try {
+    const filas = await listErroresSistema({ desdeDias: 1 })
+    erroresRecientes.value = resumirErroresRecientes(filas, parroquias.value)
+  } catch { /* el aviso es secundario: sin él, el panel sigue disponible */ }
+}
+function verErroresAhora() {
+  if (erroresRef.value) {
+    erroresRef.value.open = true
+    erroresRef.value.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+}
+
+onMounted(async () => {
+  await cargar()
+  cargarErroresRecientes()
+})
 onUnmounted(() => {
   formModal?.dispose()
   credsModal?.dispose()
@@ -340,6 +390,7 @@ async function abrirDetalle(p) {
   })
   activaGuardada.value = p.activa
   confirmEliminar.value = ''
+  cargarGestores(p.id)
   editBranding.logo_url = ''
   editBranding.logo_url_proveedor = ''
   editPrograma.tipo = 'confirmacion'
@@ -387,6 +438,7 @@ async function guardarDetalle() {
     if (i !== -1) parroquias.value[i] = { ...parroquias.value[i], ...parroquia }
     detalleModal?.hide()
     showAlerta('Parroquia actualizada', 'success')
+    cargarAuditoria()
   } catch (e) {
     editErrores.value = e?.response?.data?.errors || {}
     if (!Object.keys(editErrores.value).length) showAlerta(e?.message || 'No se pudo guardar', 'error')
@@ -410,6 +462,7 @@ async function eliminarDetalle() {
   try {
     const res = await eliminarParroquia(edit.id, confirmEliminar.value)
     parroquias.value = parroquias.value.filter(p => p.id !== edit.id)
+    cargarAuditoria()
     detalleModal?.hide()
     const avisos = res?.avisos ?? []
     showAlerta(avisos.length ? `${res.message} ${avisos.join(' ')}` : res?.message || 'Parroquia eliminada',
@@ -436,6 +489,7 @@ async function marcarComoPlantilla() {
     parroquias.value.forEach(p => { p.es_plantilla = p.id === edit.id })
     edit.es_plantilla = true
     showAlerta('Plantilla actualizada', 'success')
+    cargarAuditoria()
   } catch (e) {
     showAlerta(e.message || 'No se pudo marcar como plantilla', 'error')
   } finally {
@@ -459,8 +513,52 @@ async function cambiarEstado(p) {
     await actualizarParroquia(p.id, { activa: activar })
     p.activa = activar
     showAlerta(activar ? 'Parroquia activada' : 'Parroquia desactivada', 'success')
+    cargarAuditoria()
   } catch (e) {
     showAlerta(e?.message || 'No se pudo cambiar el estado', 'error')
+  }
+}
+
+// ── Administradores de la parroquia (restablecer contraseña) ───────────
+const gestores = ref([])
+const cargandoGestores = ref(false)
+const gestoresError = ref('')
+const reseteandoId = ref(null)
+const claveTemporal = ref(null) // { id, name, temp_password }
+const ETIQUETA_ROL = { 'super-admin': 'Administrador', coordinador: 'Coordinador' }
+
+async function cargarGestores(parroquiaId) {
+  gestores.value = []
+  gestoresError.value = ''
+  claveTemporal.value = null
+  cargandoGestores.value = true
+  try {
+    gestores.value = await listGestoresParroquia(parroquiaId)
+  } catch (e) {
+    gestoresError.value = e?.message || 'No se pudieron cargar los administradores.'
+  } finally {
+    cargandoGestores.value = false
+  }
+}
+
+async function restablecerClave(u) {
+  if (reseteandoId.value) return
+  const ok = await confirmar({
+    titulo: `¿Restablecer la contraseña de ${u.name}?`,
+    texto: 'Se generará una contraseña temporal. Su contraseña actual dejará de funcionar y tendrá que elegir una nueva al entrar.',
+    icono: 'warning',
+    confirmarTexto: 'Sí, restablecer',
+  })
+  if (!ok) return
+  reseteandoId.value = u.id
+  try {
+    const res = await resetUserPassword(u.id)
+    claveTemporal.value = { id: u.id, name: u.name, temp_password: res?.temp_password }
+    cargarAuditoria()
+  } catch (e) {
+    showAlerta(e?.message || 'No se pudo restablecer la contraseña', 'error')
+  } finally {
+    reseteandoId.value = null
   }
 }
 
@@ -518,6 +616,19 @@ function copiar(txt) {
         </div>
       </article>
     </section>
+
+    <!-- Aviso: errores de la app en las últimas 24 h -->
+    <div v-if="erroresRecientes.total > 0" class="lp-aviso" role="status">
+      <AlertTriangle :size="18" class="lp-aviso__ico" aria-hidden="true" />
+      <p class="lp-aviso__txt">
+        <b>{{ erroresRecientes.total }} {{ erroresRecientes.total === 1 ? 'error' : 'errores' }} en las últimas 24 h</b>
+        <span>
+          {{ erroresRecientes.parroquias.slice(0, 3).map(x => `${x.nombre} (${x.n})`).join(' · ') }}
+          <template v-if="erroresRecientes.parroquias.length > 3"> · y {{ erroresRecientes.parroquias.length - 3 }} más</template>
+        </span>
+      </p>
+      <AppButton variant="secondary" size="sm" @click="verErroresAhora">Ver errores</AppButton>
+    </div>
 
     <div class="lp-layout">
       <!-- Parroquias -->
@@ -620,6 +731,7 @@ function copiar(txt) {
         </div>
       </section>
 
+      <div class="lp-side">
       <!-- Mantenimiento: bloquea a todo logueado que no sea proveedor -->
       <aside class="lp-mant" :class="{ 'lp-mant--on': systemStatus.mantenimiento }" aria-labelledby="lp-mant-titulo">
         <header class="lp-mant__head">
@@ -669,12 +781,39 @@ function copiar(txt) {
           {{ systemStatus.mantenimiento ? 'Apagar mantenimiento' : 'Activar mantenimiento' }}
         </AppButton>
       </aside>
+
+      <!-- Historial de acciones del proveedor -->
+      <section class="lp-hist" aria-labelledby="lp-hist-titulo">
+        <header class="lp-hist__head">
+          <History :size="17" aria-hidden="true" />
+          <h2 id="lp-hist-titulo" class="lp-hist__titulo">Actividad reciente</h2>
+          <button type="button" class="lp-link" @click="cargarAuditoria">Actualizar</button>
+        </header>
+        <p v-if="auditoriaError" class="lp-hist__vacio">No se pudo cargar el historial.</p>
+        <p v-else-if="auditoriaVista.length === 0" class="lp-hist__vacio">
+          Aquí verás lo que hagas: crear, editar o eliminar parroquias, mantenimiento y contraseñas.
+        </p>
+        <ol v-else class="lp-hist__lista">
+          <li v-for="f in auditoriaVista" :key="f.id" class="lp-hist__item" :class="`lp-hist__item--${f.accion}`">
+            <span class="lp-hist__punto" aria-hidden="true"></span>
+            <div class="lp-hist__txt">
+              <p class="lp-hist__linea">{{ f.accion }} <b v-if="f.objetivo">{{ f.objetivo }}</b> <span v-if="f.extra">{{ f.extra }}</span></p>
+              <span class="lp-hist__meta">
+                <time :datetime="f.created_at" :title="new Date(f.created_at).toLocaleString('es-ES')">{{ hace(f.created_at) }}</time>
+                <template v-if="f.actor_nombre"> · {{ f.actor_nombre }}</template>
+              </span>
+            </div>
+          </li>
+        </ol>
+      </section>
+      </div>
     </div>
 
     <!-- Errores del frontend de todas las parroquias -->
-    <details class="lp-errores surface surface--pad" @toggle="verErrores = $event.target.open">
+    <details ref="erroresRef" class="lp-errores surface surface--pad" @toggle="verErrores = $event.target.open">
       <summary class="lp-errores__summary">
         <Bug :size="16" aria-hidden="true" /> Errores del sistema
+        <span v-if="erroresRecientes.total > 0" class="lp-errores__badge">{{ erroresRecientes.total }} en 24 h</span>
         <span class="lp-errores__hint">Fallos de la app en todas las parroquias</span>
       </summary>
       <ErroresSistema v-if="verErrores" :parroquias="parroquias" class="lp-errores__panel" />
@@ -751,7 +890,7 @@ function copiar(txt) {
                   </label>
                 </div>
                 <p class="lp-nota"><Info :size="14" aria-hidden="true" /> Al crearla verás una contraseña temporal
-                  para entregarle. Solo se muestra una vez.</p>
+                  para entregarle. Solo se muestra una vez, y tendrá que elegir una propia al entrar.</p>
 
                 <div class="lp-campo">
                   <span>Logo <span class="lp-opc">(opcional)</span></span>
@@ -825,6 +964,36 @@ function copiar(txt) {
                     <span class="lp-switch__track"><span class="lp-switch__thumb"></span></span>
                   </span>
                 </label>
+
+                <section class="lp-bloque" aria-labelledby="lp-det-admins">
+                  <h6 id="lp-det-admins" class="lp-bloque__titulo"><KeyRound :size="15" aria-hidden="true" /> Administradores</h6>
+                  <p v-if="cargandoGestores" class="lp-ayuda">Cargando…</p>
+                  <p v-else-if="gestoresError" class="lp-ayuda">{{ gestoresError }}</p>
+                  <p v-else-if="gestores.length === 0" class="lp-ayuda">No tiene administradores ni coordinadores.</p>
+                  <ul v-else class="lp-gestores">
+                    <li v-for="u in gestores" :key="u.id" class="lp-gestor">
+                      <div class="lp-gestor__txt">
+                        <span class="lp-gestor__nombre">{{ u.name }}</span>
+                        <span class="lp-gestor__meta">
+                          {{ ETIQUETA_ROL[u.rol] }}<template v-if="!u.activo"> · desactivado</template>
+                        </span>
+                      </div>
+                      <AppButton variant="ghost" size="sm" icon-only :icon="RotateCcw" type="button"
+                        :loading="reseteandoId === u.id" :disabled="!u.activo || (reseteandoId !== null && reseteandoId !== u.id)"
+                        :title="u.activo ? 'Restablecer contraseña' : 'Está desactivado'"
+                        :aria-label="`Restablecer la contraseña de ${u.name}`" @click="restablecerClave(u)" />
+                    </li>
+                  </ul>
+                  <div v-if="claveTemporal" class="lp-clave" role="status">
+                    <span class="lp-clave__txt">Contraseña temporal de <b>{{ claveTemporal.name }}</b>:</span>
+                    <span class="lp-clave__fila">
+                      <code>{{ claveTemporal.temp_password }}</code>
+                      <AppButton variant="ghost" size="sm" icon-only :icon="Copy" type="button"
+                        aria-label="Copiar contraseña temporal" title="Copiar" @click="copiar(claveTemporal.temp_password)" />
+                    </span>
+                    <span class="lp-ayuda">Solo se muestra ahora. Al entrar tendrá que elegir una propia.</span>
+                  </div>
+                </section>
 
                 <section class="lp-bloque" aria-labelledby="lp-det-logo">
                   <h6 id="lp-det-logo" class="lp-bloque__titulo"><ImageIcon :size="15" aria-hidden="true" /> Logo base</h6>
@@ -987,7 +1156,8 @@ function copiar(txt) {
                 </span>
               </div>
             </div>
-            <p class="mt-2 text-xs text-amber-600">La contraseña no se vuelve a mostrar. Anótala ahora.</p>
+            <p class="mt-2 text-xs text-amber-600">La contraseña no se vuelve a mostrar. Anótala ahora: al entrar, el
+              administrador tendrá que elegir una propia.</p>
           </div>
           <div class="modal-footer">
             <AppButton type="button" data-bs-dismiss="modal">Entendido</AppButton>
@@ -1655,4 +1825,103 @@ function copiar(txt) {
 :root[data-bs-theme="dark"] .lp-estado--off:hover { background: #475569; }
 :root[data-bs-theme="dark"] .lp-ayuda--ok { color: #6ee7b7; }
 :root[data-bs-theme="dark"] .lp-tag { color: color-mix(in srgb, var(--accent) 55%, #fff); }
+
+/* ══ Aviso de errores, historial y administradores ═════════════════════════ */
+.lp-aviso {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.7rem 1rem;
+  margin-bottom: 1rem;
+  border: 1px solid color-mix(in srgb, var(--danger) 35%, var(--line));
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--danger) 7%, var(--surface));
+}
+.lp-aviso__ico { color: var(--danger); flex-shrink: 0; }
+.lp-aviso__txt { margin: 0 auto 0 0; display: flex; flex-wrap: wrap; gap: 0.2rem 0.6rem; font-size: var(--fs-sm); color: var(--text); min-width: 0; }
+.lp-aviso__txt span { color: var(--text-muted); }
+.lp-errores__badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.05rem 0.5rem;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
+  color: var(--danger);
+}
+
+.lp-side { display: flex; flex-direction: column; gap: 1rem; position: sticky; top: 0; min-width: 0; }
+.lp-side .lp-mant { position: static; }
+.lp-hist {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+.lp-hist__head { display: flex; align-items: center; gap: 0.5rem; color: var(--text-muted); }
+.lp-hist__titulo { margin: 0 auto 0 0; font-size: var(--fs-ui); font-weight: 700; color: var(--text); }
+.lp-hist__vacio { margin: 0; font-size: var(--fs-sm); line-height: 1.5; color: var(--text-muted); }
+.lp-hist__lista { list-style: none; margin: 0; padding: 0; max-height: 360px; overflow-y: auto; }
+.lp-hist__item { position: relative; display: flex; gap: 0.6rem; padding: 0.45rem 0; }
+.lp-hist__item + .lp-hist__item { border-top: 1px solid var(--line); }
+.lp-hist__punto {
+  width: 8px;
+  height: 8px;
+  margin-top: 0.4rem;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+.lp-hist__item--eliminar .lp-hist__punto,
+.lp-hist__item--desactivar .lp-hist__punto,
+.lp-hist__item--mantenimiento_on .lp-hist__punto { background: var(--danger); }
+.lp-hist__item--activar .lp-hist__punto,
+.lp-hist__item--crear .lp-hist__punto,
+.lp-hist__item--mantenimiento_off .lp-hist__punto { background: #10b981; }
+.lp-hist__txt { min-width: 0; }
+.lp-hist__linea { margin: 0; font-size: var(--fs-sm); line-height: 1.4; color: var(--text-muted); overflow-wrap: anywhere; }
+.lp-hist__linea b { color: var(--text); font-weight: 600; }
+.lp-hist__meta { font-size: var(--fs-xs); color: var(--text-muted); }
+
+.lp-gestores { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.25rem; }
+.lp-gestor { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.lp-gestor__txt { display: flex; flex-direction: column; min-width: 0; }
+.lp-gestor__nombre { font-size: var(--fs-sm); font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lp-gestor__meta { font-size: var(--fs-xs); color: var(--text-muted); }
+.lp-gestor :deep(.app-btn) { min-width: 40px; min-height: 40px; }
+.lp-clave {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.6rem 0.7rem;
+  border-radius: var(--radius-md);
+  border: 1px dashed #f59e0b;
+  background: #fffbeb;
+}
+.lp-clave__txt { font-size: var(--fs-xs); color: var(--text); }
+.lp-clave__fila { display: flex; align-items: center; gap: 0.35rem; }
+.lp-clave code {
+  font-size: var(--fs-sm);
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  user-select: all;
+}
+/* Con menos de 1280 px la tabla no cabe al lado del panel: una columna, y
+   mantenimiento + actividad debajo, lado a lado si entran. */
+@media (max-width: 1279.98px) {
+  .lp-layout { grid-template-columns: 1fr; }
+  .lp-side {
+    position: static;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    align-items: start;
+  }
+}
+:root[data-bs-theme="dark"] .lp-clave { background: #3b2a0a; border-color: #b45309; }
 </style>
