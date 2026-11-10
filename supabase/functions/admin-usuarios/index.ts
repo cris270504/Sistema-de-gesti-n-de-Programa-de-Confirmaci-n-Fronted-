@@ -272,6 +272,15 @@ Deno.serve(async (req) => {
         console.error("reset_password auth error", authErr);
         return json({ message: "No se pudo restablecer la contraseña. Inténtalo de nuevo." }, 400);
       }
+      // Historial del proveedor (la función solo registra si el actor lo es).
+      const { error: audErr } = await admin.rpc("fn_auditoria_registrar", {
+        p_actor_auth: actorAuthId,
+        p_accion: "restablecer_contrasena",
+        p_detalle: { usuario: target.name },
+        p_usuario_id: id,
+      });
+      if (audErr) console.error("reset_password auditoria", audErr);
+
       return json({ message: "Contraseña restablecida.", temp_password: tmp, name: target.name });
     }
 

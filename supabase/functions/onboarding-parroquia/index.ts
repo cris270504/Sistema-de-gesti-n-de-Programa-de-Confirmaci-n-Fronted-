@@ -98,6 +98,9 @@ Deno.serve(async (req) => {
       email: adminEmail,
       password: tmp,
       email_confirm: true,
+      // Contraseña temporal: el admin debe elegir una propia al entrar (mismo
+      // mecanismo que "Restablecer contraseña" en admin-usuarios).
+      user_metadata: { debe_cambiar_password: true },
     });
     if (authErr || !created?.user) {
       const m = authErr?.message ?? "";
@@ -124,7 +127,16 @@ Deno.serve(async (req) => {
       return json({ message }, status);
     }
 
-    const r = res as { parroquia: unknown; admin_email: string };
+    const r = res as { parroquia: { id?: number; nombre?: string }; admin_email: string };
+
+    // Historial del proveedor. No bloquea: la parroquia ya está creada.
+    const { error: audErr } = await admin.rpc("fn_auditoria_registrar", {
+      p_actor_auth: actorAuthId,
+      p_accion: "crear",
+      p_parroquia_id: r.parroquia?.id ?? null,
+      p_detalle: { admin: adminNombre, sacramentos },
+    });
+    if (audErr) console.error("onboarding-parroquia auditoria", audErr);
     return json({
       message: "Parroquia creada.",
       parroquia: r.parroquia,
