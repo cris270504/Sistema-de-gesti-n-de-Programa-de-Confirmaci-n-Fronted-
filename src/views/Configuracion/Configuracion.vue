@@ -445,7 +445,8 @@ const UMBRALES = [
     <CiclosParroquia v-else-if="tab === 'ciclos'" />
 
     <form v-else class="cfg__form" @submit.prevent="guardar">
-      <template v-if="tab === 'general'">
+      <div v-if="tab === 'general'" class="cfg-grid cfg-grid--general">
+      <div class="cfg-col">
       <!-- Identidad -->
       <section class="card">
         <header class="card__head card__head--row">
@@ -527,6 +528,8 @@ const UMBRALES = [
         </div>
       </section>
 
+      </div>
+      <div class="cfg-col">
       <!-- Programa -->
       <section class="card">
         <header class="card__head">
@@ -548,12 +551,12 @@ const UMBRALES = [
           </div>
           <div class="grid-fields grid-fields--sm mt-3">
             <div class="field">
-              <label>Cómo llamar a la persona (singular) <span class="opt">(opcional)</span></label>
+              <label>Persona, en singular <span class="opt">(opcional)</span></label>
               <input v-model="form.persona_nombre_singular" type="text" maxlength="40" class="inp"
                 :placeholder="personaDefault[0]" />
             </div>
             <div class="field">
-              <label>Cómo llamar a la persona (plural) <span class="opt">(opcional)</span></label>
+              <label>Persona, en plural <span class="opt">(opcional)</span></label>
               <input v-model="form.persona_nombre_plural" type="text" maxlength="40" class="inp"
                 :placeholder="personaDefault[1]" />
             </div>
@@ -602,9 +605,10 @@ const UMBRALES = [
           <small>Las redes sociales y el prefijo de WhatsApp los configura el proveedor del sistema.</small>
         </div>
       </section>
-      </template>
+      </div>
+      </div>
 
-      <template v-if="tab === 'reuniones'">
+      <div v-if="tab === 'reuniones'" class="cfg-grid cfg-grid--2">
 
       <!-- Reuniones y grupos -->
       <section class="card">
@@ -623,7 +627,6 @@ const UMBRALES = [
             </div>
             <small v-if="form.tipos_reunion.length === 0" class="err">Debe quedar al menos uno.</small>
           </div>
-          <CategoriasReunionEditor />
           <div class="field">
             <label>Procedencias de grupo</label>
             <input v-model="form.procedencias" type="text" class="inp inp--md" />
@@ -645,6 +648,15 @@ const UMBRALES = [
 
       <section class="card">
         <header class="card__head">
+          <h3 class="card__title"><CalendarRange :size="15" class="card__ico" /> Categorías de reunión</h3>
+          <p class="card__hint">Se anteponen al título en el calendario. Las que permiten cronograma se organizan por
+            momentos en Jornadas. Se guardan al instante.</p>
+        </header>
+        <CategoriasReunionEditor />
+      </section>
+
+      <section class="card cfg-span">
+        <header class="card__head">
           <h3 class="card__title"><TriangleAlert :size="15" class="card__ico" /> Alertas del dashboard</h3>
           <p class="card__hint">Un joven entra en la alerta al alcanzar estos valores.</p>
         </header>
@@ -655,9 +667,9 @@ const UMBRALES = [
           </div>
         </div>
       </section>
-      </template>
+      </div>
 
-      <template v-if="tab === 'panel'">
+      <div v-if="tab === 'panel'" class="cfg-grid cfg-grid--2">
       <!-- Panel de control -->
       <section class="card">
         <header class="card__head">
@@ -709,24 +721,9 @@ const UMBRALES = [
         </div>
       </section>
 
-      <!-- Listado de confirmandos -->
-      <section class="card">
-        <header class="card__head">
-          <h3 class="card__title"><ListFilter :size="15" class="card__ico" /> Listado de confirmandos</h3>
-        </header>
-        <div class="card__body">
-          <div class="field">
-            <label>Filtro de estado al abrir la lista</label>
-            <select v-model="form.ui_confirmandos_estado_default" class="inp inp--md">
-              <option v-for="[key, label] in Object.entries(ESTADO_META)" :key="key" :value="key">{{ label }}</option>
-            </select>
-          </div>
-        </div>
-      </section>
+      </div>
 
-      </template>
-
-      <template v-if="tab === 'confirmandos'">
+      <div v-if="tab === 'confirmandos'" class="cfg-grid cfg-grid--3">
       <!-- Datos del confirmando -->
       <section class="card">
         <header class="card__head">
@@ -755,6 +752,21 @@ const UMBRALES = [
         </div>
       </section>
 
+      <!-- Listado de confirmandos -->
+      <section class="card">
+        <header class="card__head">
+          <h3 class="card__title"><ListFilter :size="15" class="card__ico" /> Listado de confirmandos</h3>
+        </header>
+        <div class="card__body">
+          <div class="field">
+            <label>Filtro de estado al abrir la lista</label>
+            <select v-model="form.ui_confirmandos_estado_default" class="inp inp--md">
+              <option v-for="[key, label] in Object.entries(ESTADO_META)" :key="key" :value="key">{{ label }}</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
       <!-- Roles -->
       <section class="card">
         <header class="card__head">
@@ -762,7 +774,7 @@ const UMBRALES = [
           <p class="card__hint">Cómo se muestran en la interfaz (no cambia los permisos).</p>
         </header>
         <div class="card__body">
-          <div class="grid-fields">
+          <div class="grid-fields grid-fields--1">
             <div v-for="[rol, ph] in ROLES_INTERNOS" :key="rol" class="field">
               <label>{{ ph }}</label>
               <input v-model="form.roles_labels[rol]" type="text" maxlength="60" :placeholder="ph" class="inp" />
@@ -771,80 +783,104 @@ const UMBRALES = [
         </div>
       </section>
 
-      </template>
+      </div>
 
-      <template v-if="tab === 'justificaciones'">
-      <section class="card">
-        <header class="card__head">
-          <h3 class="card__title"><ClipboardCheck :size="15" class="card__ico" /> Plazo para justificar</h3>
-          <p class="card__hint">Cuántos días después de la falta todavía se puede registrar un acuerdo.</p>
-        </header>
-        <div class="card__body">
-          <div class="umbral">
-            <span>Días para poder justificar una falta</span>
-            <input v-model="form.dias_ventana_justificacion" type="number" min="1" max="365" class="inp-num" />
-          </div>
-        </div>
-      </section>
+      <div v-if="tab === 'justificaciones'" class="cfg-grid cfg-grid--justif">
+      <div class="cfg-col">
+        <section class="card">
+          <header class="card__head">
+            <h3 class="card__title"><ClipboardCheck :size="15" class="card__ico" /> Plazo para justificar</h3>
+            <p class="card__hint">Cuántos días después de la falta todavía se puede registrar un acuerdo.</p>
+          </header>
+          <label class="plazo">
+            <input v-model="form.dias_ventana_justificacion" type="number" min="1" max="365" class="plazo__inp"
+              aria-describedby="plazo-unidad" />
+            <span id="plazo-unidad" class="plazo__unidad">días después de la falta</span>
+          </label>
+        </section>
 
-      <section class="card">
-        <header class="card__head card__head--row">
-          <div>
-            <h3 class="card__title"><MessageSquareText :size="15" class="card__ico" /> Motivos de la falta</h3>
-            <p class="card__hint">Opciones que ve quien registra el acuerdo con el apoderado.</p>
-          </div>
-          <AppButton variant="secondary" size="sm" type="button" :icon="Plus"
-            :disabled="form.justificacion_motivos.length >= 20" @click="agregarMotivo">Motivo</AppButton>
-        </header>
-        <ul class="lista-edit">
-          <li v-for="(m, i) in form.justificacion_motivos" :key="i" class="lista-edit__fila">
-            <input v-model="form.justificacion_motivos[i]" type="text" maxlength="80" class="inp"
-              :aria-label="`Motivo ${i + 1}`" placeholder="Ej: Salud / Enfermedad" />
-            <AppButton variant="soft-danger" size="sm" icon-only :icon="Trash2" type="button"
-              :disabled="form.justificacion_motivos.length <= 1" :aria-label="`Quitar el motivo ${m || i + 1}`"
-              @click="quitarMotivo(i)" />
-          </li>
-        </ul>
-      </section>
+        <section class="card">
+          <header class="card__head card__head--row">
+            <div>
+              <h3 class="card__title"><MessageSquareText :size="15" class="card__ico" /> Motivos de la falta</h3>
+              <p class="card__hint">Opciones que ve quien registra el acuerdo con el apoderado.</p>
+            </div>
+            <span class="contador">{{ form.justificacion_motivos.length }}/20</span>
+          </header>
+          <ol class="motivos">
+            <li v-for="(m, i) in form.justificacion_motivos" :key="i" class="motivos__fila">
+              <span class="motivos__n" aria-hidden="true">{{ i + 1 }}</span>
+              <input v-model="form.justificacion_motivos[i]" type="text" maxlength="80" class="motivos__inp"
+                :aria-label="`Motivo ${i + 1}`" placeholder="Ej: Salud / Enfermedad" />
+              <button type="button" class="icon-btn icon-btn--peligro" :disabled="form.justificacion_motivos.length <= 1"
+                :aria-label="`Quitar el motivo ${m || i + 1}`" :title="`Quitar el motivo`" @click="quitarMotivo(i)">
+                <Trash2 :size="15" aria-hidden="true" />
+              </button>
+            </li>
+          </ol>
+          <button type="button" class="agregar" :disabled="form.justificacion_motivos.length >= 20" @click="agregarMotivo">
+            <Plus :size="15" aria-hidden="true" /> Agregar motivo
+          </button>
+        </section>
+      </div>
 
-      <section class="card card--ancha">
+      <section class="card acciones">
         <header class="card__head card__head--row">
           <div>
             <h3 class="card__title"><HeartHandshake :size="15" class="card__ico" /> Acciones reparadoras</h3>
-            <p class="card__hint">Lo que se pacta para justificar la falta. El cupo limita cuántas personas pueden
-              hacerla la misma fecha (vacío = sin límite). Si una acción ya se usó, al quitarla se desactiva y el
-              historial conserva su nombre.</p>
+            <p class="card__hint">Lo que se pacta para justificar la falta. Si una acción ya se usó, al quitarla se
+              desactiva y el historial conserva su nombre.</p>
           </div>
-          <AppButton variant="secondary" size="sm" type="button" :icon="Plus"
-            :disabled="acciones.length >= 20" @click="agregarAccion">Acción</AppButton>
+          <span class="contador">{{ acciones.length }}/20</span>
         </header>
-        <div class="acc-tabla" role="table" aria-label="Acciones reparadoras">
-          <div class="acc-fila acc-fila--head" role="row">
-            <span role="columnheader">Nombre</span>
+
+        <div class="acciones__tabla" role="table" aria-label="Acciones reparadoras">
+          <div class="acc acc--head" role="row">
+            <span role="columnheader">Acción</span>
             <span role="columnheader">Cupo por fecha</span>
             <span role="columnheader">Pide detalle</span>
             <span role="columnheader">Activa</span>
             <span role="columnheader"><span class="sr-file">Quitar</span></span>
           </div>
-          <div v-for="(a, i) in acciones" :key="a.id ?? `n${i}`" class="acc-fila" :class="{ 'acc-fila--off': !a.activo }" role="row">
-            <input v-model="a.nombre" type="text" maxlength="60" class="inp" role="cell"
-              :aria-label="`Nombre de la acción ${i + 1}`" placeholder="Ej: Lectura en misa" />
-            <input v-model="a.cupo_por_fecha" type="number" min="1" max="99" class="inp-num" role="cell"
-              :aria-label="`Cupo por fecha de ${a.nombre || 'la acción'}`" placeholder="—" />
-            <label class="chip acc-check" :class="{ 'chip--on': a.pide_detalle }" role="cell">
-              <input v-model="a.pide_detalle" type="checkbox" />
-              <Check v-if="a.pide_detalle" :size="13" class="chip__check" /> Detalle
-            </label>
-            <label class="chip acc-check" :class="{ 'chip--on': a.activo }" role="cell">
-              <input v-model="a.activo" type="checkbox" />
-              <Check v-if="a.activo" :size="13" class="chip__check" /> Activa
-            </label>
-            <AppButton variant="soft-danger" size="sm" icon-only :icon="Trash2" type="button" role="cell"
-              :aria-label="`Quitar ${a.nombre || 'la acción'}`" @click="quitarAccion(i)" />
+          <div v-for="(a, i) in acciones" :key="a.id ?? `n${i}`" class="acc" :class="{ 'acc--off': !a.activo }" role="row">
+            <span role="cell" class="acc__nombre">
+              <input v-model="a.nombre" type="text" maxlength="60" class="inp"
+                :aria-label="`Nombre de la acción ${i + 1}`" placeholder="Ej: Lectura en misa" />
+            </span>
+            <span role="cell" class="acc__cupo">
+              <input v-model="a.cupo_por_fecha" type="number" min="1" max="99" class="inp-num"
+                :aria-label="`Cupo por fecha de ${a.nombre || 'la acción'} (vacío = sin límite)`" placeholder="∞" />
+              <span class="acc__hint">{{ a.cupo_por_fecha === '' || a.cupo_por_fecha === null ? 'Sin límite' : 'personas' }}</span>
+            </span>
+            <span role="cell">
+              <label class="sw">
+                <input v-model="a.pide_detalle" type="checkbox" class="sw__inp"
+                  :aria-label="`${a.nombre || 'La acción'} pide detalle`" />
+                <span class="sw__track" aria-hidden="true"><span class="sw__thumb"></span></span>
+                <span class="sw__txt">{{ a.pide_detalle ? 'Sí' : 'No' }}</span>
+              </label>
+            </span>
+            <span role="cell">
+              <label class="sw">
+                <input v-model="a.activo" type="checkbox" class="sw__inp"
+                  :aria-label="`${a.nombre || 'La acción'} activa`" />
+                <span class="sw__track" aria-hidden="true"><span class="sw__thumb"></span></span>
+                <span class="sw__txt">{{ a.activo ? 'Sí' : 'No' }}</span>
+              </label>
+            </span>
+            <span role="cell">
+              <button type="button" class="icon-btn icon-btn--peligro" :aria-label="`Quitar ${a.nombre || 'la acción'}`"
+                title="Quitar la acción" @click="quitarAccion(i)">
+                <Trash2 :size="15" aria-hidden="true" />
+              </button>
+            </span>
           </div>
         </div>
+        <button type="button" class="agregar" :disabled="acciones.length >= 20" @click="agregarAccion">
+          <Plus :size="15" aria-hidden="true" /> Agregar acción
+        </button>
       </section>
-      </template>
+      </div>
 
       <div class="cfg__bar">
         <span v-if="hayCambiosSinGuardar && !saving" class="cfg__dirty">
@@ -861,22 +897,28 @@ const UMBRALES = [
 
 <style scoped>
 
-/* Multicolumna: reparte las tarjetas por altura, sin huecos muertos. Una
-   columna en celular, 2 en laptop y 3 en pantallas anchas (sin tope de ancho:
-   antes quedaba un margen vacío a los lados en monitores grandes). */
-@media (min-width: 1000px) {
-  .cfg__form {
-    column-count: 2;
-    column-gap: 1.25rem;
-  }
-
-  .cfg__bar {
-    column-span: all;
-  }
+/* Una grilla por pestaña, pensada para su contenido (antes: multicolumna que
+   repartía por altura y dejaba huecos). Las tarjetas de una misma fila se
+   estiran a la misma altura. */
+.cfg-grid { display: grid; gap: 1.25rem; align-items: stretch; margin-bottom: 1.25rem; }
+.cfg-grid > .card, .cfg-col > .card { margin-bottom: 0; }
+.cfg-col { display: flex; flex-direction: column; gap: 1.25rem; min-width: 0; }
+.cfg-col > .card:last-child { flex: 1; }
+.cfg-grid--2, .cfg-grid--general { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.cfg-grid--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.cfg-grid--justif { grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); }
+.cfg-span { grid-column: 1 / -1; }
+@media (max-width: 1199.98px) {
+  .cfg-grid--3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cfg-grid--3 > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+  .cfg-grid--3 > :last-child:nth-child(odd) .grid-fields--1 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .cfg-grid--justif { grid-template-columns: 1fr; }
 }
-
-@media (min-width: 1600px) {
-  .cfg__form { column-count: 3; }
+@media (max-width: 899.98px) {
+  .cfg-grid--3 > :last-child:nth-child(odd) .grid-fields--1 { grid-template-columns: 1fr; }
+}
+@media (max-width: 899.98px) {
+  .cfg-grid--2, .cfg-grid--general, .cfg-grid--3 { grid-template-columns: 1fr; }
 }
 
 .card {
@@ -970,9 +1012,10 @@ const UMBRALES = [
   gap: .9rem 1.1rem;
 }
 
+.grid-fields--1 { grid-template-columns: 1fr; }
+
 .grid-fields--sm {
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  max-width: 420px;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
 }
 
 .inp {
@@ -992,7 +1035,7 @@ const UMBRALES = [
 }
 
 .inp--md {
-  max-width: 340px;
+  max-width: 100%;
 }
 
 .edad-row {
@@ -1293,7 +1336,7 @@ const UMBRALES = [
 /* Umbrales: 2 columnas si la tarjeta es ancha, 1 si es angosta. */
 .umbral-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   column-gap: 2rem;
 }
 
@@ -1506,27 +1549,91 @@ const UMBRALES = [
 .cfg-tab--on { background: var(--accent-soft); color: var(--accent); }
 .cfg-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-/* ── Listas editables (motivos) ───────────────────────────────────────── */
-.lista-edit { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
-.lista-edit__fila { display: flex; gap: 0.5rem; align-items: center; }
-.lista-edit__fila .inp { flex: 1; min-width: 0; }
 
-/* ── Acciones reparadoras ─────────────────────────────────────────────── */
-.card--ancha { column-span: all; }
-.acc-tabla { display: flex; flex-direction: column; gap: 0.5rem; }
-.acc-fila {
-  display: grid;
-  /* Anchos fijos: cada fila es su propia grilla y deben coincidir entre sí. */
-  grid-template-columns: minmax(10rem, 1fr) 6rem 7.5rem 7rem 2.5rem;
-  gap: 0.5rem 0.75rem;
-  align-items: center;
+
+/* ── Justificaciones ─────────────────────────────────────────────────── */
+.contador {
+  flex-shrink: 0; font-size: var(--fs-xs); font-weight: 700; color: var(--text-muted);
+  background: var(--surface-sunken); border-radius: var(--radius-pill); padding: 0.15rem 0.55rem;
+  font-variant-numeric: tabular-nums;
 }
-.acc-fila--head { font-size: var(--fs-xs); font-weight: 700; color: var(--text-muted); }
-.acc-fila--off .inp { opacity: 0.6; }
-.acc-check { justify-self: start; }
+.plazo { display: flex; align-items: center; gap: 0.75rem; margin: 0; }
+.plazo__inp {
+  width: 5.5rem; text-align: center; font-size: 1.35rem; font-weight: 700; padding: 0.45rem 0.5rem !important;
+  border-radius: var(--radius-md); font-variant-numeric: tabular-nums;
+}
+.plazo__unidad { font-size: var(--fs-sm); color: var(--text-muted); }
+
+.motivos { list-style: none; margin: 0 0 0.75rem; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; }
+.motivos__fila {
+  display: flex; align-items: center; gap: 0.6rem; padding: 0.3rem 0.35rem 0.3rem 0.5rem;
+  border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.motivos__fila:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.motivos__n {
+  display: grid; place-items: center; width: 1.6rem; height: 1.6rem; flex-shrink: 0; border-radius: 50%;
+  background: var(--accent-soft); color: var(--accent); font-size: var(--fs-xs); font-weight: 700;
+}
+.motivos__inp {
+  flex: 1; min-width: 0; border: 0 !important; box-shadow: none !important; background: transparent !important;
+  padding: 0.35rem 0 !important; font-size: var(--fs-ui); color: var(--text);
+}
+
+.icon-btn {
+  display: grid; place-items: center; width: 36px; height: 36px; flex-shrink: 0; border: 0;
+  border-radius: var(--radius-md); background: transparent; color: var(--text-muted); cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.icon-btn--peligro:hover:not(:disabled) { background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger); }
+.icon-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.icon-btn:focus-visible, .agregar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.agregar {
+  display: flex; align-items: center; justify-content: center; gap: 0.4rem; width: 100%; min-height: 42px;
+  border: 1.5px dashed var(--line-strong); border-radius: var(--radius-md); background: transparent;
+  color: var(--accent); font-size: var(--fs-sm); font-weight: 600; cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.agregar:hover:not(:disabled) { background: var(--accent-soft); border-color: var(--accent); }
+.agregar:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.acciones { display: flex; flex-direction: column; }
+.acciones__tabla { display: flex; flex-direction: column; margin-bottom: 0.75rem; }
+.acc {
+  display: grid; grid-template-columns: minmax(10rem, 1fr) 9.5rem 7rem 6rem 2.5rem;
+  gap: 0.75rem; align-items: center; padding: 0.55rem 0; border-top: 1px solid var(--line);
+}
+.acc--head { border-top: 0; padding-top: 0; font-size: var(--fs-xs); font-weight: 700; color: var(--text-muted); }
+.acc--off .acc__nombre .inp { color: var(--text-muted); text-decoration: line-through; }
+.acc__nombre .inp { width: 100%; }
+.acc__cupo { display: flex; align-items: center; gap: 0.5rem; }
+.acc__cupo .inp-num { width: 4rem; text-align: center; }
+.acc__hint { font-size: var(--fs-xs); color: var(--text-muted); white-space: nowrap; }
+
+/* Interruptor (checkbox con apariencia de switch). */
+.sw { display: inline-flex; align-items: center; gap: 0.5rem; margin: 0; cursor: pointer; min-height: 36px; }
+.sw__inp { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.sw__track {
+  position: relative; width: 36px; height: 20px; border-radius: 999px; background: var(--line-strong);
+  transition: background-color 0.15s ease; flex-shrink: 0;
+}
+.sw__thumb {
+  position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff;
+  box-shadow: var(--shadow-sm); transition: transform 0.15s ease;
+}
+.sw__inp:checked + .sw__track { background: var(--accent); }
+.sw__inp:checked + .sw__track .sw__thumb { transform: translateX(16px); }
+.sw__inp:focus-visible + .sw__track { outline: 2px solid var(--accent); outline-offset: 2px; }
+.sw__txt { font-size: var(--fs-sm); color: var(--text-muted); min-width: 1.5rem; }
+
 @media (max-width: 640px) {
-  .acc-fila { grid-template-columns: 1fr 5.5rem 2.5rem; }
-  .acc-fila--head { display: none; }
-  .acc-fila .inp:first-child { grid-column: 1 / -1; }
+  .acc { grid-template-columns: 1fr auto; gap: 0.5rem 0.75rem; }
+  .acc--head { display: none; }
+  .acc__nombre { grid-column: 1 / -1; }
+  .acc > [role='cell']:nth-child(2) { grid-column: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sw__track, .sw__thumb, .agregar, .icon-btn, .motivos__fila { transition: none; }
 }
 </style>

@@ -82,60 +82,96 @@ onMounted(() => categoriasStore.fetchAll({ force: true }))
 </script>
 
 <template>
-  <div class="field">
-    <label id="cat-titulo">Categorías de reunión</label>
-    <small class="d-block mb-2">
-      Se anteponen al título en el calendario. Las que permiten cronograma se organizan por momentos en el módulo Jornadas.
-    </small>
-    <table class="cats" aria-labelledby="cat-titulo">
-      <thead>
-        <tr><th scope="col">Nombre</th><th scope="col">Cronograma</th><th scope="col">Activa</th><th scope="col"><span class="visually-hidden">Acciones</span></th></tr>
-      </thead>
-      <tbody>
-        <tr v-for="cat in categorias" :key="cat.id" :class="{ 'cats__fila--off': !cat.activa }">
-          <td>
-            <input :value="cat.nombre" class="inp" maxlength="40" :aria-label="`Nombre de la categoría ${cat.nombre}`"
-              :disabled="guardando === cat.id"
-              @change="cambiar(cat, { nombre: $event.target.value })">
-          </td>
-          <td>
-            <input type="checkbox" class="form-check-input" :checked="cat.permite_cronograma"
-              :aria-label="`${cat.nombre} permite cronograma`" :disabled="guardando === cat.id"
-              @change="cambiar(cat, { permite_cronograma: $event.target.checked })">
-          </td>
-          <td>
-            <input type="checkbox" class="form-check-input" :checked="cat.activa"
-              :aria-label="`${cat.nombre} activa`" :disabled="guardando === cat.id"
-              @change="cambiar(cat, { activa: $event.target.checked })">
-          </td>
-          <td class="text-end">
-            <AppButton variant="soft-danger" size="sm" icon-only :icon="Trash" :aria-label="`Eliminar ${cat.nombre}`"
-              :disabled="guardando === cat.id" @click="eliminar(cat)" />
-          </td>
-        </tr>
-        <tr>
-          <td>
-            <input v-model="nueva.nombre" class="inp" maxlength="40" placeholder="Nueva categoría" aria-label="Nombre de la nueva categoría"
-              @keydown.enter.prevent="agregar">
-          </td>
-          <td>
-            <input v-model="nueva.permite_cronograma" type="checkbox" class="form-check-input" aria-label="La nueva categoría permite cronograma">
-          </td>
-          <td></td>
-          <td class="text-end">
-            <AppButton size="sm" icon-only :icon="Plus" aria-label="Agregar categoría" :loading="guardando === 'nueva'"
-              :disabled="!nueva.nombre.trim()" @click="agregar" />
-          </td>
-        </tr>
-      </tbody>
-    </table>
+  <div class="cats" role="table" aria-label="Categorías de reunión">
+    <div class="cat cat--head" role="row">
+      <span role="columnheader">Categoría</span>
+      <span role="columnheader">Cronograma</span>
+      <span role="columnheader">Activa</span>
+      <span role="columnheader"><span class="visually-hidden">Eliminar</span></span>
+    </div>
+    <div v-for="cat in categorias" :key="cat.id" class="cat" :class="{ 'cat--off': !cat.activa }" role="row">
+      <span role="cell">
+        <input :value="cat.nombre" class="cat__inp" maxlength="40" :aria-label="`Nombre de la categoría ${cat.nombre}`"
+          :disabled="guardando === cat.id" @change="cambiar(cat, { nombre: $event.target.value })">
+      </span>
+      <span role="cell">
+        <label class="sw">
+          <input type="checkbox" class="sw__inp" :checked="cat.permite_cronograma" :disabled="guardando === cat.id"
+            :aria-label="`${cat.nombre} permite cronograma`"
+            @change="cambiar(cat, { permite_cronograma: $event.target.checked })">
+          <span class="sw__track" aria-hidden="true"><span class="sw__thumb"></span></span>
+          <span class="sw__txt">{{ cat.permite_cronograma ? 'Sí' : 'No' }}</span>
+        </label>
+      </span>
+      <span role="cell">
+        <label class="sw">
+          <input type="checkbox" class="sw__inp" :checked="cat.activa" :disabled="guardando === cat.id"
+            :aria-label="`${cat.nombre} activa`" @change="cambiar(cat, { activa: $event.target.checked })">
+          <span class="sw__track" aria-hidden="true"><span class="sw__thumb"></span></span>
+          <span class="sw__txt">{{ cat.activa ? 'Sí' : 'No' }}</span>
+        </label>
+      </span>
+      <span role="cell">
+        <button type="button" class="icon-btn" :disabled="guardando === cat.id" :aria-label="`Eliminar ${cat.nombre}`"
+          title="Eliminar la categoría" @click="eliminar(cat)">
+          <Trash :size="15" aria-hidden="true" />
+        </button>
+      </span>
+    </div>
+
+    <div class="cat cat--nueva" role="row">
+      <span>
+        <input v-model="nueva.nombre" class="cat__inp" maxlength="40" placeholder="Nueva categoría"
+          aria-label="Nombre de la nueva categoría" @keydown.enter.prevent="agregar">
+      </span>
+      <span>
+        <label class="sw">
+          <input v-model="nueva.permite_cronograma" type="checkbox" class="sw__inp"
+            aria-label="La nueva categoría permite cronograma">
+          <span class="sw__track" aria-hidden="true"><span class="sw__thumb"></span></span>
+          <span class="sw__txt">{{ nueva.permite_cronograma ? 'Sí' : 'No' }}</span>
+        </label>
+      </span>
+      <span class="cat__agregar">
+        <AppButton size="sm" type="button" :icon="Plus" :loading="guardando === 'nueva'"
+          :disabled="!nueva.nombre.trim()" @click="agregar">Agregar</AppButton>
+      </span>
+    </div>
   </div>
 </template>
 
 <style scoped>
-.cats { width: 100%; max-width: 32rem; border-collapse: collapse; font-size: var(--fs-ui); }
-.cats th { padding: 0.25rem 0.4rem; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-align: left; }
-.cats td { padding: 0.3rem 0.4rem; border-top: 1px solid var(--line); vertical-align: middle; }
-.cats .inp { width: 100%; }
-.cats__fila--off .inp { opacity: 0.6; }
+.cats { display: flex; flex-direction: column; }
+.cat {
+  display: grid; grid-template-columns: minmax(8rem, 1fr) 7rem 6rem 2.5rem;
+  gap: 0.75rem; align-items: center; padding: 0.5rem 0; border-top: 1px solid var(--line);
+}
+.cat--head { border-top: 0; padding-top: 0; font-size: var(--fs-xs); font-weight: 700; color: var(--text-muted); }
+.cat--nueva { margin: 0; }
+.cat__agregar { grid-column: 3 / -1; justify-self: end; }
+.cat__inp {
+  width: 100%; border: 1px solid var(--line-strong); border-radius: var(--radius-md);
+  padding: 0.45rem 0.6rem; font-size: var(--fs-ui); background: var(--surface); color: var(--text);
+}
+.cat__inp:focus { outline: 2px solid var(--accent-ring); outline-offset: -1px; border-color: var(--accent); }
+.cat--off .cat__inp { color: var(--text-muted); text-decoration: line-through; }
+
+.sw { display: inline-flex; align-items: center; gap: 0.5rem; margin: 0; cursor: pointer; min-height: 36px; }
+.sw__inp { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.sw__track { position: relative; width: 36px; height: 20px; border-radius: 999px; background: var(--line-strong); transition: background-color 0.15s ease; flex-shrink: 0; }
+.sw__thumb { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: var(--shadow-sm); transition: transform 0.15s ease; }
+.sw__inp:checked + .sw__track { background: var(--accent); }
+.sw__inp:checked + .sw__track .sw__thumb { transform: translateX(16px); }
+.sw__inp:focus-visible + .sw__track { outline: 2px solid var(--accent); outline-offset: 2px; }
+.sw__inp:disabled + .sw__track { opacity: 0.5; }
+.sw__txt { font-size: var(--fs-sm); color: var(--text-muted); }
+
+.icon-btn { display: grid; place-items: center; width: 36px; height: 36px; border: 0; border-radius: var(--radius-md); background: transparent; color: var(--text-muted); cursor: pointer; transition: background-color 0.15s ease, color 0.15s ease; }
+.icon-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger); }
+.icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.icon-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sw__track, .sw__thumb, .icon-btn { transition: none; }
+}
 </style>
