@@ -1,7 +1,7 @@
 <script setup>
 import AppButton from '@/components/AppButton.vue'
 import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue'
-import { onBeforeRouteLeave } from 'vue-router'
+import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import {
   useParroquiaStore, CONFIG_DEFAULTS, PROGRAMA_TIPOS, PERSONA_LABELS_DEFAULT,
   DASHBOARD_KPIS, DASHBOARD_PANELES, MODULOS_OCULTABLES, CONFIRMANDOS_ESTADOS, CONFIRMANDO_CAMPOS,
@@ -9,13 +9,49 @@ import {
 import {
   Save, RotateCcw, Image as ImageIcon, Upload,
   Palette, CalendarRange, Users, Tag, LayoutDashboard, TriangleAlert, Check, PanelLeft, ListFilter, UserCheck,
+  Phone, ClipboardCheck, Plus, Trash2, Settings2, History, DatabaseBackup, HeartHandshake, MessageSquareText, Archive,
 } from 'lucide-vue-next'
 import { subirLogo, quitarLogo } from '@/services/branding'
 import { showAlerta, confirmar } from '@/funciones'
 import AppPage from '@/components/AppPage.vue'
 import CategoriasReunionEditor from './CategoriasReunionEditor.vue'
+import HistorialParroquia from './HistorialParroquia.vue'
+import RespaldoParroquia from './RespaldoParroquia.vue'
+import CiclosParroquia from './CiclosParroquia.vue'
+import { saveJustificacionAcciones } from '@/services/parroquia'
+import { validarAcciones, validarMotivos } from '@/lib/justificacionConfig'
 
 const parroquiaStore = useParroquiaStore()
+const route = useRoute()
+const router = useRouter()
+
+// Pestañas (con enlace propio: ?tab=…). Historial y Respaldo no editan el formulario.
+const TABS = [
+  { id: 'general', label: 'General', icon: Settings2 },
+  { id: 'reuniones', label: 'Reuniones y alertas', icon: Users },
+  { id: 'panel', label: 'Panel y menú', icon: LayoutDashboard },
+  { id: 'confirmandos', label: 'Jóvenes y roles', icon: UserCheck },
+  { id: 'justificaciones', label: 'Justificaciones', icon: ClipboardCheck },
+  { id: 'ciclos', label: 'Ciclos', icon: Archive },
+  { id: 'historial', label: 'Historial', icon: History },
+  { id: 'datos', label: 'Respaldo', icon: DatabaseBackup },
+]
+const TABS_FORM = ['general', 'reuniones', 'panel', 'confirmandos', 'justificaciones']
+const tab = ref(TABS.some((t) => t.id === route.query.tab) ? route.query.tab : 'general')
+const esTabForm = computed(() => TABS_FORM.includes(tab.value))
+function irATab(id) {
+  tab.value = id
+  router.replace({ query: { ...route.query, tab: id } })
+}
+// Flechas izquierda/derecha entre pestañas (patrón ARIA tabs).
+function teclaTab(e, i) {
+  const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0
+  if (!d) return
+  e.preventDefault()
+  const sig = TABS[(i + d + TABS.length) % TABS.length]
+  irATab(sig.id)
+  document.getElementById(`cfg-tab-${sig.id}`)?.focus()
+}
 
 // ── Identidad: logo (Storage) + color en vivo ──────────────────────────────
 const fileInput = ref(null)
@@ -145,7 +181,24 @@ const form = reactive(estructuraVacia())
 // Última foto de `form` tal como quedó cargado/guardado -- si el form actual
 // difiere, hay cambios sin guardar (avisamos antes de perderlos).
 const snapshotForm = ref(JSON.stringify(estructuraVacia()))
-const hayCambiosSinGuardar = computed(() => JSON.stringify(form) !== snapshotForm.value)
+// Acciones reparadoras: lista editable; se guardan junto con la configuración.
+const acciones = ref([])
+const snapshotAcciones = ref('[]')
+const accionesJSON = () => JSON.stringify(acciones.value.map(({ id, nombre, cupo_por_fecha, pide_detalle, activo }) =>
+  ({ id: id ?? null, nombre, cupo_por_fecha: cupo_por_fecha === '' ? null : cupo_por_fecha, pide_detalle, activo })))
+async function cargarAcciones() {
+  const lista = await parroquiaStore.fetchJustificacionAcciones()
+  acciones.value = lista.map((a) => ({ ...a, cupo_por_fecha: a.cupo_por_fecha ?? '' }))
+  snapshotAcciones.value = accionesJSON()
+}
+const accionesCambiadas = computed(() => accionesJSON() !== snapshotAcciones.value)
+const agregarAccion = () => acciones.value.push({ id: null, nombre: '', cupo_por_fecha: '', pide_detalle: false, activo: true })
+const quitarAccion = (i) => acciones.value.splice(i, 1)
+
+const agregarMotivo = () => form.justificacion_motivos.push('')
+const quitarMotivo = (i) => form.justificacion_motivos.splice(i, 1)
+
+const hayCambiosSinGuardar = computed(() => JSON.stringify(form) !== snapshotForm.value || accionesCambiadas.value)
 
 // Default automático según el tipo elegido AHORA en el form (no el guardado
 // todavía) -- para mostrar como placeholder de lo que se usa si se deja vacío.
@@ -183,8 +236,11 @@ const PANEL_META = {
 }
 const MODULO_META = {
   cronograma: 'Cronograma',
+  jornadas: 'Jornadas',
   cumpleanos: 'Cumpleaños',
   sacramentos: 'Ruta sacramental',
+  sacramentos_programados: 'Sacramentos programados',
+  justificaciones: 'Justificaciones',
 }
 const ESTADO_META = {
   en_preparacion: 'En preparación',
@@ -214,6 +270,8 @@ function estructuraVacia() {
     grupos_edad_max: '',
     branding: { nombre_publico: '', logo_url: '', logo_url_proveedor: '', color_primario: '#2563eb' },
     roles_labels: {},
+    contacto: { telefono: '', email: '', direccion: '' },
+    justificacion_motivos: [],
     ui_dashboard_kpis: [...CONFIG_DEFAULTS.ui.dashboard_kpis],
     ui_dashboard_paneles: [...CONFIG_DEFAULTS.ui.dashboard_paneles],
     ui_modulos_visibles: [...MODULOS_OCULTABLES],
@@ -238,6 +296,12 @@ function cargarDesdeStore() {
   form.grupos_edad_min = c.grupos_edad_min ?? ''
   form.grupos_edad_max = c.grupos_edad_max ?? ''
   form.roles_labels = { ...(c.roles_labels ?? {}) }
+  form.contacto = {
+    telefono: c.contacto?.telefono ?? '',
+    email: c.contacto?.email ?? '',
+    direccion: c.contacto?.direccion ?? '',
+  }
+  form.justificacion_motivos = [...(c.justificacion_motivos?.length ? c.justificacion_motivos : CONFIG_DEFAULTS.justificacion_motivos)]
   form.ui_dashboard_kpis = [...(c.ui?.dashboard_kpis ?? CONFIG_DEFAULTS.ui.dashboard_kpis)]
   form.ui_dashboard_paneles = [...(c.ui?.dashboard_paneles ?? CONFIG_DEFAULTS.ui.dashboard_paneles)]
   {
@@ -263,6 +327,7 @@ function cargarDesdeStore() {
 onMounted(async () => {
   await parroquiaStore.fetchConfiguracion()
   cargarDesdeStore()
+  cargarAcciones()
 })
 
 const onBeforeUnload = (e) => {
@@ -276,8 +341,8 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', onBeforeUnload)
 onBeforeRouteLeave(async () => {
   if (!hayCambiosSinGuardar.value) return true
   return confirmar({
-    titulo: 'Tenés cambios sin guardar',
-    texto: 'Si salís ahora, se pierden los cambios que hiciste en esta pantalla.',
+    titulo: 'Tienes cambios sin guardar',
+    texto: 'Si sales ahora, se pierden los cambios que hiciste en esta pantalla.',
     icono: 'warning',
     confirmarTexto: 'Salir sin guardar',
     cancelarTexto: 'Seguir editando',
@@ -285,6 +350,13 @@ onBeforeRouteLeave(async () => {
 })
 
 async function guardar() {
+  const errMotivos = validarMotivos(form.justificacion_motivos)
+  const errAcciones = accionesCambiadas.value ? validarAcciones(acciones.value) : ''
+  if (errMotivos || errAcciones) {
+    irATab('justificaciones')
+    showAlerta(errMotivos || errAcciones, 'warning')
+    return
+  }
   saving.value = true
   const payload = {
     programa_inicio: form.programa_inicio || null,
@@ -304,6 +376,12 @@ async function guardar() {
     roles_labels: Object.fromEntries(
       Object.entries(form.roles_labels).filter(([, v]) => (v || '').trim()),
     ),
+    contacto: {
+      telefono: form.contacto.telefono.trim() || null,
+      email: form.contacto.email.trim() || null,
+      direccion: form.contacto.direccion.trim() || null,
+    },
+    justificacion_motivos: form.justificacion_motivos.map((m) => m.trim()).filter(Boolean),
     branding: {
       nombre_publico: form.branding.nombre_publico || null,
       logo_url: form.branding.logo_url || null,
@@ -318,7 +396,16 @@ async function guardar() {
       confirmado_exige_requisitos: form.ui_confirmado_exige_requisitos ? 'si' : 'no',
     },
   }
-  await parroquiaStore.save(payload)
+  const ok = await parroquiaStore.save(payload)
+  if (ok && accionesCambiadas.value) {
+    try {
+      await saveJustificacionAcciones(JSON.parse(accionesJSON()))
+      await cargarAcciones()
+    } catch (e) {
+      irATab('justificaciones')
+      showAlerta(e?.message || 'No se pudieron guardar las acciones reparadoras', 'error')
+    }
+  }
   cargarDesdeStore()
   // Ya guardado: el color efectivo pasa a ser el de la config, no la "vista previa".
   parroquiaStore.setColorPreview(null)
@@ -338,12 +425,27 @@ const UMBRALES = [
   <AppPage title="Configuración" subtitle="Ajustes que aplican a toda la parroquia" :loading="parroquiaStore.loading"
     skeleton="form">
     <template #actions>
-      <AppButton variant="secondary" size="sm" type="button" :icon="RotateCcw" :disabled="saving" @click="cargarDesdeStore">
+      <AppButton v-if="esTabForm" variant="secondary" size="sm" type="button" :icon="RotateCcw" :disabled="saving"
+        @click="cargarDesdeStore(); cargarAcciones()">
         Descartar
       </AppButton>
     </template>
 
-    <form class="cfg__form" @submit.prevent="guardar">
+    <div class="cfg-tabs" role="tablist" aria-label="Secciones de la configuración">
+      <button v-for="(t, i) in TABS" :id="`cfg-tab-${t.id}`" :key="t.id" type="button" role="tab" class="cfg-tab"
+        :class="{ 'cfg-tab--on': tab === t.id }" :aria-selected="tab === t.id" :tabindex="tab === t.id ? 0 : -1"
+        aria-controls="cfg-panel" @click="irATab(t.id)" @keydown="teclaTab($event, i)">
+        <component :is="t.icon" :size="15" aria-hidden="true" /> {{ t.label }}
+      </button>
+    </div>
+
+    <div id="cfg-panel" role="tabpanel" :aria-labelledby="`cfg-tab-${tab}`">
+    <HistorialParroquia v-if="tab === 'historial'" />
+    <RespaldoParroquia v-else-if="tab === 'datos'" />
+    <CiclosParroquia v-else-if="tab === 'ciclos'" />
+
+    <form v-else class="cfg__form" @submit.prevent="guardar">
+      <template v-if="tab === 'general'">
       <!-- Identidad -->
       <section class="card">
         <header class="card__head card__head--row">
@@ -474,6 +576,36 @@ const UMBRALES = [
         </div>
       </section>
 
+      <!-- Contacto -->
+      <section class="card">
+        <header class="card__head">
+          <h3 class="card__title"><Phone :size="15" class="card__ico" /> Contacto de la parroquia</h3>
+          <p class="card__hint">Opcional. Se usa para que las familias sepan cómo comunicarse con la parroquia.</p>
+        </header>
+        <div class="card__body">
+          <div class="grid-fields grid-fields--sm">
+            <div class="field">
+              <label for="cfg-tel">Teléfono <span class="opt">(opcional)</span></label>
+              <input id="cfg-tel" v-model="form.contacto.telefono" type="tel" maxlength="20" class="inp"
+                inputmode="tel" placeholder="Ej: 073 123456" />
+            </div>
+            <div class="field">
+              <label for="cfg-mail">Correo <span class="opt">(opcional)</span></label>
+              <input id="cfg-mail" v-model="form.contacto.email" type="email" maxlength="120" class="inp"
+                placeholder="parroquia@ejemplo.com" />
+            </div>
+          </div>
+          <div class="field mt-3">
+            <label for="cfg-dir">Dirección <span class="opt">(opcional)</span></label>
+            <input id="cfg-dir" v-model="form.contacto.direccion" type="text" maxlength="200" class="inp" />
+          </div>
+          <small>Las redes sociales y el prefijo de WhatsApp los configura el proveedor del sistema.</small>
+        </div>
+      </section>
+      </template>
+
+      <template v-if="tab === 'reuniones'">
+
       <!-- Reuniones y grupos -->
       <section class="card">
         <header class="card__head">
@@ -511,6 +643,21 @@ const UMBRALES = [
         </div>
       </section>
 
+      <section class="card">
+        <header class="card__head">
+          <h3 class="card__title"><TriangleAlert :size="15" class="card__ico" /> Alertas del dashboard</h3>
+          <p class="card__hint">Un joven entra en la alerta al alcanzar estos valores.</p>
+        </header>
+        <div class="umbral-grid">
+          <div v-for="[key, label, riesgo] in UMBRALES" :key="key" class="umbral">
+            <span><i class="tag" :class="'tag--' + riesgo.toLowerCase()">{{ riesgo }}</i> {{ label }}</span>
+            <input v-model="form.umbrales_alerta[key]" type="number" min="1" max="99" class="inp-num" />
+          </div>
+        </div>
+      </section>
+      </template>
+
+      <template v-if="tab === 'panel'">
       <!-- Panel de control -->
       <section class="card">
         <header class="card__head">
@@ -577,6 +724,9 @@ const UMBRALES = [
         </div>
       </section>
 
+      </template>
+
+      <template v-if="tab === 'confirmandos'">
       <!-- Datos del confirmando -->
       <section class="card">
         <header class="card__head">
@@ -621,33 +771,91 @@ const UMBRALES = [
         </div>
       </section>
 
-      <!-- Alertas -->
+      </template>
+
+      <template v-if="tab === 'justificaciones'">
       <section class="card">
         <header class="card__head">
-          <h3 class="card__title"><TriangleAlert :size="15" class="card__ico" /> Alertas del dashboard</h3>
-          <p class="card__hint">Un confirmando entra en la alerta al alcanzar estos valores.</p>
+          <h3 class="card__title"><ClipboardCheck :size="15" class="card__ico" /> Plazo para justificar</h3>
+          <p class="card__hint">Cuántos días después de la falta todavía se puede registrar un acuerdo.</p>
         </header>
-        <div class="umbral-grid">
+        <div class="card__body">
           <div class="umbral">
             <span>Días para poder justificar una falta</span>
             <input v-model="form.dias_ventana_justificacion" type="number" min="1" max="365" class="inp-num" />
           </div>
-          <div v-for="[key, label, riesgo] in UMBRALES" :key="key" class="umbral">
-            <span><i class="tag" :class="'tag--' + riesgo.toLowerCase()">{{ riesgo }}</i> {{ label }}</span>
-            <input v-model="form.umbrales_alerta[key]" type="number" min="1" max="99" class="inp-num" />
-          </div>
         </div>
       </section>
 
+      <section class="card">
+        <header class="card__head card__head--row">
+          <div>
+            <h3 class="card__title"><MessageSquareText :size="15" class="card__ico" /> Motivos de la falta</h3>
+            <p class="card__hint">Opciones que ve quien registra el acuerdo con el apoderado.</p>
+          </div>
+          <AppButton variant="secondary" size="sm" type="button" :icon="Plus"
+            :disabled="form.justificacion_motivos.length >= 20" @click="agregarMotivo">Motivo</AppButton>
+        </header>
+        <ul class="lista-edit">
+          <li v-for="(m, i) in form.justificacion_motivos" :key="i" class="lista-edit__fila">
+            <input v-model="form.justificacion_motivos[i]" type="text" maxlength="80" class="inp"
+              :aria-label="`Motivo ${i + 1}`" placeholder="Ej: Salud / Enfermedad" />
+            <AppButton variant="soft-danger" size="sm" icon-only :icon="Trash2" type="button"
+              :disabled="form.justificacion_motivos.length <= 1" :aria-label="`Quitar el motivo ${m || i + 1}`"
+              @click="quitarMotivo(i)" />
+          </li>
+        </ul>
+      </section>
+
+      <section class="card card--ancha">
+        <header class="card__head card__head--row">
+          <div>
+            <h3 class="card__title"><HeartHandshake :size="15" class="card__ico" /> Acciones reparadoras</h3>
+            <p class="card__hint">Lo que se pacta para justificar la falta. El cupo limita cuántas personas pueden
+              hacerla la misma fecha (vacío = sin límite). Si una acción ya se usó, al quitarla se desactiva y el
+              historial conserva su nombre.</p>
+          </div>
+          <AppButton variant="secondary" size="sm" type="button" :icon="Plus"
+            :disabled="acciones.length >= 20" @click="agregarAccion">Acción</AppButton>
+        </header>
+        <div class="acc-tabla" role="table" aria-label="Acciones reparadoras">
+          <div class="acc-fila acc-fila--head" role="row">
+            <span role="columnheader">Nombre</span>
+            <span role="columnheader">Cupo por fecha</span>
+            <span role="columnheader">Pide detalle</span>
+            <span role="columnheader">Activa</span>
+            <span role="columnheader"><span class="sr-file">Quitar</span></span>
+          </div>
+          <div v-for="(a, i) in acciones" :key="a.id ?? `n${i}`" class="acc-fila" :class="{ 'acc-fila--off': !a.activo }" role="row">
+            <input v-model="a.nombre" type="text" maxlength="60" class="inp" role="cell"
+              :aria-label="`Nombre de la acción ${i + 1}`" placeholder="Ej: Lectura en misa" />
+            <input v-model="a.cupo_por_fecha" type="number" min="1" max="99" class="inp-num" role="cell"
+              :aria-label="`Cupo por fecha de ${a.nombre || 'la acción'}`" placeholder="—" />
+            <label class="chip acc-check" :class="{ 'chip--on': a.pide_detalle }" role="cell">
+              <input v-model="a.pide_detalle" type="checkbox" />
+              <Check v-if="a.pide_detalle" :size="13" class="chip__check" /> Detalle
+            </label>
+            <label class="chip acc-check" :class="{ 'chip--on': a.activo }" role="cell">
+              <input v-model="a.activo" type="checkbox" />
+              <Check v-if="a.activo" :size="13" class="chip__check" /> Activa
+            </label>
+            <AppButton variant="soft-danger" size="sm" icon-only :icon="Trash2" type="button" role="cell"
+              :aria-label="`Quitar ${a.nombre || 'la acción'}`" @click="quitarAccion(i)" />
+          </div>
+        </div>
+      </section>
+      </template>
+
       <div class="cfg__bar">
         <span v-if="hayCambiosSinGuardar && !saving" class="cfg__dirty">
-          <TriangleAlert :size="14" /> Tenés cambios sin guardar
+          <TriangleAlert :size="14" /> Tienes cambios sin guardar
         </span>
         <AppButton type="submit" :icon="Save" :loading="saving" :disabled="form.tipos_reunion.length === 0">
           {{ saving ? 'Guardando…' : 'Guardar configuración' }}
         </AppButton>
       </div>
     </form>
+    </div>
   </AppPage>
 </template>
 
@@ -1264,5 +1472,61 @@ const UMBRALES = [
 }
 :root[data-bs-theme="dark"] .cfg__dirty {
   color: #fbbf24;
+}
+
+/* ── Pestañas ─────────────────────────────────────────────────────────── */
+.cfg-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-bottom: 1rem;
+  padding: 0.25rem;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-sm);
+}
+.cfg-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 40px;
+  padding: 0.45rem 0.85rem;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.cfg-tab:hover { color: var(--text); background: var(--surface-sunken); }
+.cfg-tab--on { background: var(--accent-soft); color: var(--accent); }
+.cfg-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ── Listas editables (motivos) ───────────────────────────────────────── */
+.lista-edit { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+.lista-edit__fila { display: flex; gap: 0.5rem; align-items: center; }
+.lista-edit__fila .inp { flex: 1; min-width: 0; }
+
+/* ── Acciones reparadoras ─────────────────────────────────────────────── */
+.card--ancha { column-span: all; }
+.acc-tabla { display: flex; flex-direction: column; gap: 0.5rem; }
+.acc-fila {
+  display: grid;
+  /* Anchos fijos: cada fila es su propia grilla y deben coincidir entre sí. */
+  grid-template-columns: minmax(10rem, 1fr) 6rem 7.5rem 7rem 2.5rem;
+  gap: 0.5rem 0.75rem;
+  align-items: center;
+}
+.acc-fila--head { font-size: var(--fs-xs); font-weight: 700; color: var(--text-muted); }
+.acc-fila--off .inp { opacity: 0.6; }
+.acc-check { justify-self: start; }
+@media (max-width: 640px) {
+  .acc-fila { grid-template-columns: 1fr 5.5rem 2.5rem; }
+  .acc-fila--head { display: none; }
+  .acc-fila .inp:first-child { grid-column: 1 / -1; }
 }
 </style>

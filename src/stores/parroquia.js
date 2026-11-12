@@ -1,9 +1,11 @@
 import { defineStore } from 'pinia'
 import { LS_PARROQUIA_KEY } from '@/constants/auth'
-import { getConfiguracion, getConfiguracionUpdatedAt, updateConfiguracion } from '@/services/parroquia'
+import {
+  getConfiguracion, getConfiguracionUpdatedAt, updateConfiguracion, getDatosParroquia, getJustificacionAcciones,
+} from '@/services/parroquia'
 import { showAlerta, showErroresDeValidacion } from '@/funciones'
 
-// Valores por defecto (espejo de App\Tenancy\TenantConfig::DEFAULTS del backend).
+// Valores por defecto (los mismos que aplica la base al crear una parroquia).
 export const CONFIG_DEFAULTS = {
   programa_inicio: null,
   programa_fin: null,
@@ -30,6 +32,14 @@ export const CONFIG_DEFAULTS = {
   grupos_edad_max: null,
   branding: { nombre_publico: null, logo_url: null, logo_url_proveedor: null, color_primario: '#2563eb' },
   roles_labels: {},
+  // Contacto de la parroquia (todo opcional): { telefono, email, direccion }.
+  contacto: {},
+  justificacion_motivos: [
+    'Salud / Enfermedad',
+    'Viaje Familiar u Obligatorio',
+    'Cruce de Horario Escolar / Académico',
+    'Problema de Fuerza Mayor',
+  ],
   // Personalización de interfaz. Filtro de layout: cada opción se muestra solo
   // si además el usuario tiene el permiso/rol correspondiente. Ausente ⇒ default.
   ui: {
@@ -37,7 +47,7 @@ export const CONFIG_DEFAULTS = {
     dashboard_kpis: ['confirmandos', 'usuarios', 'grupos'],
     // Bloques del panel.
     dashboard_paneles: ['seguimiento_critico', 'proximos_encuentros', 'retencion'],
-    // Módulos del menú que la parroquia oculta (por nombre de ruta). Vacío = ninguno.
+    // Módulos del menú que la parroquia oculta (clave `meta.modulo` de la ruta). Vacío = ninguno.
     modulos_ocultos: [],
     // Filtro de estado con el que arranca la lista de Confirmandos.
     confirmandos_estado_default: 'en_preparacion',
@@ -52,9 +62,11 @@ export const CONFIG_DEFAULTS = {
 // estas listas; una clave desconocida guardada es inofensiva (se ignora acá).
 export const DASHBOARD_KPIS = ['confirmandos', 'usuarios', 'grupos']
 export const DASHBOARD_PANELES = ['seguimiento_critico', 'proximos_encuentros', 'retencion']
-// Módulos que se pueden ocultar (nombre de ruta). El resto es núcleo y no se toca.
-// 'sacramentos' cubre la Ruta sacramental (sacramentos + requisitos, fusionados).
-export const MODULOS_OCULTABLES = ['cronograma', 'cumpleanos', 'sacramentos']
+// Módulos que se pueden ocultar (clave `meta.modulo` de las rutas). El resto es
+// núcleo y no se toca. 'sacramentos' cubre la Ruta sacramental.
+export const MODULOS_OCULTABLES = [
+  'cronograma', 'jornadas', 'cumpleanos', 'sacramentos', 'sacramentos_programados', 'justificaciones',
+]
 export const CONFIRMANDOS_ESTADOS = ['en_preparacion', 'confirmado', 'retirado', 'todos']
 // Campos opcionales del confirmando que la parroquia puede volver obligatorios.
 export const CONFIRMANDO_CAMPOS = ['celular', 'fecha_nacimiento', 'genero']
@@ -125,6 +137,8 @@ export const useParroquiaStore = defineStore('parroquia', {
       // Color que se está probando en Configuración (aún sin guardar). Mientras
       // no sea null, es EL color que se pinta en todo el sistema.
       colorPreview: null,
+      // Acciones reparadoras de justificación (se cargan al usarlas).
+      justificacionAcciones: [],
     }
   },
 
@@ -178,8 +192,21 @@ export const useParroquiaStore = defineStore('parroquia', {
       min: s.configuracion?.grupos_edad_min ?? null,
       max: s.configuracion?.grupos_edad_max ?? null,
     }),
-    // true si la parroquia ocultó ese módulo del menú (por nombre de ruta).
-    moduloOculto: (s) => (nombreRuta) => (s.configuracion?.ui?.modulos_ocultos ?? []).includes(nombreRuta),
+    // true si la parroquia ocultó ese módulo del menú (clave meta.modulo).
+    moduloOculto: (s) => (modulo) => !!modulo && (s.configuracion?.ui?.modulos_ocultos ?? []).includes(modulo),
+    // Redes (null = no se muestran) y prefijo de WhatsApp: los define el proveedor.
+    instagramUrl: (s) => s.parroquia?.instagram_url || null,
+    facebookUrl: (s) => s.parroquia?.facebook_url || null,
+    whatsappPrefijo: (s) => s.parroquia?.whatsapp_prefijo || '+51',
+    contacto: (s) => s.configuracion?.contacto ?? {},
+    justificacionMotivos: (s) => {
+      const m = s.configuracion?.justificacion_motivos
+      return Array.isArray(m) && m.length ? m : CONFIG_DEFAULTS.justificacion_motivos
+    },
+    accionesActivas: (s) => s.justificacionAcciones.filter((a) => a.activo),
+    // Nombre de una acción por su clave (también de las ya desactivadas).
+    etiquetaAccion: (s) => (clave) => s.justificacionAcciones.find((a) => a.clave === clave)?.nombre || clave || '',
+    accionPorClave: (s) => (clave) => s.justificacionAcciones.find((a) => a.clave === clave) || null,
     confirmandosEstadoDefault: (s) =>
       s.configuracion?.ui?.confirmandos_estado_default ?? CONFIG_DEFAULTS.ui.confirmandos_estado_default,
     confirmandoObligatorios: (s) => s.configuracion?.ui?.confirmando_obligatorios ?? [],
@@ -194,6 +221,27 @@ export const useParroquiaStore = defineStore('parroquia', {
       if (parroquia) this.parroquia = parroquia
       if (configuracion) this.configuracion = mergeConfig(configuracion)
       persist(this)
+      this.fetchDatosParroquia()
+    },
+
+    // Redes, prefijo de WhatsApp y zona horaria (no vienen en el login).
+    async fetchDatosParroquia() {
+      try {
+        const datos = await getDatosParroquia()
+        if (datos) {
+          this.parroquia = { ...(this.parroquia ?? {}), ...datos }
+          persist(this)
+        }
+      } catch { /* sin estos datos la app funciona con los valores por defecto */ }
+    },
+
+    async fetchJustificacionAcciones() {
+      try {
+        this.justificacionAcciones = await getJustificacionAcciones()
+      } catch (e) {
+        console.error('No se pudieron cargar las acciones de justificación', e)
+      }
+      return this.justificacionAcciones
     },
 
     // Color que se prueba en Configuración (null = usar el guardado).
@@ -218,6 +266,7 @@ export const useParroquiaStore = defineStore('parroquia', {
       try {
         this.configuracion = mergeConfig(await getConfiguracion())
         persist(this)
+        this.fetchDatosParroquia()
       } catch (e) {
         console.error('No se pudo cargar la configuración de la parroquia', e)
       } finally {
@@ -260,6 +309,7 @@ export const useParroquiaStore = defineStore('parroquia', {
     clear() {
       this.parroquia = null
       this.configuracion = mergeConfig()
+      this.justificacionAcciones = []
       this._lastRefreshCheck = 0
       localStorage.removeItem(LS_PARROQUIA_KEY)
     },

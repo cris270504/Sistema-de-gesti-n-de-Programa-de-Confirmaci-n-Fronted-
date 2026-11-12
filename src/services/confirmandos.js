@@ -13,7 +13,7 @@ async function unwrap(promise) {
 
 // PostgREST embebe las relaciones N:M a través de la tabla puente. Se aplanan a
 // la forma `{ ...entidad, pivot: {...columnas del puente} }` que ya usa el
-// frontend (convención de Eloquent: `s.pivot.estado`, `ap.pivot.tipo_apoderado_id`).
+// frontend (forma heredada: `s.pivot.estado`, `ap.pivot.tipo_apoderado_id`).
 function aplanarM2M(rows, puente, entidad, pivotCols) {
   const flat = (row) => ({
     ...row,
@@ -131,17 +131,23 @@ export async function getConfirmandosPaginado({ page = 1, pageSize = 25, filters
 // nombres, id) para que ninguna fila se repita ni se pierda entre páginas.
 const EXPORT_PAGE_SIZE = 1000
 
-export async function getConfirmandosExport({ filters = {} } = {}) {
+// incluirArchivados: el respaldo completo también lleva a los jóvenes de
+// ciclos cerrados (ocultos por RLS salvo con esta cabecera).
+export async function getConfirmandosExport({ filters = {}, incluirArchivados = false } = {}) {
   const { procedencia = 'todos' } = filters
-  const select = selectListaConFiltro({ innerGrupo: procedencia !== 'todos', extra: EXTRA_EXPORT })
+  const select = selectListaConFiltro({
+    innerGrupo: procedencia !== 'todos',
+    extra: EXTRA_EXPORT + (incluirArchivados ? ', archivado_ciclo_id' : ''),
+  })
   const filas = []
 
   for (let from = 0; ; from += EXPORT_PAGE_SIZE) {
-    const query = aplicarFiltrosConfirmandos(supabase.from('confirmandos').select(select), filters)
+    let query = aplicarFiltrosConfirmandos(supabase.from('confirmandos').select(select), filters)
       .order('apellidos', { ascending: true })
       .order('nombres', { ascending: true })
       .order('id', { ascending: true })
       .range(from, from + EXPORT_PAGE_SIZE - 1)
+    if (incluirArchivados) query = query.setHeader('x-incluir-archivados', 'si')
 
     const { data, error } = await query
     if (error) throw errorLegible(error)
@@ -195,7 +201,7 @@ export function createConfirmando(confirmando) {
 }
 
 export async function obtenerPerfilConfirmando(id) {
-  // Fase 3: lee la vista v_confirmando_perfil (stats + historial ya calculados en
+  // lee la vista v_confirmando_perfil (stats + historial ya calculados en
   // SQL) y la re-arma con la forma que espera PerfilConfirmandoModal.
   const { data, error } = await supabase
     .from('v_confirmando_perfil')
@@ -288,15 +294,14 @@ export async function contarAsistenciasConfirmando(id) {
 }
 
 // Import: Edge Function `importar-confirmandos` (parseo del .xlsx en Deno). El
-// error se re-lanza con forma tipo-axios para que el catch de la vista siga
-// distinguiendo `errors` (lista de filas omitidas) de `message`.
+// error lleva `errores` (lista de problemas por fila) además del mensaje.
 export async function importarConfirmandosExcel(formData) {
   const { data, error } = await supabase.functions.invoke('importar-confirmandos', { body: formData })
   if (!error) return data
   let payload = { message: error.message }
   try { payload = await error.context.json() } catch { /* sin cuerpo JSON */ }
   const e = new Error(payload.message || 'Error al importar el archivo.')
-  e.response = { data: payload }
+  e.errores = payload.errors ? Object.values(payload.errors).flat() : []
   throw e
 }
 

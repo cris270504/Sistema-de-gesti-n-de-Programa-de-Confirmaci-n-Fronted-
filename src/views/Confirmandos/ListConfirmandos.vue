@@ -9,7 +9,7 @@ import { onMounted, onUnmounted, ref, computed, nextTick, watch, defineAsyncComp
 import {
     Pencil, Trash, Plus, User, Phone, Calendar, Users,
     Wand2, Trash2, Save, Upload, Eye, Search, X, ArrowRight, Info,
-    UserX, UserCheck, Download,
+    UserX, UserCheck, Download, Archive,
 } from 'lucide-vue-next';
 import { useAuthStore } from '@/stores/auth';
 import { useParroquiaStore } from '@/stores/parroquia';
@@ -141,6 +141,11 @@ watch(modalRef, (instance) => {
 const recargarTabla = () => confirmandosStore.fetchPaginado({ force: true });
 
 const { filtros, limpiarFiltros, totalPages, cambiarPagina, gruposDisponibles } = useConfirmandosFilters();
+// Archivados de ciclos cerrados (solo quien administra la parroquia los reactiva).
+const ArchivadosPanel = defineAsyncComponent(() => import('./ArchivadosPanel.vue'));
+const verArchivados = ref(false);
+const puedeVerArchivados = computed(() => authStore.can('administrar parroquia'));
+
 const hayFiltros = computed(() => Boolean(filtros.value.search) || filtros.value.grupo !== 'todos' || filtros.value.procedencia !== 'todos' || filtros.value.estado !== 'todos');
 
 const {
@@ -374,13 +379,20 @@ onUnmounted(() => {
                         v-model="filtros.estado" :disabled="loading">
                     <label class="btn btn-outline-secondary btn-sm fw-medium px-2 py-1" for="btnradio4">Todos</label>
                 </div>
+                <AppButton v-if="puedeVerArchivados" :variant="verArchivados ? 'primary' : 'secondary'" size="sm"
+                    :icon="Archive" class="conf-archivados" :aria-pressed="verArchivados"
+                    @click="verArchivados = !verArchivados">
+                    {{ verArchivados ? 'Volver a la lista' : 'Archivados' }}
+                </AppButton>
             </div>
 
             <!-- Gestión de Errores Visuales -->
             <div v-if="error" class="alert alert-danger m-3" role="alert">{{ error }}</div>
 
             <!-- Contenedor de la Tabla (tarjetas en celular) -->
-            <div class="table-responsive cards-sm cards-sm--hide-first conf-tabla">
+            <ArchivadosPanel v-if="verArchivados" @reactivados="recargarTabla" />
+
+            <div v-show="!verArchivados" class="table-responsive cards-sm cards-sm--hide-first conf-tabla">
 
                 <!-- El <thead> queda visible durante la carga (skeleton en el <tbody>) para que
                      el usuario ubique la estructura de la tabla de inmediato, en vez de un

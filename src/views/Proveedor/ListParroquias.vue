@@ -5,14 +5,15 @@ import { ref, reactive, computed, onMounted, onUnmounted, onBeforeUnmount, nextT
 import { Modal } from 'bootstrap'
 import {
   Plus, Check, X, Copy, Building2, KeyRound, Search, Clock, Upload, Image as ImageIcon, Wrench,
-  BookOpen, LayoutTemplate, Globe, Trash2, Users, GraduationCap, Settings2, Bug, Info, History, AlertTriangle, RotateCcw,
+  BookOpen, LayoutTemplate, Globe, Trash2, Users, GraduationCap, Settings2, Bug, Info, History, AlertTriangle, RotateCcw, Share2,
 } from 'lucide-vue-next'
 import { showAlerta, confirmar, slugify } from '@/funciones'
 import {
   listParroquias, crearParroquia, actualizarParroquia, getBrandingParroquia, setPlantillaParroquia,
   actualizarProgramaParroquia, eliminarParroquia, coincideNombreParroquia,
-  listGestoresParroquia, listAuditoria, describirAuditoria, resumirErroresRecientes,
+  listGestoresParroquia, listAuditoria, describirAuditoria, resumirErroresRecientes, getContactoParroquia,
 } from '@/services/proveedor'
+import { validarRed, validarPrefijo, prefijoSugerido } from '@/lib/contactoParroquia'
 import { resetUserPassword } from '@/services/users'
 import { listErroresSistema } from '@/services/erroresSistema'
 import { subirLogo, quitarLogo } from '@/services/branding'
@@ -68,12 +69,12 @@ const toggleMantenimiento = async () => {
   }
 
   if (alcanceMantenimiento.value === 'parroquias' && parroquiasSeleccionadas.value.length === 0) {
-    showAlerta('Elegí al menos una parroquia, o cambiá el alcance a "Todas".', 'warning')
+    showAlerta('Elige al menos una parroquia, o cambia el alcance a "Todas".', 'warning')
     return
   }
 
   const destino = alcanceMantenimiento.value === 'todas'
-    ? 'Todas las personas logueadas (de todas las parroquias, menos vos)'
+    ? 'Todas las personas logueadas (de todas las parroquias, menos tú)'
     : `Las personas logueadas de: ${nombresSeleccionados.value.join(', ')}`
 
   const seguro = await confirmar({
@@ -126,7 +127,23 @@ const form = reactive({
   nombre: '', slug: '', zona_horaria: 'America/Lima',
   admin_nombre: '', admin_email: '', admin_dni: '',
   sacramentos: [...SAC_CLAVES],
+  whatsapp_prefijo: '+51', instagram_url: '', facebook_url: '',
 })
+// El prefijo de WhatsApp sigue a la zona horaria hasta que se edita a mano.
+const prefijoManual = ref(false)
+watch(() => form.zona_horaria, (z) => { if (!prefijoManual.value) form.whatsapp_prefijo = prefijoSugerido(z) })
+
+// Redes + prefijo validados (misma regla que la base). Devuelve { datos, errores }.
+function validarContacto(origen) {
+  const ig = validarRed('instagram', origen.instagram_url)
+  const fb = validarRed('facebook', origen.facebook_url)
+  const pre = validarPrefijo(origen.whatsapp_prefijo)
+  const errores = {}
+  if (ig.error) errores.instagram_url = [ig.error]
+  if (fb.error) errores.facebook_url = [fb.error]
+  if (pre.error) errores.whatsapp_prefijo = [pre.error]
+  return { datos: { instagram_url: ig.valor, facebook_url: fb.valor, whatsapp_prefijo: pre.valor }, errores }
+}
 const nuevoLogo = ref(null)          // File elegido en el alta (se sube tras crear)
 const nuevoLogoPreview = ref('')     // objectURL
 const slugManual = ref(false)
@@ -134,7 +151,7 @@ const slugPreview = computed(() => (slugManual.value ? form.slug : slugify(form.
 watch(() => form.nombre, () => { if (!slugManual.value) form.slug = slugify(form.nombre) })
 
 // --- Detalle / edición ---
-const edit = reactive({ id: null, nombre: '', slug: '', zona_horaria: '', activa: true, es_plantilla: false, created_at: null, users_count: 0, grupos_count: 0, confirmandos_count: 0 })
+const edit = reactive({ id: null, nombre: '', slug: '', zona_horaria: '', activa: true, es_plantilla: false, created_at: null, users_count: 0, grupos_count: 0, confirmandos_count: 0, whatsapp_prefijo: '+51', instagram_url: '', facebook_url: '' })
 const editSlugManual = ref(false)
 const editErrores = ref({})
 const savingEdit = ref(false)
@@ -327,7 +344,9 @@ function abrirAlta() {
     nombre: '', slug: '', zona_horaria: 'America/Lima',
     admin_nombre: '', admin_email: '', admin_dni: '',
     sacramentos: [...SAC_CLAVES],
+    whatsapp_prefijo: '+51', instagram_url: '', facebook_url: '',
   })
+  prefijoManual.value = false
   nextTick(() => {
     formModal ??= new Modal(formModalRef.value, { backdrop: 'static' })
     formModal.show()
@@ -337,6 +356,11 @@ function abrirAlta() {
 async function crear() {
   if (form.sacramentos.length === 0) {
     showAlerta('Elige al menos un sacramento a gestionar.', 'warning')
+    return
+  }
+  const contactoAlta = validarContacto(form)
+  if (Object.keys(contactoAlta.errores).length) {
+    errores.value = contactoAlta.errores
     return
   }
   saving.value = true
@@ -356,6 +380,14 @@ async function crear() {
     const res = await crearParroquia(payload)
 
     // Logo (opcional): la parroquia ya existe, subimos a la ranura del proveedor.
+    // Redes y prefijo: la parroquia ya existe; el proveedor los escribe directo.
+    if (res?.parroquia?.id) {
+      try {
+        await actualizarParroquia(res.parroquia.id, contactoAlta.datos)
+      } catch (err) {
+        showAlerta(`Parroquia creada, pero no se guardaron las redes o el prefijo: ${err.message}`, 'warning')
+      }
+    }
     if (nuevoLogo.value && res?.parroquia?.id) {
       try {
         await subirLogo({ parroquiaId: res.parroquia.id, slot: 'proveedor', file: nuevoLogo.value })
@@ -372,7 +404,7 @@ async function crear() {
     credsModal.show()
     await cargar()
   } catch (e) {
-    errores.value = e?.response?.data?.errors || {}
+    errores.value = {}
     if (!Object.keys(errores.value).length) showAlerta(e?.message || 'No se pudo crear la parroquia', 'error')
   } finally {
     saving.value = false
@@ -393,6 +425,10 @@ async function abrirDetalle(p) {
   cargarGestores(p.id)
   editBranding.logo_url = ''
   editBranding.logo_url_proveedor = ''
+  Object.assign(edit, { whatsapp_prefijo: '+51', instagram_url: '', facebook_url: '' })
+  getContactoParroquia(p.id)
+    .then((c) => Object.assign(edit, c))
+    .catch(() => { /* se muestran los valores por defecto */ })
   editPrograma.tipo = 'confirmacion'
   editPrograma.nombre_otro = ''
   editPrograma.persona_singular = ''
@@ -415,13 +451,19 @@ async function abrirDetalle(p) {
 
 async function guardarDetalle() {
   if (editPrograma.tipo === 'otro' && !editPrograma.nombre_otro.trim()) {
-    showAlerta('Indicá el nombre del programa', 'warning')
+    showAlerta('Indica el nombre del programa', 'warning')
+    return
+  }
+  const contactoEdit = validarContacto(edit)
+  if (Object.keys(contactoEdit.errores).length) {
+    editErrores.value = contactoEdit.errores
     return
   }
   savingEdit.value = true
   editErrores.value = {}
   try {
     const payload = {
+      ...contactoEdit.datos,
       nombre: edit.nombre,
       slug: editSlugManual.value ? edit.slug : slugify(edit.nombre),
       zona_horaria: edit.zona_horaria,
@@ -440,7 +482,7 @@ async function guardarDetalle() {
     showAlerta('Parroquia actualizada', 'success')
     cargarAuditoria()
   } catch (e) {
-    editErrores.value = e?.response?.data?.errors || {}
+    editErrores.value = {}
     if (!Object.keys(editErrores.value).length) showAlerta(e?.message || 'No se pudo guardar', 'error')
   } finally {
     savingEdit.value = false
@@ -872,6 +914,27 @@ function copiar(txt) {
                   </div>
                   <small class="lp-ayuda">Se copian de la parroquia plantilla, con sus documentos.</small>
                 </fieldset>
+
+                <div class="lp-grid2">
+                  <label class="lp-campo">
+                    <span>Prefijo de WhatsApp</span>
+                    <input v-model="form.whatsapp_prefijo" maxlength="5" inputmode="tel" placeholder="+51"
+                      @input="prefijoManual = true" />
+                    <small v-if="errores.whatsapp_prefijo" class="lp-err">{{ errores.whatsapp_prefijo[0] }}</small>
+                    <small v-else class="lp-ayuda">Se usa en los enlaces de WhatsApp de los apoderados.</small>
+                  </label>
+                  <span aria-hidden="true"></span>
+                  <label class="lp-campo lp-span2">
+                    <span>Instagram <span class="lp-opc">(opcional)</span></span>
+                    <input v-model="form.instagram_url" type="text" inputmode="url" autocomplete="url" maxlength="300" placeholder="https://www.instagram.com/…" />
+                    <small v-if="errores.instagram_url" class="lp-err">{{ errores.instagram_url[0] }}</small>
+                  </label>
+                  <label class="lp-campo lp-span2">
+                    <span>Facebook <span class="lp-opc">(opcional)</span></span>
+                    <input v-model="form.facebook_url" type="text" inputmode="url" autocomplete="url" maxlength="300" placeholder="https://www.facebook.com/…" />
+                    <small v-if="errores.facebook_url" class="lp-err">{{ errores.facebook_url[0] }}</small>
+                  </label>
+                </div>
               </section>
 
               <section class="lp-col" aria-labelledby="lp-alta-admin">
@@ -1057,6 +1120,31 @@ function copiar(txt) {
                       <select v-model="edit.zona_horaria">
                         <option v-for="z in ZONAS" :key="z" :value="z">{{ z }}</option>
                       </select>
+                    </label>
+                  </div>
+                </section>
+
+                <section class="lp-bloque" aria-labelledby="lp-det-redes">
+                  <h6 id="lp-det-redes" class="lp-bloque__titulo"><Share2 :size="15" aria-hidden="true" /> WhatsApp y redes</h6>
+                  <div class="lp-grid2">
+                    <label class="lp-campo">
+                      <span>Prefijo de WhatsApp</span>
+                      <input v-model="edit.whatsapp_prefijo" maxlength="5" inputmode="tel" placeholder="+51" />
+                      <small v-if="editErrores.whatsapp_prefijo" class="lp-err">{{ editErrores.whatsapp_prefijo[0] }}</small>
+                    </label>
+                    <p class="lp-ayuda lp-ayuda--centro">
+                      Se antepone a los celulares en los enlaces de WhatsApp. Las redes son opcionales: si quedan
+                      vacías no se muestran en el panel de la parroquia.
+                    </p>
+                    <label class="lp-campo">
+                      <span>Instagram <span class="lp-opc">(opcional)</span></span>
+                      <input v-model="edit.instagram_url" type="text" inputmode="url" autocomplete="url" maxlength="300" placeholder="https://www.instagram.com/…" />
+                      <small v-if="editErrores.instagram_url" class="lp-err">{{ editErrores.instagram_url[0] }}</small>
+                    </label>
+                    <label class="lp-campo">
+                      <span>Facebook <span class="lp-opc">(opcional)</span></span>
+                      <input v-model="edit.facebook_url" type="text" inputmode="url" autocomplete="url" maxlength="300" placeholder="https://www.facebook.com/…" />
+                      <small v-if="editErrores.facebook_url" class="lp-err">{{ editErrores.facebook_url[0] }}</small>
                     </label>
                   </div>
                 </section>
@@ -1924,4 +2012,5 @@ function copiar(txt) {
   }
 }
 :root[data-bs-theme="dark"] .lp-clave { background: #3b2a0a; border-color: #b45309; }
+.lp-ayuda--centro { align-self: center; }
 </style>

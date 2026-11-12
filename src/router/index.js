@@ -135,13 +135,13 @@ const router = createRouter({
           path: '/jornadas',
           name: 'jornadas',
           component: () => import('../views/Jornadas/ListJornadas.vue'),
-          meta: { title: 'Jornadas', permission: ['ver cronograma'] }
+          meta: { title: 'Jornadas', permission: ['ver cronograma'], modulo: 'jornadas' }
         },
         {
           path: '/jornadas/:id(\\d+)',
           name: 'jornada',
           component: () => import('../views/Jornadas/JornadaDetalle.vue'),
-          meta: { title: 'Jornada', permission: ['ver cronograma'] }
+          meta: { title: 'Jornada', permission: ['ver cronograma'], modulo: 'jornadas' }
         },
 
         //ASISTENCIAS
@@ -175,7 +175,7 @@ const router = createRouter({
           path: '/justificaciones',
           name: 'justificaciones',
           component: ListJustificaciones,
-          meta: { title: 'Justificaciones', permission: 'ver asistencias' }
+          meta: { title: 'Justificaciones', permission: 'ver asistencias', modulo: 'justificaciones' }
         },
 
         //RUTA SACRAMENTAL (sacramentos + requisitos en una matriz)
@@ -189,7 +189,7 @@ const router = createRouter({
           path: '/sacramentos-programados',
           name: 'sacramentos-programados',
           component: () => import('../views/Sacramentos/ListSacramentosProgramados.vue'),
-          meta: { title: 'Sacramentos programados', permission: 'ver sacramentos programados', modulo: 'sacramentos' }
+          meta: { title: 'Sacramentos programados', permission: 'ver sacramentos programados', modulo: 'sacramentos_programados' }
         },
         // /requisitos quedó fusionado en /sacramentos (matriz). Enlaces viejos → ahí.
         {
@@ -253,6 +253,18 @@ const router = createRouter({
     },
     // Público
     {
+      path: '/privacidad',
+      name: 'privacidad',
+      component: () => import('../views/Legal/Privacidad.vue'),
+      meta: { publica: true, title: 'Política de privacidad' }
+    },
+    {
+      path: '/terminos',
+      name: 'terminos',
+      component: () => import('../views/Legal/Terminos.vue'),
+      meta: { publica: true, title: 'Términos y condiciones' }
+    },
+    {
       path: '/login',
       name: 'login',
       component: Login,
@@ -275,6 +287,9 @@ export function prefetchRoute(name) {
   }
 }
 
+// Vistas que puede abrir el proveedor de la plataforma.
+const RUTAS_PROVEEDOR = new Set(['parroquias', 'profile', 'forbidden', 'mantenimiento', 'NotFound'])
+
 router.beforeEach(async (to) => {
   const logged = hasSession();
   const needsAuth = to.matched.some(r => r.meta?.authenticated);
@@ -285,6 +300,10 @@ router.beforeEach(async (to) => {
     const redirect = rutaRedirectSegura(to.fullPath);
     return { name: 'login', query: redirect ? { redirect } : {} };
   }
+
+  // Páginas legales: siempre visibles (con o sin sesión, en mantenimiento o con
+  // contraseña temporal). No exponen datos.
+  if (to.meta?.publica) return;
 
   // El proveedor de la plataforma opera el panel de parroquias, no el Dashboard
   // de una parroquia. (Cuentas separadas: super-admin de parroquia vs proveedor.)
@@ -309,7 +328,10 @@ router.beforeEach(async (to) => {
   // parroquia, refrescarUsuario cierra sesión con aviso. Fire-and-forget para no
   // frenar la navegación; el logout se encarga de redirigir al login.
   if (logged && !onlyGuests) auth.refrescarUsuario();
-  if (logged && esProveedor && (to.name === 'dashboard' || onlyGuests)) {
+  // El proveedor opera solo su consola: cualquier vista de una parroquia
+  // (confirmandos, asistencias, configuración…) lo devuelve a Parroquias. Las
+  // páginas legales ya salieron antes (meta.publica).
+  if (logged && esProveedor && !RUTAS_PROVEEDOR.has(to.name)) {
     return { name: 'parroquias' };
   }
 
@@ -329,8 +351,8 @@ router.beforeEach(async (to) => {
     return { name: 'dashboard' };
   }
 
-  // El proveedor puede entrar a cualquier vista (en el backend hay un Gate::before
-  // que le concede todo). Sin esto, un /parroquias con permisos viejos lo mandaba a /403.
+  // En su consola el proveedor no depende de permisos guardados (la base le da
+  // acceso): sin esto, un /parroquias con permisos viejos lo mandaba a /403.
   if (logged && esProveedor) {
     return;
   }

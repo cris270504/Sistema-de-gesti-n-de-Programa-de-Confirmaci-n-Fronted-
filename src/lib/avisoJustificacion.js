@@ -13,7 +13,7 @@ export const MENSAJE_JUSTIFICACION =
 export const PASOS_JUSTIFICACION = [
   'Marca la falta como "Injustificado" y guarda la asistencia.',
   'La falta aparece en el módulo Justificaciones.',
-  'Ahí se registra el acuerdo: motivo, fecha y acción reparadora (lectura, colecta u otra).',
+  'Ahí se registra el acuerdo: motivo, fecha y acción reparadora (las que defina la parroquia en Configuración).',
   'Cuando se cumple la acción, se valida en Justificaciones y la falta pasa a "Justificada" automáticamente.',
 ]
 

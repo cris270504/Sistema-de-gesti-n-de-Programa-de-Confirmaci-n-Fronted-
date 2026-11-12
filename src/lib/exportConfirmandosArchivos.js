@@ -29,28 +29,37 @@ export const TIPOS_ARCHIVO = {
 const anchoExcel = (mm) => Math.max(10, Math.round(mm * 0.6))
 
 export async function generarExcel({ titulo, columnas, filas }) {
+  return generarLibro([{ titulo, columnas, filas }])
+}
+
+// Libro con varias hojas: [{ titulo, columnas: [{ key, label, width }], filas }].
+export async function generarLibro(hojas) {
   const { default: ExcelJS } = await import('exceljs')
   const wb = new ExcelJS.Workbook()
   wb.created = new Date()
-  const ws = wb.addWorksheet(titulo.slice(0, 31).replace(/[\\/?*[\]:]/g, '-'), {
-    views: [{ state: 'frozen', ySplit: 1 }],
-  })
 
-  ws.columns = columnas.map((c) => ({
-    header: c.label,
-    key: c.key,
-    width: anchoExcel(c.width),
-    style: { alignment: { vertical: 'top', wrapText: true } },
-  }))
-  ws.addRows(filas)
+  for (const { titulo, columnas, filas } of hojas) {
+    const ws = wb.addWorksheet(titulo.slice(0, 31).replace(/[\\/?*[\]:]/g, '-'), {
+      views: [{ state: 'frozen', ySplit: 1 }],
+    })
+    ws.columns = columnas.map((c) => ({
+      header: c.label,
+      key: c.key,
+      width: anchoExcel(c.width),
+      style: { alignment: { vertical: 'top', wrapText: true } },
+    }))
+    ws.addRows(filas)
 
-  const encabezado = ws.getRow(1)
-  encabezado.font = { bold: true }
-  encabezado.alignment = { vertical: 'middle', wrapText: true }
-  encabezado.eachCell((cell) => {
-    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE5E7EB' } }
-  })
-  ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: columnas.length } }
+    const encabezado = ws.getRow(1)
+    encabezado.font = { bold: true }
+    encabezado.alignment = { vertical: 'middle', wrapText: true }
+    encabezado.eachCell((cell) => {
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE5E7EB' } }
+    })
+    if (columnas.length) {
+      ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: columnas.length } }
+    }
+  }
 
   const buffer = await wb.xlsx.writeBuffer()
   return new Blob([buffer], { type: TIPOS_ARCHIVO.xlsx.mime })

@@ -14,6 +14,7 @@ import { Calendar, MessagesSquare, TriangleAlert, Clock, MapPin, CircleAlert, Us
 import PerfilConfirmandoModal from '@/components/Modals/PerfilConfirmandoModal.vue';
 import AppPage from '@/components/AppPage.vue';
 import AppSkeleton from '@/components/AppSkeleton.vue';
+import { enlaceWhatsapp } from '@/lib/contactoParroquia';
 import { useMediaQuery } from '@/composables/useMediaQuery';
 
 const esMovil = useMediaQuery('(max-width: 767px)');
@@ -118,10 +119,10 @@ const confirmarRetiroJoven = async (joven) => {
     </template>
     <template #actions>
       <span class="dash-periodo">Periodo activo {{ anioActual }}</span>
-      <a href="https://www.instagram.com/confirmacion_scj/" target="_blank" rel="noopener noreferrer"
+      <a v-if="parroquiaStore.instagramUrl" :href="parroquiaStore.instagramUrl" target="_blank" rel="noopener noreferrer"
         class="dash-social" aria-label="Instagram de la parroquia">
         <Instagram :size="16" aria-hidden="true" />Instagram</a>
-      <a href="https://www.facebook.com/profile.php?id=61588086533946" target="_blank" rel="noopener noreferrer"
+      <a v-if="parroquiaStore.facebookUrl" :href="parroquiaStore.facebookUrl" target="_blank" rel="noopener noreferrer"
         class="dash-social" aria-label="Facebook de la parroquia">
         <Facebook :size="16" aria-hidden="true" />Facebook</a>
     </template>
@@ -229,7 +230,7 @@ const confirmarRetiroJoven = async (joven) => {
                   </td>
                   <td>
                     <div class="fw-bold">{{ c.nombre_apoderado }}</div>
-                    <a :href="'https://wa.me/51' + c.celular_apoderado" target="_blank"
+                    <a :href="enlaceWhatsapp(c.celular_apoderado, parroquiaStore.whatsappPrefijo)" target="_blank"
                       class="text-success text-decoration-none">
                       <!-- lucide-vue-next no incluye el logo de WhatsApp (no es una librería de
                            íconos de marca) — se usa un ícono de chat genérico en su lugar. -->
@@ -296,7 +297,7 @@ const confirmarRetiroJoven = async (joven) => {
                 <span class="badge bg-info-subtle text-info border border-info-subtle">{{ c.total_tardanzas }} tardanzas</span>
               </div>
 
-              <a :href="'https://wa.me/51' + c.celular_apoderado" target="_blank"
+              <a :href="enlaceWhatsapp(c.celular_apoderado, parroquiaStore.whatsappPrefijo)" target="_blank"
                 class="dash-card__wa text-success text-decoration-none">
                 <MessageCircle class="h-4 w-4 me-1 d-inline-block align-text-bottom" aria-hidden="true" />
                 {{ c.nombre_apoderado }} · {{ c.celular_apoderado }}

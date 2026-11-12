@@ -82,7 +82,7 @@ export const actualizarProgramaParroquia = async (
 // `created_at` para evitar que un payload armado por spread de un objeto más
 // grande pise columnas que no debería (mismo patrón que soloEscribibles en
 // services/reunions.js).
-const PARROQUIA_WRITE_COLS = ['nombre', 'slug', 'activa', 'zona_horaria']
+const PARROQUIA_WRITE_COLS = ['nombre', 'slug', 'activa', 'zona_horaria', 'instagram_url', 'facebook_url', 'whatsapp_prefijo']
 const soloEscribiblesParroquia = (obj) =>
   Object.fromEntries(PARROQUIA_WRITE_COLS.filter(k => obj?.[k] !== undefined).map(k => [k, obj[k]]))
 
@@ -91,10 +91,25 @@ export const actualizarParroquia = async (id, payload) => {
     .from('parroquias')
     .update(soloEscribiblesParroquia(payload))
     .eq('id', Number(id))
-    .select('id, nombre, slug, activa, zona_horaria, created_at')
+    .select('id, nombre, slug, activa, zona_horaria, instagram_url, facebook_url, whatsapp_prefijo, created_at')
     .single()
   if (error) throw errorLegible(error)
   return { message: 'Parroquia actualizada.', parroquia: data }
+}
+
+// Redes y prefijo de WhatsApp de una parroquia (solo el proveedor los edita).
+export const getContactoParroquia = async (id) => {
+  const { data, error } = await supabase
+    .from('parroquias')
+    .select('instagram_url, facebook_url, whatsapp_prefijo')
+    .eq('id', Number(id))
+    .maybeSingle()
+  if (error) throw errorLegible(error)
+  return {
+    instagram_url: data?.instagram_url ?? '',
+    facebook_url: data?.facebook_url ?? '',
+    whatsapp_prefijo: data?.whatsapp_prefijo ?? '+51',
+  }
 }
 
 // Elimina una parroquia DESACTIVADA con todo su contenido (irreversible).

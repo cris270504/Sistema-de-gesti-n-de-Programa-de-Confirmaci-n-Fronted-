@@ -29,6 +29,10 @@ const POR_CONSTRAINT = {
   asistencia_reunion_asistente_uq: 'Ya hay un registro de asistencia para esa persona en esa reunión.',
   parroquias_slug_unique: 'Ese identificador (slug) ya está en uso.',
   roles_parroquia_name_guard_uq: 'Ya existe un rol con ese nombre en tu parroquia.',
+  parroquias_instagram_url_check: 'El enlace de Instagram no es válido: pega la dirección completa (https://www.instagram.com/…).',
+  parroquias_facebook_url_check: 'El enlace de Facebook no es válido: pega la dirección completa (https://www.facebook.com/…).',
+  parroquias_whatsapp_prefijo_check: 'El prefijo de WhatsApp debe tener el formato +51 (de 1 a 4 dígitos).',
+  justificacion_acciones_nombre_uq: 'Ya existe una acción reparadora con ese nombre.',
   sacramento_requisito_sacramento_id_requisito_id_unique: 'Ese documento ya está asignado a ese sacramento.',
   parroquia_config_edad_chk: 'El rango de edad para grupos no es válido (1–99, mínimo ≤ máximo).',
 }

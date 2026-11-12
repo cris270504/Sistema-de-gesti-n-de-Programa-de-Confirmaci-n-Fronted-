@@ -3,7 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { useGruposStore } from '@/stores/grupos';
 import { useParroquiaStore } from '@/stores/parroquia';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { prefetchRoute } from '@/router';
 import defaultLogo from '@/assets/logo.png';
 import AppButton from '@/components/AppButton.vue';
@@ -256,13 +256,20 @@ const menuSections = computed(() => {
   return sections;
 });
 
+// Clave de módulo de un destino del menú (meta.modulo de su ruta).
+const router = useRouter();
+const moduloDe = (to) => {
+  if (!to) return null;
+  try { return router.resolve(to).meta?.modulo ?? null; } catch { return null; }
+};
+
 // Filtramos las secciones y quitamos las que queden vacías por falta de permisos
 const filteredSections = computed(() => {
   return menuSections.value.map(section => {
     // Filtramos los items internos de cada sección
     const allowedItems = section.items.filter(item => {
       // Módulo ocultado por la parroquia en Configuración (cosmético, no seguridad).
-      if (parroquiaStore.moduloOculto(item.to?.name)) return false;
+      if (parroquiaStore.moduloOculto(moduloDe(item.to))) return false;
       if (!item.permission) return true;
       return Array.isArray(item.permission)
         ? authStore.canAll(item.permission)

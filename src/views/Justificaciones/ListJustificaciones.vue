@@ -10,6 +10,7 @@ import { Pencil, Trash, Plus, User, Phone, Calendar, Users, Wand2, Trash2, Save,
 import PerfilConfirmandoModal from '../../components/Modals/PerfilConfirmandoModal.vue';
 import AppPage from '@/components/AppPage.vue';
 import { useMediaQuery } from '@/composables/useMediaQuery';
+import { useParroquiaStore } from '@/stores/parroquia';
 
 const esMovil = useMediaQuery('(max-width: 767px)');
 
@@ -31,12 +32,23 @@ const form = ref({
     tipo_accion: ''
 });
 
-const ACCION_LABELS = { lectura: 'Lectura', colecta: 'Colecta', otros: 'Otros' };
-const etiquetaAccion = (tipo) => ACCION_LABELS[tipo] || '';
+// Acciones reparadoras y motivos: los define cada parroquia en Configuración.
+const parroquiaStore = useParroquiaStore();
+const etiquetaAccion = (clave) => parroquiaStore.etiquetaAccion(clave);
+const pideDetalle = (clave) => !!parroquiaStore.accionPorClave(clave)?.pide_detalle;
+const accionesParaElegir = computed(() => parroquiaStore.accionesActivas);
+// El motivo guardado se conserva aunque la parroquia lo haya quitado de la lista.
+const motivosParaElegir = computed(() => {
+    const lista = [...parroquiaStore.justificacionMotivos];
+    if (form.value.motivo && !lista.includes(form.value.motivo)) lista.push(form.value.motivo);
+    return lista;
+});
+const textoAccion = (a) => (a.cupo_por_fecha ? `${a.nombre} (máx. ${a.cupo_por_fecha} por fecha)` : a.nombre);
 
 const filtroActual = ref('TODOS');
 
 onMounted(async () => {
+    parroquiaStore.fetchJustificacionAcciones();
     try {
         await justificacionesStore.fetchPendientes();
     } catch (e) {
@@ -119,7 +131,7 @@ const guardarAcuerdo = async () => {
         showAlerta('Por favor, completa todos los campos del acuerdo', 'warning');
         return;
     }
-    if (form.value.tipo_accion === 'otros' && !form.value.descripcion.trim()) {
+    if (pideDetalle(form.value.tipo_accion) && !form.value.descripcion.trim()) {
         showAlerta('Especifica el detalle de la acción reparadora', 'warning');
         return;
     }
@@ -128,7 +140,7 @@ const guardarAcuerdo = async () => {
     const exito = await justificacionesStore.registrarAcuerdo({
         asistencia_id: form.value.asistencia_id,
         motivo: form.value.motivo,
-        descripcion: form.value.tipo_accion === 'otros' ? form.value.descripcion : '',
+        descripcion: pideDetalle(form.value.tipo_accion) ? form.value.descripcion : '',
         fecha_acuerdo: form.value.fecha_acuerdo,
         tipo_accion: form.value.tipo_accion
     });
@@ -339,7 +351,7 @@ const rechazarCumplimientoSwal = async (item) => {
                                 <td>
                                     <div v-if="item.estado_justificacion !== 'injustificado'">
                                         <span class="fw-bold text-dark" style="font-size: 0.85rem;">{{ etiquetaAccion(item.tipo_accion) }}</span>
-                                        <span v-if="item.tipo_accion === 'otros' && item.descripcion" class="fst-italic text-wrap d-block text-secondary" style="font-size: 0.8rem; max-width: 250px;">"{{ item.descripcion }}"</span>
+                                        <span v-if="item.descripcion" class="fst-italic text-wrap d-block text-secondary" style="font-size: 0.8rem; max-width: 250px;">"{{ item.descripcion }}"</span>
                                         <div class="text-muted text-wrap mt-1" style="font-size: 0.75rem; max-width: 250px;">Motivo: {{ item.motivo }}</div>
                                     </div>
                                     <span v-else class="badge bg-light text-muted border fw-normal">Sin tramitar</span>
@@ -458,7 +470,7 @@ const rechazarCumplimientoSwal = async (item) => {
                             <div v-if="item.estado_justificacion !== 'injustificado'">
                                 <dt>Acción reparadora</dt>
                                 <dd><span class="fw-bold">{{ etiquetaAccion(item.tipo_accion) }}</span>
-                                    <span v-if="item.tipo_accion === 'otros' && item.descripcion" class="text-muted fst-italic"> "{{ item.descripcion }}"</span>
+                                    <span v-if="item.descripcion" class="text-muted fst-italic"> "{{ item.descripcion }}"</span>
                                     <span class="d-block text-muted" style="font-size: 0.75rem;">Motivo: {{ item.motivo }}</span>
                                 </dd>
                             </div>
@@ -539,10 +551,7 @@ const rechazarCumplimientoSwal = async (item) => {
                         <label class="form-label text-xs fw-bold text-muted mb-1">Motivo del Apoderado</label>
                         <select class="form-select bg-light border-0 shadow-none" v-model="form.motivo">
                             <option value="">Seleccione un motivo...</option>
-                            <option value="Salud / Enfermedad">Salud / Enfermedad</option>
-                            <option value="Viaje Familiar u Obligatorio">Viaje Familiar u Obligatorio</option>
-                            <option value="Cruce de Horario Escolar / Académico">Cruce de Horario Escolar / Académico</option>
-                            <option value="Problema de Fuerza Mayor">Problema de Fuerza Mayor</option>
+                            <option v-for="m in motivosParaElegir" :key="m" :value="m">{{ m }}</option>
                         </select>
                     </div>
 
@@ -555,13 +564,11 @@ const rechazarCumplimientoSwal = async (item) => {
                         <label class="form-label text-xs fw-bold text-muted mb-1">Acción Reparadora Pactada</label>
                         <select class="form-select bg-light border-0 shadow-none" v-model="form.tipo_accion">
                             <option value="">Seleccione una acción...</option>
-                            <option value="lectura">Lectura (máx. 3 por fecha)</option>
-                            <option value="colecta">Colecta (máx. 6 por fecha)</option>
-                            <option value="otros">Otros</option>
+                            <option v-for="a in accionesParaElegir" :key="a.clave" :value="a.clave">{{ textoAccion(a) }}</option>
                         </select>
                     </div>
 
-                    <div class="mb-4" v-if="form.tipo_accion === 'otros'">
+                    <div class="mb-4" v-if="pideDetalle(form.tipo_accion)">
                         <label class="form-label text-xs fw-bold text-muted mb-1">Especifica la acción</label>
                         <textarea class="form-control bg-light border-0 shadow-none" rows="3" v-model="form.descripcion"
                             placeholder="Ej: El joven apoyará ordenando las sillas del salón..."></textarea>
