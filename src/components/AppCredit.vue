@@ -1,4 +1,5 @@
 <script setup>
+import { RouterLink } from 'vue-router'
 const anio = new Date().getFullYear()
 </script>
 
@@ -6,6 +7,10 @@ const anio = new Date().getFullYear()
   <p class="app-credit">
     Sistema desarrollado por Cristopher Andre Carrasco Crisanto · © {{ anio }} ·
     Contacto: <a href="mailto:cristopher270504@gmail.com">cristopher270504@gmail.com</a>
+    <span class="app-credit__legal">
+      · <RouterLink :to="{ name: 'privacidad' }">Privacidad</RouterLink>
+      · <RouterLink :to="{ name: 'terminos' }">Términos</RouterLink>
+    </span>
   </p>
 </template>
 
