@@ -44,3 +44,21 @@ ARCHIVO_DE_SEED_O_.env.example
 backup-key.txt
 *.age
 *.dump
+
+# ── Privado: no se publica en este repo (es público) ─────────────────────
+# Backend Supabase: esquema (migraciones), pruebas SQL y Edge Functions.
+# Se mantiene solo en local / repo privado; se despliega con la CLI.
+supabase/
+# Documentación interna.
+docs/
+# Configuración de asistentes de IA y herramientas locales.
+claude.md
+CLAUDE.md
+AGENTS.md
+.mcp.json
+.claude/
+.agents/
+.codex/
+skills-lock.json
+# Material de video (tutoriales) y backups locales.
+videos/

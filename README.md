@@ -2,7 +2,7 @@
 
 Aplicación web (PWA) para coordinar el Programa de Confirmación de una parroquia: inscripción de confirmandos, grupos, asistencia a reuniones, justificaciones, requisitos sacramentales y comunicación con apoderados.
 
-> Backend (API REST): [Sistema-de-gestion-de-Programa-de-Confirmacion---Backend](https://github.com/cris270504/Sistema-de-gestion-de-Programa-de-Confirmacion---Backend)
+> El backend (Supabase: esquema, políticas RLS y Edge Functions) se mantiene en un repositorio privado.
 <!-- > 🔗 Demo: https://TU-URL.vercel.app -->
 
 <!-- Agrega 2–3 capturas: docs/screenshots/dashboard.png, asistencias.png, movil.png -->
@@ -18,7 +18,8 @@ Aplicación web (PWA) para coordinar el Programa de Confirmación de una parroqu
 - **Sacramentos y requisitos** por confirmando
 - **Cumpleaños** del mes
 - **Usuarios, roles y permisos** (catequistas, coordinadores, administrador)
-- **Reportes** exportables a PDF y Excel
+- **Reportes** exportables a PDF, Excel y Word
+- **Multi-parroquia**: cada parroquia con sus datos aislados, configuración y marca propias
 - Diseño **responsive / mobile-first** e instalable como PWA
 
 ## 🛠️ Tecnologías
@@ -26,10 +27,10 @@ Aplicación web (PWA) para coordinar el Programa de Confirmación de una parroqu
 | Capa | Herramientas |
 |---|---|
 | Framework | Vue 3 (Composition API), Vite, Vue Router, Pinia, vite-plugin-pwa |
-| UI | Tailwind CSS, Reka UI, Lucide, TanStack Table, SweetAlert2 |
-| Gráficos y calendario | Chart.js, ApexCharts, FullCalendar |
-| Reportes | jsPDF + AutoTable, ExcelJS |
-| Integración | Axios (API Laravel), Supabase JS |
+| UI | Tailwind CSS, Bootstrap, Lucide, SweetAlert2 |
+| Calendario | FullCalendar |
+| Reportes | jsPDF + AutoTable, ExcelJS, docx |
+| Backend | Supabase (Postgres + RLS, Auth, Edge Functions, Storage) |
 | Despliegue | Vercel (Speed Insights), PWA |
 
 ## ▶️ Ejecutar en local
@@ -38,7 +39,7 @@ Aplicación web (PWA) para coordinar el Programa de Confirmación de una parroqu
 git clone https://github.com/cris270504/Sistema-de-gesti-n-de-Programa-de-Confirmaci-n-Fronted-.git
 cd Sistema-de-gesti-n-de-Programa-de-Confirmaci-n-Fronted-
 npm install
-cp .env.example .env   # configura la URL de la API
+cp .env.example .env   # VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY de tu proyecto
 npm run dev
 ```
 

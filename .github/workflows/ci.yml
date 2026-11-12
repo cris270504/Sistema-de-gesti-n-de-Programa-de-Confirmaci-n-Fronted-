@@ -1,9 +1,8 @@
 name: CI
 
 # Gate mínimo antes de mergear: lint (sin --fix, para que falle en vez de
-# corregir en silencio) + tests + build. No corre nada contra Supabase --
-# eso sigue siendo manual hasta que haya un proyecto de staging (ver
-# supabase/migrations/README.md).
+# corregir en silencio) + tests + build. No corre nada contra Supabase: el
+# backend (migraciones y Edge Functions) se mantiene fuera de este repo.
 
 on:
   push:

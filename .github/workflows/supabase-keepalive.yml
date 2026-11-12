@@ -12,7 +12,7 @@ name: Supabase keep-alive
 # corrida, ~5 días — cómodo bajo los 7.
 #
 # Secrets requeridos en el repo (Settings → Secrets and variables → Actions):
-#   SUPABASE_URL       https://srdccebxlslgomvxrfnu.supabase.co   (sin barra final)
+#   SUPABASE_URL       https://<ref>.supabase.co   (sin barra final)
 #   SUPABASE_ANON_KEY  anon key del proyecto
 #
 # Si nadie abre la app y este job falla, el proyecto se habrá pausado: la
@@ -44,16 +44,11 @@ jobs:
           echo "auth/v1/health -> $code"
           [ "$code" = "200" ] || fail=1
 
-          # 2) resolver-login: hace un SELECT en public.users → cuenta como
-          #    actividad de base de datos y mantiene la Edge Function caliente.
-          code=$(curl -s -o /dev/null -w '%{http_code}' \
-            --max-time 60 --retry 3 --retry-delay 20 --retry-all-errors \
-            -X POST "$base/functions/v1/resolver-login" \
-            -H "apikey: $SUPABASE_ANON_KEY" \
-            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
-            -H "Content-Type: application/json" \
-            -d '{"login":"keep-alive"}')
-          echo "functions/v1/resolver-login -> $code"
+          # 2) Una consulta real a Postgres: rpc/app_es_proveedor solo lee el JWT
+          #    (con la anon key devuelve false) y no expone datos. Cuenta como
+          #    actividad de base de datos, que es lo que evita la pausa.
+          code=$(curl -s -o /dev/null -w '%{http_code}'             --max-time 60 --retry 3 --retry-delay 20 --retry-all-errors             -X POST "$base/rest/v1/rpc/app_es_proveedor"             -H "apikey: $SUPABASE_ANON_KEY"             -H "Authorization: Bearer $SUPABASE_ANON_KEY"             -H "Content-Type: application/json"             -d '{}')
+          echo "rest/v1/rpc/app_es_proveedor -> $code"
           [ "$code" = "200" ] || fail=1
 
           exit $fail
