@@ -29,7 +29,7 @@ const onVisible = () => {
 onMounted(async () => {
   document.addEventListener('visibilitychange', onVisible)
 
-  // Fase 1 migración Supabase: mantener el token del store sincronizado con la
+  // Mantener el token del store sincronizado con la
   // sesión de supabase-js (refresco automático, cierre de sesión remoto).
   const auth = useAuthStore()
   auth.initAuthListener()

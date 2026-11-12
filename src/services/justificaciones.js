@@ -1,7 +1,7 @@
 import { errorLegible } from '@/lib/errores'
 import { supabase } from '@/lib/supabase';
 
-// Fase 3.1: el listado usa el RPC fn_justificaciones_pendientes (ventana de N
+// el listado usa el RPC fn_justificaciones_pendientes (ventana de N
 // días + faltas con trámite ya resueltas en SQL). Antes se leía directo la
 // vista v_justificaciones_pendientes con `.order()`, pero PostgREST no puede
 // empujar ese ORDER BY a través del security barrier que impone RLS sobre las
@@ -17,7 +17,7 @@ export async function getJustificacionesPendientes() {
     return data;
 }
 
-// ── Fase 4: las 3 acciones son RPCs transaccionales (tocan justificaciones +
+// ── Las 3 acciones son RPCs transaccionales (tocan justificaciones +
 //    asistencia). La RLS de esas tablas hace de `autorizarAsistencia`. ─────────
 async function rpc(fn, args) {
     const { data, error } = await supabase.rpc(fn, args);

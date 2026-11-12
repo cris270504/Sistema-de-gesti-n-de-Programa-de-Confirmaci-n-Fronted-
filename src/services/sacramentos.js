@@ -1,9 +1,8 @@
 import { errorLegible } from '@/lib/errores'
 import { supabase } from '@/lib/supabase'
 
-// Fase 3 migración Supabase: las LECTURAS del catálogo van directo a PostgREST
-// (la RLS por parroquia las acota). Las escrituras siguen en Laravel hasta la
-// Fase 4 (validación `unique` por parroquia + invalidación de caché).
+// Catálogo de sacramentos: lecturas directo a PostgREST (la RLS por parroquia
+// las acota) y escrituras por RPC.
 
 async function unwrap(promise) {
   const { data, error } = await promise
@@ -39,7 +38,7 @@ export async function getSacramentoById(id) {
   return aplanar(row)
 }
 
-// ── Escrituras: Fase 4, PostgREST directo (RLS: solo privilegiado; trigger fija
+// ── Escrituras: PostgREST directo (RLS: solo privilegiado; trigger fija
 //    parroquia_id; UNIQUE nombre por parroquia). El vínculo con requisitos va
 //    aparte, celda por celda, vía fn_sacramento_requisito_set.
 const soloSacramento = ({ nombre, clave } = {}) => ({

@@ -1,8 +1,8 @@
 import { errorLegible } from '@/lib/errores'
 import { supabase } from '@/lib/supabase'
 
-// Fase 3/4: lecturas y escrituras del catálogo → PostgREST (RLS por parroquia).
-// PostgREST directo (Fase 4).
+// lecturas y escrituras del catálogo → PostgREST (RLS por parroquia).
+// PostgREST directo.
 
 async function unwrap(promise) {
   const { data, error } = await promise
@@ -22,7 +22,7 @@ export function getRequisitoById(id) {
   )
 }
 
-// ── Escrituras: Fase 4, PostgREST directo. ──────────────────────────────────
+// ── Escrituras: PostgREST directo. ──────────────────────────────────
 export async function createRequisito(requisito) {
   const { data, error } = await supabase
     .from('requisitos').insert(requisito).select('id, nombre').single()

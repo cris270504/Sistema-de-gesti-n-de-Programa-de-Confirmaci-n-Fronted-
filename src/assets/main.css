@@ -7,7 +7,7 @@
    frameworks a la vez. */
 @custom-variant dark (&:where([data-bs-theme="dark"], [data-bs-theme="dark"] *));
 
-/* ===== INTEGRACIÓN CON BOOTSTRAP (mientras dure la migración de la Fase 8) =====
+/* ===== INTEGRACIÓN CON BOOTSTRAP (mientras convivan Bootstrap y Tailwind) =====
    Se probó envolver Bootstrap en su propio cascade layer para que las utilidades de
    Tailwind le ganaran a los resets de Bootstrap sobre elementos sin clase (ej.
    `button { border-radius: 0 }` de su Reboot). Se revirtió: Bootstrap marca CASI TODAS
@@ -77,7 +77,7 @@
    inválido en tiempo de cómputo → transparente, indicador de navegación activo
    invisible). Se declara acá también como variable CSS normal en :root para que
    cualquier var(--color-primary) — el de Sidebar.vue y los headers con degradado
-   de los modales de Fase 8 — resuelva al azul real. */
+   de los modales — resuelva al azul real. */
 :root {
   --color-primary: #2563eb;
 }

@@ -171,7 +171,7 @@ export const useConfirmandosStore = defineStore('confirmandos', {
                 }
                 return this.items[idx === -1 ? 0 : idx];
             } catch (e) {
-                this.error = e?.response?.data?.message || e?.message || `Error al obtener confirmando ${id}`;
+                this.error = e?.message || `Error al obtener confirmando ${id}`;
                 showAlerta(this.error, 'error');
                 throw e;
             } finally {
@@ -192,7 +192,7 @@ export const useConfirmandosStore = defineStore('confirmandos', {
                 return perfil;
 
             } catch (e) {
-                this.error = e?.response?.data?.message || e?.message || `Error al obtener el perfil del confirmando ${id}`;
+                this.error = e?.message || `Error al obtener el perfil del confirmando ${id}`;
                 showAlerta(this.error, 'error');
                 throw e;
             } finally {
@@ -214,7 +214,7 @@ export const useConfirmandosStore = defineStore('confirmandos', {
                 showAlerta(`Confirmando ${created.nombres} ${created.apellidos} creado correctamente.`, 'success');
                 return created;
             } catch (e) {
-                showErroresDeValidacion(e?.response?.data?.errors || e);
+                showErroresDeValidacion(e);
                 throw e;
             }
         },
@@ -237,7 +237,7 @@ export const useConfirmandosStore = defineStore('confirmandos', {
                 showAlerta('Confirmando actualizado correctamente', 'success');
                 return updated;
             } catch (e) {
-                showErroresDeValidacion(e?.response?.data?.errors || e);
+                showErroresDeValidacion(e);
                 throw e;
             }
         },
@@ -276,7 +276,7 @@ export const useConfirmandosStore = defineStore('confirmandos', {
                 showAlerta('Confirmando eliminado correctamente', 'success');
                 return true;
             } catch (e) {
-                this.error = e?.response?.data?.message || 'No se pudo eliminar';
+                this.error = e?.message || 'No se pudo eliminar';
                 showAlerta(this.error, 'error');
                 return false;
             }

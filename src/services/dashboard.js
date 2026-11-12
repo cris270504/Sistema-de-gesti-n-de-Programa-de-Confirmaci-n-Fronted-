@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabase'
 
-// Fase 3: el dashboard lee de dos vistas (RLS por parroquia + grupo vía
-// security_invoker) en vez de GET /dashboard/metricas de Laravel.
+// El dashboard lee de dos vistas (RLS por parroquia + grupo vía
+// security_invoker):
 // - v_dashboard_metricas: conteos + tasas (1 fila)
 // - v_dashboard_alertas: alertas de riesgo por confirmando (rachas/umbrales)
 

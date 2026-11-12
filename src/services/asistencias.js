@@ -15,7 +15,7 @@ export async function getAsistenciasList(reunionId) {
 }
 
 export async function saveAsistenciasBulk(reunionId, asistenciasData) {
-    // Fase 4: upsert masivo vía RPC (transacción en Postgres). El array llega con
+    // upsert masivo vía RPC (transacción en Postgres). El array llega con
     // { asistente_id, asistente_type, estado, nota } — misma forma que espera la fn.
     const { data, error } = await supabase.rpc('fn_guardar_asistencias', {
         p_reunion_id: Number(reunionId),
@@ -26,9 +26,9 @@ export async function saveAsistenciasBulk(reunionId, asistenciasData) {
 }
 
 // Matriz persona × reunión: RPC. Es dinámica (tipo = Confirmandos | Catequistas |
-// Apoderados) y la variante Catequistas necesita roles de Spatie (REVOCADOS de
-// PostgREST) → la función usa un helper SECURITY DEFINER acotado por parroquia.
-// `fecha` es 'YYYY-MM' o null (mismo contrato que el endpoint viejo).
+// Apoderados) y la variante Catequistas necesita los roles de usuario (tablas
+// REVOCADAS de PostgREST) → la función usa un helper SECURITY DEFINER acotado
+// por parroquia. `fecha` es 'YYYY-MM' o null.
 export function getAsistenciaMatrix(tipo, fecha) {
     return supabase
         .rpc('fn_asistencia_matriz', { p_tipo: tipo, p_fecha: fecha || null })

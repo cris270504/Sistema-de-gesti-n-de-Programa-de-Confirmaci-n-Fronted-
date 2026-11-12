@@ -51,8 +51,8 @@ export async function getCatequistasDelGrupo(id) {
   return error ? null : data
 }
 
-// ── Escrituras del grupo en sí: Fase 4, PostgREST directo. El sync de
-//    catequistas/confirmandos sigue en Laravel. ───────────────────────────────
+// ── Escrituras del grupo en sí: PostgREST directo (la RLS acota a la
+//    parroquia y exige permisos). ───────────────────────────────────────────
 const GRUPO_COLS = 'id, nombre, periodo, color, procedencia'
 
 export async function createGrupo(grupo) {

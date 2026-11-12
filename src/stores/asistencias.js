@@ -42,7 +42,7 @@ export const useAsistenciasStore = defineStore('asistencias', {
                 return true;
             } catch (e) {
                 console.error("Error real al guardar asistencia:", e);
-                throw new Error(e?.message || e?.response?.data?.message || 'Error al guardar asistencia');
+                throw new Error(e?.message || 'Error al guardar asistencia');
             }
         }
     },

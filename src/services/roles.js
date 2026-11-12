@@ -1,9 +1,9 @@
 import { errorLegible } from '@/lib/errores'
 import { supabase } from '@/lib/supabase'
 
-// Roles (Spatie). Las tablas están REVOCADAS de PostgREST → todo por RPCs
-// SECURITY DEFINER gateadas por los permisos del claim del JWT (== el
-// `permission:` de las rutas de Laravel). Sin Edge Function: no tocan auth.users.
+// Roles y permisos. Las tablas están REVOCADAS de PostgREST → todo por RPCs
+// SECURITY DEFINER que validan los permisos del claim del JWT (los mismos que
+// exige `meta.permission` en las rutas). Sin Edge Function: no tocan auth.users.
 
 async function rpc(fn, args) {
   const { data, error } = await supabase.rpc(fn, args)

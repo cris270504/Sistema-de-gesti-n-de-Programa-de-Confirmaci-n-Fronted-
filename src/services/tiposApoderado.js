@@ -1,7 +1,7 @@
 import { errorLegible } from '@/lib/errores'
 import { supabase } from '@/lib/supabase'
 
-// Fase 3: solo lectura → PostgREST (RLS por parroquia).
+// solo lectura → PostgREST (RLS por parroquia).
 
 export async function getTiposApoderadoList() {
   const { data, error } = await supabase

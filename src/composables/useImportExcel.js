@@ -54,13 +54,9 @@ export function useImportExcel(recargarTabla) {
       showAlerta(response.message || 'Importación completada con éxito', 'success')
       recargarTabla()
     } catch (error) {
-      let errorMsg = 'Error al importar el archivo.'
-      if (error.response?.data?.errors) {
-        const errores = Object.values(error.response.data.errors).flat()
-        errorMsg = errores.join('\n')
-      } else if (error.response?.data?.message) {
-        errorMsg = error.response.data.message
-      }
+      const errorMsg = error?.errores?.length
+        ? error.errores.join('\n')
+        : (error?.message || 'Error al importar el archivo.')
       showAlerta(errorMsg, 'error')
     } finally {
       isImporting.value = false

@@ -7,10 +7,6 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), '')
-  // Por defecto el proxy /api apunta a Render; para probar la Fase 1 contra el
-  // backend local se setea VITE_API_PROXY_TARGET=http://127.0.0.1:8000 en .env.local.
-  const apiTarget = env.VITE_API_PROXY_TARGET || 'https://sistema-de-gestion-de-programa-de.onrender.com'
 
   return {
     plugins: [
@@ -50,7 +46,6 @@ export default defineConfig(({ mode }) => {
           globIgnores: ['**/pwa-source.png', '**/exceljs*.js', '**/jspdf*.js', '**/html2canvas*.js'],
           // SPA: cualquier ruta abierta desde el ícono carga index.html.
           navigateFallback: '/index.html',
-          navigateFallbackDenylist: [/^\/api\//],
           cleanupOutdatedCaches: true,
         },
       }),
@@ -59,15 +54,6 @@ export default defineConfig(({ mode }) => {
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url))
       },
-    },
-    server: {
-      proxy: {
-        '/api': {
-          target: apiTarget,
-          changeOrigin: true,
-          secure: true,
-        }
-      }
     },
     test: {
       environment: 'jsdom',

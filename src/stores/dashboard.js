@@ -42,7 +42,7 @@ export const useDashboardStore = defineStore('dashboard', {
                     this.lastFetch = Date.now()
                 })
                 .catch((e) => {
-                    this.error = e?.response?.data?.message || e?.message || 'Error al cargar las métricas del dashboard'
+                    this.error = e?.message || 'Error al cargar las métricas del dashboard'
                     console.error('Error real al obtener métricas:', e)
                 })
                 .finally(() => {

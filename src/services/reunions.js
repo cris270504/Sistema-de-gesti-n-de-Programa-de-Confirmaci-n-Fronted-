@@ -1,7 +1,7 @@
 import { errorLegible } from '@/lib/errores'
 import { supabase } from '@/lib/supabase'
 
-// Fase 3/4: lecturas y escrituras → PostgREST (RLS + CHECK de tipo + trigger
+// lecturas y escrituras → PostgREST (RLS + CHECK de tipo + trigger
 // de parroquia).
 
 async function unwrap(promise) {
@@ -55,7 +55,7 @@ export function getUpcomingReuniones(timeZone = 'America/Lima') {
   )
 }
 
-// ── Escrituras: Fase 4, PostgREST directo (RLS: solo privilegiado; trigger fija
+// ── Escrituras: PostgREST directo (RLS: solo privilegiado; trigger fija
 //    parroquia_id; CHECK de tipo). ────────────────────────────────────────────
 export async function createReunion(reunion) {
   const { data, error } = await supabase

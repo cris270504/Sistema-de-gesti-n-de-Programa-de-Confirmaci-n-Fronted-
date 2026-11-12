@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 
-// Cliente de Supabase (Fase 1 de la migración: Supabase es el proveedor de
-// identidad; Laravel sigue sirviendo los datos validando el token de Supabase).
+// Cliente de Supabase: autenticación, base de datos (PostgREST + RLS),
+// almacenamiento y Edge Functions.
 //
 // En local: VITE_SUPABASE_URL=http://127.0.0.1:54321 y la anon key del stack.
 // En producción: la URL y la anon key del proyecto Supabase.

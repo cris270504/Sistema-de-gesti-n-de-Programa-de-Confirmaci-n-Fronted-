@@ -63,7 +63,7 @@ export function showErroresDeValidacion(errorObj) {
     }
   }
 
-  const mensaje = errorObj?.response?.data?.message || errorObj?.message || 'No se pudo procesar la solicitud';
+  const mensaje = errorObj?.message || 'No se pudo procesar la solicitud';
   showAlerta(mensaje, 'error');
 }
 
